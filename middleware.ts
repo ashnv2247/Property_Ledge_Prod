@@ -14,7 +14,9 @@ export const config = {
      * - favicon.ico (favicon file)
      * - images/ (public images)
      * - logo (logo images)
+     * - static asset extensions (.svg, .png, .jpg, .jpeg, .gif, .webp, .woff, .woff2, .ttf, .ico)
+     * - metadata files (manifest.json, robots.txt, sitemap.xml)
      */
-    '/((?!_next/static|_next/image|favicon.ico|images/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml|images/|logo|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf|ico)$).*)',
   ],
 };

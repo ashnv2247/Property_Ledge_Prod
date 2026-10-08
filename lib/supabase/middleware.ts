@@ -2,69 +2,6 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { resolveUserDestination } from '@/lib/routing/resolveUserDestination';
 
-type Persona = 'platform_admin' | 'tenant' | 'owner' | 'manager' | 'staff' | 'agent' | 'viewer' | 'admin';
-
-const STAGE_ROUTES: Record<string, string> = {
-  welcome: '/onboarding',
-  workspace: '/onboarding/workspace',
-  subscription: '/onboarding/subscription',
-  property: '/onboarding/property',
-  ready: '/onboarding/complete',
-};
-
-
-
-async function resolveOnboardingRoute(
-  supabase: ReturnType<typeof createServerClient>,
-  userId: string
-): Promise<string> {
-  const [{ data: profile }, { data: workspaces }, { data: properties }, { data: accountContext }] =
-    await Promise.all([
-      supabase.from('profiles').select('full_name').eq('id', userId).maybeSingle(),
-      supabase.from('workspaces').select('id').eq('owner_id', userId).eq('status', 'active').limit(1),
-      supabase.from('properties').select('id').eq('owner_id', userId).eq('status', 'active').limit(1),
-      supabase.from('account_context').select('onboarding_status').eq('user_id', userId).maybeSingle(),
-    ]);
-
-  if ((accountContext as { onboarding_status?: string } | null)?.onboarding_status === 'completed') {
-    return '/dashboard';
-  }
-
-  const hasProfile = !!(profile as { full_name?: string } | null)?.full_name?.trim();
-  const hasWorkspace = (workspaces || []).length > 0;
-  const hasProperty = (properties || []).length > 0;
-
-  const { data: authUser } = await supabase.auth.getUser();
-  const onboardingMeta = authUser.user?.user_metadata?.onboarding as
-    | { data?: { startMode?: string; selectedPlanId?: string }; completedStages?: string[] }
-    | undefined;
-  const hasSubscriptionDecision =
-    !!onboardingMeta?.data?.startMode ||
-    !!onboardingMeta?.data?.selectedPlanId ||
-    (onboardingMeta?.completedStages || []).includes('subscription');
-
-  if (!hasProfile || !hasWorkspace) return STAGE_ROUTES.workspace;
-  if (!hasSubscriptionDecision) return STAGE_ROUTES.subscription;
-  if (onboardingMeta?.data?.startMode === 'paid' && !hasProperty) {
-    const { data: sub } = await supabase
-      .from('subscriptions')
-      .select('status')
-      .eq('account_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    const status = (sub as { status?: string } | null)?.status;
-    const paymentSubmitted = Boolean(
-      (onboardingMeta as { data?: { paymentSubmitted?: boolean } } | undefined)?.data?.paymentSubmitted
-    );
-    if ((status === 'pending_payment' || status === 'draft') && !paymentSubmitted) {
-      return '/onboarding/payment';
-    }
-  }
-  if (!hasProperty) return STAGE_ROUTES.property;
-  return STAGE_ROUTES.ready;
-}
-
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -126,7 +63,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(new URL(`/login?redirectTo=${encodeURIComponent(pathname)}`, request.url));
   }
 
-  // Full session verification & refresh for full document loads or auth routes
+  // Secure Supabase session verification & token refresh
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -136,29 +73,14 @@ export async function updateSession(request: NextRequest) {
   const joinMatch = redirectTo?.match(/^\/join\/([^/?]+)/);
   const pendingInvitationToken = joinMatch?.[1] ?? null;
 
-  let onboardingStatus: string | null = null;
-  let onboardingRoute: string | null = null;
-  let persona: Persona | null = null;
-
-  if (user && (isAuthRoute || pathname.startsWith('/dashboard'))) {
-    const { data: accountContext } = await supabase
-      .from('account_context')
-      .select('onboarding_status')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    onboardingStatus = (accountContext as { onboarding_status?: string } | null)?.onboarding_status ?? null;
-    if (onboardingStatus !== 'completed') {
-      onboardingRoute = await resolveOnboardingRoute(supabase, user.id);
-    }
-  }
-
+  // Middleware only handles route security and cookie refresh.
+  // Database-heavy onboarding and persona resolution are delegated to AppLayout.
   const resolution = resolveUserDestination({
     isAuthenticated: !!user,
     pathname,
-    onboardingStatus,
-    onboardingRoute,
-    persona,
+    onboardingStatus: 'completed',
+    onboardingRoute: null,
+    persona: null,
     pendingInvitationToken,
     redirectTo,
     planParam,
