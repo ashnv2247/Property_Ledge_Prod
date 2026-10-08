@@ -16,7 +16,7 @@ export function AutomationSection() {
 
   return (
     <div className="dark text-foreground bg-background">
-      <section className="py-24 md:py-32 bg-surface-subtle/80 dark:bg-[#071014] text-foreground dark:text-[#F4F1EC] relative overflow-hidden border-y border-border dark:border-[#A9927D]/20 transition-colors duration-300">
+      <section className="py-24 md:py-32 bg-surface-subtle/40 dark:bg-[#071014] text-foreground dark:text-[#F4F1EC] relative overflow-hidden transition-colors duration-300">
         {/* Background Architectural Ambient Lighting */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-accent/5 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute inset-0 bg-architectural-grid opacity-30 dark:opacity-20 pointer-events-none" />

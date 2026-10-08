@@ -319,7 +319,18 @@ export class PdfFolioStatementAdapter {
         },
       ]);
 
-      // 2. Individual Line Items
+      // 2. Group transactions by Account / Category to consolidate duplicate entries
+      const accountMap = new Map<
+        string,
+        {
+          accountName: string;
+          includedTax: number;
+          moneyOut: number;
+          moneyIn: number;
+          isIncome: boolean;
+        }
+      >();
+
       groupTxs.forEach((tx) => {
         const amount = Math.abs(Number(tx.amount || 0));
         const gstAmount =
@@ -334,17 +345,41 @@ export class PdfFolioStatementAdapter {
         const isIncome = tx.transaction_type === 'income';
         const category = tx.category?.name || 'General';
 
+        if (!accountMap.has(category)) {
+          accountMap.set(category, {
+            accountName: category,
+            includedTax: 0,
+            moneyOut: 0,
+            moneyIn: 0,
+            isIncome,
+          });
+        }
+
+        const acc = accountMap.get(category)!;
+        acc.includedTax += gstAmount;
         if (isIncome) {
+          acc.moneyIn += amount;
           subMoneyIn += amount;
           subTax += gstAmount;
         } else {
+          acc.moneyOut += amount;
           subMoneyOut += amount;
           subTax += gstAmount;
         }
+      });
 
+      // Sort accounts: Income accounts first (e.g. Rent), followed by Expenses alphabetically
+      const sortedAccounts = Array.from(accountMap.values()).sort((a, b) => {
+        if (a.isIncome !== b.isIncome) {
+          return a.isIncome ? -1 : 1;
+        }
+        return a.accountName.localeCompare(b.accountName);
+      });
+
+      sortedAccounts.forEach((acc) => {
         tableBody.push([
           {
-            content: `   ${category}`,
+            content: `   ${acc.accountName}`,
             styles: {
               textColor: PALETTE.slate700,
               fontSize: 7.2,
@@ -352,7 +387,7 @@ export class PdfFolioStatementAdapter {
             },
           },
           {
-            content: gstAmount > 0.005 ? formatCurrencyReport(gstAmount) : '',
+            content: acc.includedTax > 0.005 ? formatCurrencyReport(acc.includedTax) : '',
             styles: {
               halign: 'right',
               textColor: PALETTE.slate700,
@@ -361,7 +396,7 @@ export class PdfFolioStatementAdapter {
             },
           },
           {
-            content: !isIncome ? formatCurrencyReport(amount) : '',
+            content: acc.moneyOut > 0 ? formatCurrencyReport(acc.moneyOut) : '',
             styles: {
               halign: 'right',
               textColor: PALETTE.slate700,
@@ -370,7 +405,7 @@ export class PdfFolioStatementAdapter {
             },
           },
           {
-            content: isIncome ? formatCurrencyReport(amount) : '',
+            content: acc.moneyIn > 0 ? formatCurrencyReport(acc.moneyIn) : '',
             styles: {
               halign: 'right',
               textColor: PALETTE.slate700,

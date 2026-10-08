@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface OnboardingStepProps {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description?: string;
   children?: React.ReactNode;
@@ -9,23 +9,26 @@ interface OnboardingStepProps {
 
 export function OnboardingStep({ eyebrow, title, description, children }: OnboardingStepProps) {
   return (
-    <div className="space-y-8">
-      <div className="space-y-3">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-admin-muted cursor-default">
-          {eyebrow}
-        </p>
-        <h1 className="font-heading text-2xl sm:text-[32px] font-bold tracking-tight text-admin-foreground leading-[1.2] cursor-default">
+    <div className="space-y-6">
+      <div className="space-y-2">
+        {eyebrow && (
+          <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-widest text-[#00A99D] bg-[#008F83]/10 px-2 py-0.5 rounded-md border border-[#008F83]/20 cursor-default">
+            {eyebrow}
+          </span>
+        )}
+        <h1 className="font-heading text-xl sm:text-2xl lg:text-[26px] font-bold tracking-tight text-[#FFFFFF] leading-[1.25] cursor-default">
           {title}
         </h1>
         {description && (
-          <p className="text-sm sm:text-base text-admin-muted leading-relaxed cursor-default">
+          <p className="text-xs sm:text-sm text-[#8FA3B8] leading-relaxed cursor-default max-w-xl">
             {description}
           </p>
         )}
       </div>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {children}
       </div>
     </div>
   );
 }
+

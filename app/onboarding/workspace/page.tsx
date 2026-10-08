@@ -1,16 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOnboardingNav } from '@/components/onboarding/OnboardingNavContext';
-import { Building2, Home, Briefcase } from 'lucide-react';
 import { OnboardingContent } from '@/components/onboarding/OnboardingContent';
 import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
 import { OnboardingFooter } from '@/components/onboarding/OnboardingFooter';
 import { FormField, inputClassName } from '@/components/onboarding/FormField';
-import { SelectionCard } from '@/components/onboarding/SelectionCard';
 import { saveOnboardingWorkspaceSetup } from '@/app/actions/onboarding';
 import type { BusinessType } from '@/lib/onboarding/state';
 import { cn } from '@/lib/utils';
+import { Building2, Sparkles, Globe } from 'lucide-react';
 
 function slugify(value: string): string {
   return value
@@ -20,27 +19,6 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-const BUSINESS_TYPES = [
-  {
-    id: 'property_owner' as BusinessType,
-    title: 'Property owner',
-    description: 'I manage my own properties',
-    icon: <Home className="h-4 w-4" />,
-  },
-  {
-    id: 'property_management' as BusinessType,
-    title: 'Property management',
-    description: 'I manage properties for owners',
-    icon: <Briefcase className="h-4 w-4" />,
-  },
-  {
-    id: 'real_estate_operations' as BusinessType,
-    title: 'Real estate operations',
-    description: 'I manage a larger property portfolio',
-    icon: <Building2 className="h-4 w-4" />,
-  },
-];
-
 export default function OnboardingWorkspacePage() {
   const { navigate } = useOnboardingNav();
   const [fullName, setFullName] = useState('');
@@ -49,9 +27,19 @@ export default function OnboardingWorkspacePage() {
   const [slug, setSlug] = useState('');
   const [isSlugCustom, setIsSlugCustom] = useState(false);
   const [businessType, setBusinessType] = useState<BusinessType>('property_owner');
+  const [portfolioSize, setPortfolioSize] = useState<'1-2' | '3-10' | '10+'>('1-2');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedPersona = sessionStorage.getItem('pl_onboarding_persona') as BusinessType | null;
+      if (savedPersona) {
+        setBusinessType(savedPersona);
+      }
+    }
+  }, []);
 
   const handleNameChange = (value: string) => {
     setWorkspaceName(value);
@@ -67,8 +55,8 @@ export default function OnboardingWorkspacePage() {
 
   const validate = () => {
     const next: Record<string, string> = {};
-    if (!fullName.trim()) next.fullName = 'Full name is required';
-    if (!workspaceName.trim()) next.workspaceName = 'Workspace name is required';
+    if (!fullName.trim()) next.fullName = 'Please enter your full name';
+    if (!workspaceName.trim()) next.workspaceName = 'Please give your workspace a name';
     if (!slug.trim()) next.slug = 'Workspace URL slug is required';
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -100,42 +88,56 @@ export default function OnboardingWorkspacePage() {
       <form onSubmit={handleSubmit}>
         <OnboardingStep
           eyebrow="Step 1 of 4"
-          title="Let's set up your workspace."
-          description="Create your workspace to start managing your properties, tenants, leases, and team."
+          title="Set up your workspace."
+          description="Your workspace is the private, secure hub where your properties, financial records, and documents live."
         >
-          <div className="space-y-6 mt-6">
-            {/* User Info Section */}
-            <div className="space-y-4">
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-admin-muted/90 cursor-default">Your Information</h3>
-              
-              <FormField id="fullName" label="Full name" error={errors.fullName}>
-                <input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className={inputClassName}
-                  placeholder="Jane Smith"
-                  autoComplete="name"
-                />
-              </FormField>
+          <div className="space-y-5 mt-4">
+            {/* User Profile Section */}
+            <div className="p-4 rounded-2xl bg-[#0B1D30]/60 border border-white/[0.06] space-y-3.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#00A99D]">
+                  01 · Profile Information
+                </span>
+              </div>
 
-              <FormField id="phone" label="Phone (optional)">
-                <input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className={inputClassName}
-                  placeholder="+61 400 000 000"
-                  autoComplete="tel"
-                />
-              </FormField>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <FormField id="fullName" label="Your full name" error={errors.fullName}>
+                  <input
+                    id="fullName"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className={inputClassName}
+                    placeholder="e.g. Sarah Jenkins"
+                    autoComplete="name"
+                  />
+                </FormField>
+
+                <FormField id="phone" label="Mobile number (optional)" hint="For verification & SMS alerts">
+                  <input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={inputClassName}
+                    placeholder="0400 000 000"
+                    autoComplete="tel"
+                  />
+                </FormField>
+              </div>
             </div>
 
-            {/* Workspace Section */}
-            <div className="space-y-4 pt-4 border-t border-admin-border/20">
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-admin-muted/90 cursor-default">Your Workspace</h3>
+            {/* Workspace Configuration Section */}
+            <div className="p-4 rounded-2xl bg-[#0B1D30]/60 border border-white/[0.06] space-y-3.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#00A99D]">
+                  02 · Workspace Details
+                </span>
+                <span className="text-[10px] text-[#8FA3B8] flex items-center gap-1">
+                  <Globe className="h-3 w-3 text-[#008F83]" />
+                  <span>Australian Region</span>
+                </span>
+              </div>
 
               <FormField id="workspaceName" label="Workspace name" error={errors.workspaceName}>
                 <input
@@ -144,48 +146,56 @@ export default function OnboardingWorkspacePage() {
                   value={workspaceName}
                   onChange={(e) => handleNameChange(e.target.value)}
                   className={inputClassName}
-                  placeholder="Williams Property Holdings"
+                  placeholder="e.g. Jenkins Property Group or My Portfolio"
                 />
               </FormField>
 
               <FormField
                 id="slug"
                 label="Workspace URL"
-                hint={slug ? `Your URL: propertyledge.com/${slug}` : undefined}
+                hint={slug ? `Your private link: propertyledge.com/${slug}` : 'Used for team and portal links'}
                 error={errors.slug}
               >
                 <div className="relative flex items-center">
-                  <span className="absolute left-4 text-sm text-admin-muted select-none">propertyledge.com/</span>
+                  <span className="absolute left-3.5 text-xs text-[#64788D] select-none font-mono">
+                    propertyledge.com/
+                  </span>
                   <input
                     id="slug"
                     type="text"
                     value={slug}
                     onChange={(e) => handleSlugChange(e.target.value)}
-                    className={cn(inputClassName, "pl-[126px]")}
-                    placeholder="williams-property-holdings"
+                    className={cn(inputClassName, "pl-[124px] font-mono text-xs sm:text-sm")}
+                    placeholder="jenkins-property"
                   />
                 </div>
               </FormField>
-            </div>
 
-            {/* Business Type Section */}
-            <div className="space-y-4 pt-4 border-t border-admin-border/20">
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-admin-muted/90 cursor-default">Business Description</h3>
-              
-              <div className="space-y-3">
-                <p className="text-xs font-semibold text-admin-foreground/80 cursor-default">What best describes your business?</p>
-                <div className="space-y-2.5">
-                  {BUSINESS_TYPES.map((type) => (
-                    <SelectionCard
-                      key={type.id}
-                      id={type.id}
-                      name="businessType"
-                      title={type.title}
-                      description={type.description}
-                      icon={type.icon}
-                      selected={businessType === type.id}
-                      onSelect={() => setBusinessType(type.id)}
-                    />
+              {/* Portfolio Scale / Size quick-select */}
+              <div className="space-y-1.5 pt-1">
+                <label className="block text-xs font-semibold text-[#FFFFFF]/90 tracking-tight">
+                  How many properties are you starting with?
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: '1-2', label: '1 – 2 Properties', sub: 'Single / Dual asset' },
+                    { id: '3-10', label: '3 – 10 Properties', sub: 'Growing portfolio' },
+                    { id: '10+', label: '10+ Properties', sub: 'Commercial / Scale' },
+                  ].map((size) => (
+                    <button
+                      key={size.id}
+                      type="button"
+                      onClick={() => setPortfolioSize(size.id as any)}
+                      className={cn(
+                        'p-2.5 rounded-xl border text-left transition-all cursor-pointer select-none',
+                        portfolioSize === size.id
+                          ? 'border-[#008F83] bg-[#008F83]/15 text-[#FFFFFF] shadow-sm shadow-[#008F83]/20 ring-1 ring-[#008F83]/40'
+                          : 'border-white/[0.06] bg-white/[0.02] text-[#8FA3B8] hover:border-white/[0.12] hover:bg-white/[0.04]'
+                      )}
+                    >
+                      <span className="text-xs font-semibold block leading-tight">{size.label}</span>
+                      <span className="text-[10px] text-[#64788D] block mt-0.5">{size.sub}</span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -204,3 +214,4 @@ export default function OnboardingWorkspacePage() {
     </OnboardingContent>
   );
 }
+

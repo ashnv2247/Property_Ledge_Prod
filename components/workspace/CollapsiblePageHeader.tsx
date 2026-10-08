@@ -29,8 +29,8 @@ export function CollapsiblePageHeader({
   return (
     <header
       className={cn(
-        'shrink-0 border-b border-admin-border transition-[padding] duration-250 ease-out',
-        isCompact ? 'pb-2 pt-2' : 'pb-5 pt-4',
+        'shrink-0 transition-[padding] duration-250 ease-out',
+        isCompact ? 'pb-2 pt-2' : 'pb-4 pt-4',
         className
       )}
       data-workspace-phase={snapshot?.phase ?? 'expanded'}

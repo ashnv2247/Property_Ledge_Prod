@@ -20,7 +20,7 @@ const densityStyles = {
 
 export function Table({ density = 'default', className, children, ...props }: TableProps) {
   return (
-    <div className="w-full overflow-x-auto admin-scrollbar rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
+    <div className="w-full overflow-x-auto admin-scrollbar rounded-2xl bg-white dark:bg-[#08182A] border border-slate-200/80 dark:border-white/[0.06] shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
       <table className={cn('w-full text-left', densityStyles[density], className)} {...props}>
         {children}
       </table>
@@ -32,7 +32,7 @@ export function TableHeader({ className, children, ...props }: React.HTMLAttribu
   return (
     <thead
       className={cn(
-        'border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 text-[12px] font-bold uppercase tracking-wider',
+        'border-b border-slate-200/80 dark:border-white/[0.06] bg-slate-50/90 dark:bg-[#0B1D30]/60 text-slate-600 dark:text-slate-300 text-[12px] font-bold uppercase tracking-wider',
         className
       )}
       {...props}
@@ -44,7 +44,7 @@ export function TableHeader({ className, children, ...props }: React.HTMLAttribu
 
 export function TableBody({ className, children, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
   return (
-    <tbody className={cn('divide-y divide-slate-100 dark:divide-slate-800/60', className)} {...props}>
+    <tbody className={cn('divide-y divide-slate-100 dark:divide-white/[0.04]', className)} {...props}>
       {children}
     </tbody>
   );
@@ -101,7 +101,7 @@ export function TableToolbar({
   return (
     <div
       className={cn(
-        'flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900',
+        'flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-slate-200/80 dark:border-white/[0.06] bg-white dark:bg-[#08182A]',
         className
       )}
       {...props}
@@ -115,7 +115,7 @@ export function TableToolbar({
               value={searchValue}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full h-11 pl-10 pr-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-[14px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#008F83]/20 focus:border-[#008F83] transition-all shadow-xs"
+              className="w-full h-11 pl-10 pr-4 rounded-xl bg-white dark:bg-[#0E1E33] border border-slate-200/80 dark:border-white/[0.06] text-[14px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#008F83]/20 focus:border-[#008F83] transition-all shadow-xs"
               aria-label={searchPlaceholder}
             />
           </div>
@@ -171,7 +171,7 @@ export function Pagination({ page, totalPages, totalItems, onPageChange, pageSiz
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-500">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 border-t border-slate-200/80 dark:border-white/[0.06] bg-white dark:bg-[#08182A] text-xs text-slate-500">
       {totalItems !== undefined && (
         <p className="text-slate-500 dark:text-slate-400 font-medium">
           Showing <span className="font-bold text-slate-900 dark:text-white">{from}</span>–

@@ -1,14 +1,15 @@
 export const ONBOARDING_STAGES = [
   { id: 'welcome', path: '/onboarding', label: 'Welcome' },
   { id: 'workspace', path: '/onboarding/workspace', label: 'Workspace' },
-  { id: 'subscription', path: '/onboarding/subscription', label: 'Subscription' },
+  { id: 'subscription', path: '/onboarding/subscription', label: 'Plan' },
   { id: 'property', path: '/onboarding/property', label: 'Property' },
+  { id: 'team', path: '/onboarding/team', label: 'Team' },
   { id: 'ready', path: '/onboarding/complete', label: 'Ready' },
 ] as const;
 
 export type OnboardingStage = (typeof ONBOARDING_STAGES)[number]['id'];
 
-/** Internal sub-routes not shown in the 4-stage rail */
+/** Internal sub-routes not shown in the main progress rail */
 export const ONBOARDING_SUB_ROUTES = {
   plans: '/onboarding/plans',
   payment: '/onboarding/payment',
@@ -26,7 +27,7 @@ export const DEFAULT_ONBOARDING_PROGRESS: OnboardingProgress = {
   data: {},
 };
 
-export type BusinessType = 'property_management' | 'property_owner' | 'real_estate_operations';
+export type BusinessType = 'property_management' | 'property_owner' | 'real_estate_operations' | 'accountant' | 'investor';
 
 export type StartMode = 'explore' | 'trial' | 'paid' | 'free';
 
@@ -44,7 +45,7 @@ export function getStageByPath(pathname: string) {
   return ONBOARDING_STAGES.find((s) => s.path === pathname) ?? ONBOARDING_STAGES[0];
 }
 
-/** Progress steps exclude welcome — user sees 4 meaningful stages */
+/** Progress steps exclude welcome and ready — user sees 4 active setup stages (Workspace, Plan, Property, Team) */
 export const PROGRESS_STAGES = ONBOARDING_STAGES.filter((s) => s.id !== 'welcome');
 
 export function getProgressStepFromPath(pathname: string): {
@@ -124,7 +125,7 @@ export function parseOnboardingProgress(raw: unknown): OnboardingProgress {
     units: 'property',
     tenants: 'property',
     leases: 'property',
-    team: 'property',
+    team: 'team',
     complete: 'ready',
   };
 

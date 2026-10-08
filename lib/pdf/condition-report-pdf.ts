@@ -32,7 +32,7 @@ const PALETTE = {
 };
 
 /**
- * Draws a modern, clean Schedule 2 Y / N checkbox indicator
+ * Draws a modern, clean Schedule 2 Y / N checkbox indicator with pixel-perfect alignment
  */
 function drawYNBox(
   doc: jsPDF,
@@ -43,43 +43,46 @@ function drawYNBox(
 ) {
   const boxW = 5.2;
   const boxH = 4.2;
-  const gap = 1.8;
+  const gap = 1.6;
 
   // 'Y' Box
-  doc.setLineWidth(0.2);
-  doc.setDrawColor(...PALETTE.cardBorder);
+  doc.setLineWidth(0.25);
   if (isYes === true) {
-    doc.setFillColor(236, 253, 245); // Emerald-50
+    doc.setDrawColor(5, 150, 105); // Emerald-600
+    doc.setFillColor(209, 250, 229); // Emerald-100
     doc.roundedRect(x, y, boxW, boxH, 0.6, 0.6, 'FD');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(5.5);
+    doc.setFontSize(5.8);
     doc.setTextColor(4, 120, 87); // Emerald-700
-    doc.text('✓ Y', x + boxW / 2, y + 3.1, { align: 'center' });
+    doc.text('Y', x + boxW / 2, y + 3.0, { align: 'center' });
   } else {
+    doc.setDrawColor(...PALETTE.cardBorder);
     doc.setFillColor(255, 255, 255);
     doc.roundedRect(x, y, boxW, boxH, 0.6, 0.6, 'FD');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5.5);
     doc.setTextColor(...PALETTE.mutedText);
-    doc.text('Y', x + boxW / 2, y + 3.1, { align: 'center' });
+    doc.text('Y', x + boxW / 2, y + 3.0, { align: 'center' });
   }
 
   // 'N' Box
   const x2 = x + boxW + gap;
   if (isNo === true) {
-    doc.setFillColor(254, 242, 242); // Rose-50
+    doc.setDrawColor(220, 38, 38); // Red-600
+    doc.setFillColor(254, 226, 226); // Red-100
     doc.roundedRect(x2, y, boxW, boxH, 0.6, 0.6, 'FD');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(5.5);
-    doc.setTextColor(185, 28, 28); // Rose-700
-    doc.text('✓ N', x2 + boxW / 2, y + 3.1, { align: 'center' });
+    doc.setFontSize(5.8);
+    doc.setTextColor(185, 28, 28); // Red-700
+    doc.text('N', x2 + boxW / 2, y + 3.0, { align: 'center' });
   } else {
+    doc.setDrawColor(...PALETTE.cardBorder);
     doc.setFillColor(255, 255, 255);
     doc.roundedRect(x2, y, boxW, boxH, 0.6, 0.6, 'FD');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5.5);
     doc.setTextColor(...PALETTE.mutedText);
-    doc.text('N', x2 + boxW / 2, y + 3.1, { align: 'center' });
+    doc.text('N', x2 + boxW / 2, y + 3.0, { align: 'center' });
   }
 }
 
@@ -609,6 +612,9 @@ export function generateConditionReportPDF(data: FullConditionReportData): jsPDF
   const boxW = (CONTENT_WIDTH - boxGap) / 2;
   const statTopY = 24;
   const statBoxH = 172;
+  const leftYNX = MARGIN + boxW - 15.5;
+  const rightBoxX = MARGIN + boxW + boxGap;
+  const rightYNX = rightBoxX + boxW - 15.5;
 
   // --- LEFT COLUMN: MINIMUM STANDARDS ---
   doc.setFillColor(255, 255, 255);
@@ -628,7 +634,7 @@ export function generateConditionReportPDF(data: FullConditionReportData): jsPDF
   doc.setFontSize(6.2);
   doc.setTextColor(...PALETTE.charcoalText);
   doc.text('The landlord must indicate whether the following apply to the residential premises:', MARGIN + 4, msY);
-  msY += 4;
+  msY += 4.5;
 
   const minStandards = [
     {
@@ -698,32 +704,31 @@ export function generateConditionReportPDF(data: FullConditionReportData): jsPDF
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(6.2);
       doc.setTextColor(...PALETTE.charcoalText);
-      doc.text(ms.q, MARGIN + 4, msY + 2.5);
-      msY += 5;
+      doc.text(ms.q, MARGIN + 4, msY + 2.8);
+      msY += 5.2;
       return;
     }
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6);
     doc.setTextColor(...PALETTE.bodyText);
-    const qLines = doc.splitTextToSize(ms.q, boxW - 24);
-    doc.text(qLines, MARGIN + 4, msY + 2.5);
+    const qLines = doc.splitTextToSize(ms.q, boxW - 22);
+    doc.text(qLines, MARGIN + 4, msY + 2.8);
 
-    drawYNBox(doc, MARGIN + boxW - 17, msY, ms.val === true, ms.val === false);
-    msY += Math.max(5, qLines.length * 2.8 + 1.5);
+    drawYNBox(doc, leftYNX, msY, ms.val === true, ms.val === false);
+    msY += Math.max(5.2, qLines.length * 2.8 + 1.2);
 
     if (ms.note) {
       doc.setFont('helvetica', 'italic');
-      doc.setFontSize(5);
+      doc.setFontSize(4.8);
       doc.setTextColor(...PALETTE.mutedText);
       const noteLines = doc.splitTextToSize(ms.note, boxW - 8);
-      doc.text(noteLines, MARGIN + 4, msY);
-      msY += noteLines.length * 2.2 + 2;
+      doc.text(noteLines, MARGIN + 4, msY + 1);
+      msY += noteLines.length * 2.2 + 2.5;
     }
   });
 
   // --- RIGHT COLUMN: HEALTH ISSUES, SMOKE ALARMS, OTHER SAFETY ---
-  const rightBoxX = MARGIN + boxW + boxGap;
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(...PALETTE.cardBorder);
   doc.roundedRect(rightBoxX, statTopY, boxW, statBoxH, 1.5, 1.5, 'FD');
@@ -749,9 +754,10 @@ export function generateConditionReportPDF(data: FullConditionReportData): jsPDF
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6);
     doc.setTextColor(...PALETTE.bodyText);
-    doc.text(h.q, rightBoxX + 4, rY + 2.5, { maxWidth: boxW - 24 });
-    drawYNBox(doc, rightBoxX + boxW - 17, rY, h.val === true, h.val === false);
-    rY += 5.5;
+    const hLines = doc.splitTextToSize(h.q, boxW - 22);
+    doc.text(hLines, rightBoxX + 4, rY + 2.8);
+    drawYNBox(doc, rightYNX, rY, h.val === true, h.val === false);
+    rY += Math.max(5.4, hLines.length * 2.8 + 1.2);
   });
 
   // 2. SMOKE ALARMS
@@ -774,9 +780,10 @@ export function generateConditionReportPDF(data: FullConditionReportData): jsPDF
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6);
     doc.setTextColor(...PALETTE.bodyText);
-    doc.text(s.q, rightBoxX + 4, rY + 2.5, { maxWidth: boxW - 24 });
-    drawYNBox(doc, rightBoxX + boxW - 17, rY, s.val === true, s.val === false);
-    rY += 5.5;
+    const sLines = doc.splitTextToSize(s.q, boxW - 22);
+    doc.text(sLines, rightBoxX + 4, rY + 2.8);
+    drawYNBox(doc, rightYNX, rY, s.val === true, s.val === false);
+    rY += Math.max(5.4, sLines.length * 2.8 + 1.2);
   });
 
   doc.setFont('helvetica', 'bold');
@@ -805,9 +812,10 @@ export function generateConditionReportPDF(data: FullConditionReportData): jsPDF
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6);
     doc.setTextColor(...PALETTE.bodyText);
-    doc.text(os.q, rightBoxX + 4, rY + 2.5, { maxWidth: boxW - 24 });
-    drawYNBox(doc, rightBoxX + boxW - 17, rY, os.val === true, os.val === false);
-    rY += 5.5;
+    const osLines = doc.splitTextToSize(os.q, boxW - 22);
+    doc.text(osLines, rightBoxX + 4, rY + 2.8);
+    drawYNBox(doc, rightYNX, rY, os.val === true, os.val === false);
+    rY += Math.max(5.4, osLines.length * 2.8 + 1.2);
   });
 
   // =========================================================================
@@ -838,9 +846,10 @@ export function generateConditionReportPDF(data: FullConditionReportData): jsPDF
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6);
     doc.setTextColor(...PALETTE.bodyText);
-    doc.text(c.q, MARGIN + 4, leftY + 2.5, { maxWidth: boxW - 24 });
-    drawYNBox(doc, MARGIN + boxW - 17, leftY, c.val === true, c.val === false);
-    leftY += 6;
+    const cLines = doc.splitTextToSize(c.q, boxW - 22);
+    doc.text(cLines, MARGIN + 4, leftY + 2.8);
+    drawYNBox(doc, leftYNX, leftY, c.val === true, c.val === false);
+    leftY += Math.max(5.8, cLines.length * 2.8 + 1.2);
   });
 
   leftY += 3;
@@ -863,9 +872,10 @@ export function generateConditionReportPDF(data: FullConditionReportData): jsPDF
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6);
     doc.setTextColor(...PALETTE.bodyText);
-    doc.text(w.q, MARGIN + 4, leftY + 2.5, { maxWidth: boxW - 24 });
-    drawYNBox(doc, MARGIN + boxW - 17, leftY, w.val === true, w.val === false);
-    leftY += 5.5;
+    const wLines = doc.splitTextToSize(w.q, boxW - 22);
+    doc.text(wLines, MARGIN + 4, leftY + 2.8);
+    drawYNBox(doc, leftYNX, leftY, w.val === true, w.val === false);
+    leftY += Math.max(5.4, wLines.length * 2.8 + 1.2);
   });
 
   doc.setFont('helvetica', 'bold');
@@ -916,7 +926,12 @@ export function generateConditionReportPDF(data: FullConditionReportData): jsPDF
   doc.roundedRect(MARGIN + 4, leftY, boxW - 8, 20, 1, 1, 'FD');
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...PALETTE.bodyText);
-  const addNotes = (statutory as any).additionalComments?.generalNotes || report.notes || 'No further statutory exceptions noted.';
+  const { plainNotes: cleanPlainNotes } = parseSchedule2Data(report.notes || '');
+  const addNotes =
+    statutory.workDoneDates?.additionalComments ||
+    (statutory as any).additionalComments?.generalNotes ||
+    cleanPlainNotes ||
+    'No further statutory exceptions noted.';
   doc.text(doc.splitTextToSize(addNotes, boxW - 14), MARGIN + 6, leftY + 4.5);
 
   // --- RIGHT COLUMN: DATES WORK DONE, WORK COMMITMENTS ---

@@ -15,7 +15,9 @@ import {
   FileSpreadsheet,
   Loader2,
   PieChart,
+  FileCheck2,
 } from 'lucide-react';
+import { Button } from '@/components/admin/ui/Button';
 import {
   FinanceReportType,
   FinanceReportFilters,
@@ -24,6 +26,7 @@ import { fetchReportDataAction } from '@/app/actions/reports';
 import { getCurrentFinancialYear } from '@/lib/finance/financial-year';
 import { ReportFilterBar } from '@/components/reports/ReportFilterBar';
 import { ExportDropdown } from '@/components/reports/ExportDropdown';
+import { AccountantReportModal } from '@/components/reports/AccountantReportModal';
 
 import { FinancialOverviewTab } from '@/components/reports/FinancialOverviewTab';
 import { IncomeReportTab } from '@/components/reports/IncomeReportTab';
@@ -83,6 +86,7 @@ export function ReportsHubView({
   const [reportData, setReportData] = useState<any>(initialData || null);
   const [isLoading, setIsLoading] = useState(!initialData);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isAccountantReportOpen, setIsAccountantReportOpen] = useState(false);
 
   // Sync state with URL params
   const updateQueryParams = (newTab: FinanceReportType, newFilters: FinanceReportFilters) => {
@@ -163,6 +167,16 @@ export function ReportsHubView({
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAccountantReportOpen(true)}
+              className="text-xs font-semibold text-[#008F83] border-[#008F83]/30 hover:bg-[#008F83]/10"
+              leftIcon={<FileCheck2 className="w-4 h-4 text-[#008F83]" />}
+            >
+              Accountant Report
+            </Button>
             <ExportDropdown reportType={activeTab} filters={filters} />
           </div>
         </div>
@@ -179,8 +193,8 @@ export function ReportsHubView({
         />
 
         {activeTab !== 'overview' && (
-          <div className="border-b border-slate-200/80 dark:border-slate-800">
-            <nav className="flex space-x-1.5 overflow-x-auto pb-2 scrollbar-none" aria-label="Reports Navigation">
+          <div>
+            <nav className="flex space-x-1.5 overflow-x-auto pb-1 scrollbar-none" aria-label="Reports Navigation">
               {REPORT_TABS.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -247,6 +261,15 @@ export function ReportsHubView({
           ) : null}
         </div>
       </div>
+
+      {/* Accountant Expense Verification Report Modal */}
+      <AccountantReportModal
+        isOpen={isAccountantReportOpen}
+        onClose={() => setIsAccountantReportOpen(false)}
+        properties={filterOptions.properties}
+        categories={filterOptions.categories}
+        initialPropertyId={filters.propertyId || undefined}
+      />
     </div>
   );
 }

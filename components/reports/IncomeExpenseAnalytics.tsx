@@ -59,10 +59,10 @@ export function IncomeExpenseAnalytics({
   return (
     <div className={cn('grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-stretch', className)}>
       {/* LEFT (~68% / 8 cols): Income vs Expenses Grouped Bar + Line Chart */}
-      <div className="lg:col-span-8 bg-white dark:bg-[#0B1726] border border-border rounded-2xl p-5 lg:p-6 shadow-2xs flex flex-col justify-between">
+      <div className="lg:col-span-8 bg-white dark:bg-[#08182A] border border-border rounded-2xl p-5 lg:p-6 shadow-2xs flex flex-col justify-between">
         <div>
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                 Income vs Expenses
@@ -92,7 +92,7 @@ export function IncomeExpenseAnalytics({
           {/* Visualization Area */}
           <div className="mt-5 w-full h-[280px] sm:h-[300px]">
             {!hasActivity ? (
-              <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+              <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-[#061222]/40 rounded-xl border border-dashed border-slate-200 dark:border-white/[0.06]">
                 <AlertCircle className="w-8 h-8 text-slate-400 dark:text-slate-500 mb-2" />
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                   No financial activity for this period
@@ -110,12 +110,12 @@ export function IncomeExpenseAnalytics({
                   <CartesianGrid
                     strokeDasharray="3 3"
                     vertical={false}
-                    stroke="rgba(148, 163, 184, 0.15)"
+                    stroke="rgba(148, 163, 184, 0.08)"
                   />
                   <XAxis
                     dataKey="shortLabel"
                     tickLine={false}
-                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                    axisLine={{ stroke: 'rgba(148, 163, 184, 0.12)' }}
                     tick={{ fontSize: 11, fill: '#64748B' }}
                     dy={6}
                   />
@@ -126,15 +126,15 @@ export function IncomeExpenseAnalytics({
                     tickFormatter={(val) => formatCompactCurrency(val)}
                   />
                   <Tooltip
-                    cursor={{ fill: 'rgba(148, 163, 184, 0.06)' }}
+                    cursor={{ fill: 'rgba(148, 163, 184, 0.04)' }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.length) return null;
                       const item = payload[0]?.payload as MonthlyFinancialSummary;
                       if (!item) return null;
 
                       return (
-                        <div className="rounded-xl border border-border bg-white dark:bg-[#07111F] p-3 shadow-xl text-xs space-y-2 min-w-[170px]">
-                          <div className="font-bold text-slate-900 dark:text-white pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                        <div className="rounded-xl border border-border bg-white dark:bg-[#071526] p-3 shadow-xl text-xs space-y-2 min-w-[170px]">
+                          <div className="font-bold text-slate-900 dark:text-white pb-1.5 border-b border-border-subtle">
                             {item.label}
                           </div>
                           <div className="space-y-1">
@@ -150,7 +150,7 @@ export function IncomeExpenseAnalytics({
                                 {formatCurrency(item.expenses)}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                            <div className="flex items-center justify-between gap-3 pt-1 border-t border-border-subtle">
                               <span className="font-semibold text-slate-700 dark:text-slate-300">Net Profit:</span>
                               <span
                                 className={cn(
@@ -197,10 +197,10 @@ export function IncomeExpenseAnalytics({
       </div>
 
       {/* RIGHT (~32% / 4 cols): Financial Snapshot & Profit Margin Donut */}
-      <div className="lg:col-span-4 bg-white dark:bg-[#0B1726] border border-border rounded-2xl p-5 lg:p-6 shadow-2xs flex flex-col justify-between">
+      <div className="lg:col-span-4 bg-white dark:bg-[#08182A] border border-border rounded-2xl p-5 lg:p-6 shadow-2xs flex flex-col justify-between">
         <div>
           {/* Header */}
-          <div className="pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="pb-2">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
               Financial Snapshot
             </h2>
@@ -218,7 +218,7 @@ export function IncomeExpenseAnalytics({
                   cx="60"
                   cy="60"
                   r={radius}
-                  className="text-slate-100 dark:text-[#152538]"
+                  className="text-slate-100 dark:text-[#112030]"
                   strokeWidth="10"
                   stroke="currentColor"
                   fill="transparent"
@@ -253,7 +253,7 @@ export function IncomeExpenseAnalytics({
           </div>
 
           {/* Summary Breakdown Metrics */}
-          <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5 text-xs">
+          <div className="mt-5 pt-4 border-t border-border-subtle space-y-2.5 text-xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                 <span className="w-2 h-2 rounded-full bg-[#008F83]" />
@@ -274,7 +274,7 @@ export function IncomeExpenseAnalytics({
               </span>
             </div>
 
-            <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-800/80">
+            <div className="flex items-center justify-between pt-1.5 border-t border-border-subtle">
               <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-semibold">
                 <span className="w-2 h-2 rounded-full bg-slate-900 dark:bg-white" />
                 <span>Net Profit</span>

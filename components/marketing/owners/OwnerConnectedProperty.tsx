@@ -7,7 +7,7 @@ import { Building2, Users, FileText, DollarSign, BarChart3 } from "lucide-react"
 
 export function OwnerConnectedProperty() {
   return (
-    <section className="py-24 sm:py-32 bg-surface/30 dark:bg-[#151A1C]/20 border-y border-border/50 dark:border-[#2A3032]/50">
+    <section className="py-24 sm:py-32 bg-surface/20 dark:bg-[#151A1C]/20">
       <div className="max-w-[1440px] mx-auto px-5 sm:px-8">
         <div className="text-center max-w-2xl mx-auto space-y-4 mb-16">
           <Reveal direction="up" delay={0.1}>

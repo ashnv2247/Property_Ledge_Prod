@@ -1,82 +1,93 @@
 "use client";
 
-import React from "react";
-import { CheckCircle2, Camera, ArrowRight } from "lucide-react";
+import React, { useState } from "react";
+import { CheckCircle2, Camera, ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 
 export function InspectionPhone() {
+  const [checkedCount, setCheckedCount] = useState(5);
+
   const items = [
-    { name: "Exterior", status: "Checked" },
-    { name: "Kitchen", status: "Checked" },
-    { name: "Bathroom", status: "Checked" },
-    { name: "Bedroom", status: "Checked" },
-    { name: "Safety Compliance", status: "Compliant" },
+    { name: "Entry & Security Foyer", status: "Pass", room: "Exterior" },
+    { name: "Kitchen & Rangehood", status: "Clean", room: "Interior" },
+    { name: "Master Ensuite Bath", status: "Pristine", room: "Bathroom" },
+    { name: "Smoke Alarms & Fire Safety", status: "Compliant", room: "Safety" },
+    { name: "Air Conditioning & HVAC", status: "Operational", room: "Appliances" },
   ];
 
   return (
-    <div className="relative mx-auto max-w-[280px] sm:max-w-[300px] rounded-[36px] border-[6px] border-foreground/80 dark:border-foreground/30 bg-surface shadow-2xl p-4 text-foreground select-none">
-      {/* Top Speaker / Dynamic Island Notch */}
-      <div className="w-24 h-4 bg-foreground/90 dark:bg-foreground/40 rounded-full mx-auto mb-4 flex items-center justify-center">
-        <div className="w-2.5 h-2.5 rounded-full bg-surface/40 mr-2" />
-        <div className="w-1.5 h-1.5 rounded-full bg-surface/30" />
+    <div className="relative mx-auto max-w-[290px] sm:max-w-[310px] rounded-[42px] border-[5px] border-white/10 bg-[#061222] shadow-2xl shadow-black/80 p-4 text-white select-none backdrop-blur-xl">
+      {/* Top Dynamic Island / Camera Notch */}
+      <div className="w-24 h-4.5 bg-black/90 rounded-full mx-auto mb-3 flex items-center justify-between px-3 border border-white/[0.05]">
+        <div className="w-2 h-2 rounded-full bg-[#00A99D]/80 animate-pulse" />
+        <div className="w-2.5 h-2.5 rounded-full bg-slate-900 border border-white/10" />
       </div>
 
       {/* Phone Screen Content */}
-      <div className="space-y-4 text-xs">
+      <div className="space-y-3.5 text-xs">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+        <div className="flex items-center justify-between border-b border-white/[0.04] pb-2.5">
           <div>
-            <span className="text-[10px] text-accent uppercase font-bold tracking-wider">
-              Routine Inspection
+            <span className="text-[9.5px] text-[#00A99D] uppercase font-bold tracking-wider flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" /> State Compliance
             </span>
-            <div className="font-heading font-bold text-sm text-foreground">
+            <div className="font-heading font-bold text-sm text-white mt-0.5">
               12 Anderson Street
             </div>
           </div>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
-            In Progress
+          <span className="text-[9.5px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/30">
+            98% Complete
           </span>
         </div>
 
         {/* Room Checklist */}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {items.map((item, idx) => (
             <div
               key={idx}
-              className="flex items-center justify-between p-2 rounded-lg bg-surface-subtle/50 hover:bg-surface-subtle transition-colors"
+              className="flex items-center justify-between p-2 rounded-xl bg-[#08182A]/90 border border-white/[0.03] hover:border-[#008F83]/30 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span className="font-medium text-foreground text-[11px]">{item.name}</span>
+                <div className="w-4 h-4 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-400">
+                  <CheckCircle2 className="w-3 h-3" />
+                </div>
+                <div>
+                  <span className="font-semibold text-white text-[10.5px] block">{item.name}</span>
+                  <span className="text-[9px] text-[#64788D]">{item.room}</span>
+                </div>
               </div>
-              <span className="text-[10px] text-muted">{item.status}</span>
+              <span className="text-[9.5px] font-mono text-[#00A99D] bg-[#008F83]/10 px-1.5 py-0.5 rounded">
+                {item.status}
+              </span>
             </div>
           ))}
         </div>
 
-        {/* Photos Upload Count */}
-        <div className="p-3 rounded-xl border border-border bg-surface-subtle/30 flex items-center justify-between">
+        {/* Photos Upload Count Bento */}
+        <div className="p-2.5 rounded-xl border border-white/[0.04] bg-[#071526] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Camera className="w-4 h-4 text-accent" />
+            <div className="w-7 h-7 rounded-lg bg-[#008F83]/15 border border-[#008F83]/30 flex items-center justify-center text-[#00A99D]">
+              <Camera className="w-3.5 h-3.5" />
+            </div>
             <div>
-              <div className="text-[11px] font-semibold text-foreground">Photos Attached</div>
-              <div className="text-[10px] text-muted">High-res timestamped</div>
+              <div className="text-[10.5px] font-semibold text-white">Geotagged Evidence</div>
+              <div className="text-[9px] text-[#8FA3B8]">Immutable timestamp</div>
             </div>
           </div>
-          <span className="text-xs font-bold font-heading text-foreground">24 / 24</span>
+          <span className="text-xs font-bold font-mono text-[#00A99D]">24 / 24</span>
         </div>
 
         {/* Action Button */}
         <button
           type="button"
-          className="w-full py-2.5 px-3 rounded-xl bg-foreground text-background font-semibold text-xs flex items-center justify-center gap-2 hover:bg-foreground/90 transition-all active:scale-[0.98]"
+          className="w-full py-2.5 px-3 rounded-xl bg-[#008F83] hover:bg-[#00A99D] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#008F83]/20 transition-all active:scale-[0.98]"
         >
-          <span>Generate Report</span>
-          <ArrowRight className="w-3.5 h-3.5 text-accent" />
+          <span>Sign & Dispatch Report</span>
+          <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* Bottom Bar indicator */}
-      <div className="w-28 h-1 bg-foreground/20 rounded-full mx-auto mt-4" />
+      <div className="w-28 h-1 bg-white/20 rounded-full mx-auto mt-3" />
     </div>
   );
 }

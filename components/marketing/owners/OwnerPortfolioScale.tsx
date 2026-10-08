@@ -24,7 +24,7 @@ export function OwnerPortfolioScale() {
   const currentStep = steps[scaleStep];
 
   return (
-    <section className="py-24 sm:py-32 bg-surface/30 dark:bg-[#151A1C]/20 border-y border-border/50 dark:border-[#2A3032]/50">
+    <section className="py-24 sm:py-32 bg-surface/20 dark:bg-[#151A1C]/20">
       <div className="max-w-[1440px] mx-auto px-5 sm:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           

@@ -77,7 +77,7 @@ export function CashFlowAnalytics({
   return (
     <div className={cn('grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-stretch', className)}>
       {/* LEFT (8 COLS / ~68%): Dominant Financial Cash Flow Hero */}
-      <div className="lg:col-span-8 rounded-[24px] border border-slate-200/80 dark:border-[#17283A] bg-white dark:bg-[#07111F] p-6 lg:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col justify-between">
+      <div className="lg:col-span-8 rounded-[24px] border border-slate-200/80 dark:border-white/[0.06] bg-white dark:bg-[#08182A] p-6 lg:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col justify-between">
         <div>
           {/* Header & Clean Controls */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
@@ -179,11 +179,11 @@ export function CashFlowAnalytics({
           {/* Large Hero Chart Canvas */}
           <div className="mt-4 relative h-60 sm:h-68 w-full">
             {/* Subtle Gridlines */}
-            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-30">
-              <div className="border-b border-dashed border-slate-200 dark:border-[#17283A] w-full" />
-              <div className="border-b border-dashed border-slate-200 dark:border-[#17283A] w-full" />
-              <div className="border-b border-dashed border-slate-200 dark:border-[#17283A] w-full" />
-              <div className="border-b border-slate-200 dark:border-[#17283A] w-full" />
+            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+              <div className="border-b border-dashed border-slate-200 dark:border-white/[0.06] w-full" />
+              <div className="border-b border-dashed border-slate-200 dark:border-white/[0.06] w-full" />
+              <div className="border-b border-dashed border-slate-200 dark:border-white/[0.06] w-full" />
+              <div className="border-b border-dashed border-slate-200 dark:border-white/[0.06] w-full" />
             </div>
 
             {/* Bars Canvas */}
@@ -278,7 +278,7 @@ export function CashFlowAnalytics({
         </div>
 
         {/* Footer Metrics */}
-        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#17283A]/80 flex flex-wrap items-center justify-between gap-4 text-xs">
+        <div className="mt-4 pt-4 border-t border-border-subtle flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-4 text-slate-500 dark:text-[#7F8B99]">
             <span>
               Period volume: <strong className="text-slate-900 dark:text-white tabular-nums font-semibold">{formatCurrencyNoDecimals(totalOperatingVolume)}</strong>
@@ -300,7 +300,7 @@ export function CashFlowAnalytics({
       </div>
 
       {/* RIGHT (4 COLS / ~32%): Financial Summary (Single Surface, No Card-in-Card) */}
-      <div className="lg:col-span-4 rounded-[24px] border border-slate-200/80 dark:border-[#17283A] bg-white dark:bg-[#07111F] p-6 lg:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col justify-between">
+      <div className="lg:col-span-4 rounded-[24px] border border-slate-200/80 dark:border-white/[0.06] bg-white dark:bg-[#08182A] p-6 lg:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-heading font-bold text-slate-900 dark:text-white tracking-tight">
@@ -369,7 +369,7 @@ export function CashFlowAnalytics({
           </div>
 
           {/* Collection Rate Efficiency */}
-          <div className="mt-6 pt-5 border-t border-slate-100 dark:border-[#17283A]/80 space-y-2">
+          <div className="mt-6 pt-5 border-t border-border-subtle space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-[#7F8B99]">Collection rate</span>
               <span className="font-bold text-slate-900 dark:text-white tabular-nums">
@@ -389,7 +389,7 @@ export function CashFlowAnalytics({
         </div>
 
         {/* Action Link */}
-        <div className="mt-6 pt-4 border-t border-slate-100 dark:border-[#17283A]/80">
+        <div className="mt-6 pt-4 border-t border-border-subtle">
           <Link
             href="/dashboard/money"
             className="text-xs font-semibold text-[#008F83] dark:text-[#32D5C4] hover:underline inline-flex items-center gap-1"

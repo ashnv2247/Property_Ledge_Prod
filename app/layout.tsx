@@ -50,7 +50,25 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                const storedTheme = localStorage.getItem('propertyledge_theme') || 'dark';
+                const path = window.location.pathname;
+                const isDashboard = path.startsWith('/dashboard') || 
+                                    path.startsWith('/properties') || 
+                                    path.startsWith('/people') || 
+                                    path.startsWith('/leases') || 
+                                    path.startsWith('/money') || 
+                                    path.startsWith('/expenses') || 
+                                    path.startsWith('/invoices') || 
+                                    path.startsWith('/schedules') || 
+                                    path.startsWith('/bas') || 
+                                    path.startsWith('/activity') || 
+                                    path.startsWith('/documents') || 
+                                    path.startsWith('/automations') || 
+                                    path.startsWith('/tasks') || 
+                                    path.startsWith('/reports') || 
+                                    path.startsWith('/team') || 
+                                    path.startsWith('/settings');
+                const defaultMode = isDashboard ? 'light' : 'dark';
+                const storedTheme = localStorage.getItem('propertyledge_theme') || defaultMode;
                 document.documentElement.setAttribute('data-theme-mode', storedTheme);
                 if (storedTheme === 'dark' || storedTheme === 'full-dark') {
                   document.documentElement.classList.add('dark');

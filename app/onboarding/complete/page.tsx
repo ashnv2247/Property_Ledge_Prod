@@ -18,9 +18,9 @@ export default async function OnboardingCompletePage() {
   return (
     <OnboardingContent>
       <OnboardingStep
-        eyebrow="Step 4 of 4"
+        eyebrow="Ready to launch"
         title="You're all set."
-        description={`Your PropertyLedge workspace is ready to use.`}
+        description="Your PropertyLedge workspace is ready. Let’s take a look around your new portfolio command center."
       >
         <OnboardingCompleteSummary
           workspaceName={workspaceName}
@@ -31,4 +31,4 @@ export default async function OnboardingCompletePage() {
       </OnboardingStep>
     </OnboardingContent>
   );
-}
+}

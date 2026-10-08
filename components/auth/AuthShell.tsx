@@ -14,14 +14,14 @@ export function AuthShell({ mode, children }: AuthShellProps) {
   const [langMenuOpen, setLangMenuOpen] = useState(false);
 
   return (
-    <div className="w-full min-h-screen lg:h-screen lg:overflow-hidden bg-[#F7F6F2] dark:bg-[#081216] text-[#11181C] dark:text-[#F4F3EF] flex flex-col lg:flex-row selection:bg-[#C7A66A] selection:text-white">
+    <div className="w-full min-h-screen lg:h-screen lg:overflow-hidden bg-slate-50 dark:bg-[#061222] text-slate-900 dark:text-white flex flex-col lg:flex-row selection:bg-[#008F83] selection:text-white">
       {/* LEFT MARKETING & PRODUCT PANEL (Desktop split-screen ~45%) */}
       <div className="hidden lg:block lg:w-[45%] xl:w-[44%] h-full relative shrink-0">
         <AuthVisualPanel mode={mode} />
       </div>
 
       {/* MOBILE / TABLET COMPACT BRAND HEADER (< 1100px) */}
-      <div className="lg:hidden w-full bg-[#081216] p-4 text-white border-b border-[#172429]">
+      <div className="lg:hidden w-full bg-[#061222] p-4 text-white border-b border-white/[0.06]">
         <div className="flex items-center justify-between max-w-xl mx-auto">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center">
@@ -31,13 +31,13 @@ export function AuthShell({ mode, children }: AuthShellProps) {
                 className="w-full h-full object-contain"
               />
             </div>
-            <span className="font-heading font-bold text-sm tracking-wider uppercase text-[#F4F3EF]">
+            <span className="font-heading font-bold text-sm tracking-wider uppercase text-white">
               PROPERTYLEDGE
             </span>
           </Link>
           <Link
             href="/"
-            className="text-xs font-medium text-[#A8B0B3] hover:text-[#F4F3EF] transition-colors flex items-center gap-1"
+            className="text-xs font-medium text-slate-400 hover:text-white transition-colors flex items-center gap-1"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Website
@@ -46,14 +46,14 @@ export function AuthShell({ mode, children }: AuthShellProps) {
       </div>
 
       {/* RIGHT AUTHENTICATION WORKSPACE (~55%) */}
-      <div className="flex-1 min-h-screen lg:min-h-full flex flex-col justify-between p-6 sm:p-10 lg:p-12 xl:p-16 overflow-y-auto bg-[#F7F6F2] dark:bg-[#0E171B]">
+      <div className="flex-1 min-h-screen lg:min-h-full flex flex-col justify-between p-6 sm:p-10 lg:p-12 xl:p-16 overflow-y-auto bg-slate-50 dark:bg-[#061222]">
         {/* Top Controls Row */}
-        <div className="w-full max-w-[520px] mx-auto flex items-center justify-between text-xs text-[#697277] dark:text-[#A8B0B3]">
+        <div className="w-full max-w-[520px] mx-auto flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <Link
             href="/"
-            className="hidden lg:inline-flex items-center gap-1.5 font-medium hover:text-[#11181C] dark:hover:text-white transition-colors"
+            className="hidden lg:inline-flex items-center gap-1.5 font-medium hover:text-slate-900 dark:hover:text-white transition-colors"
           >
-            <ArrowLeft className="w-3.5 h-3.5 text-[#C7A66A]" />
+            <ArrowLeft className="w-3.5 h-3.5 text-[#008F83] dark:text-[#00A99D]" />
             Back to website
           </Link>
 
@@ -62,27 +62,27 @@ export function AuthShell({ mode, children }: AuthShellProps) {
             <button
               type="button"
               onClick={() => setLangMenuOpen(!langMenuOpen)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-[#152228] border border-black/10 dark:border-[#26373F] text-xs font-medium text-[#11181C] dark:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7A66A]"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-[#08182A] border border-slate-200 dark:border-white/[0.08] text-xs font-medium text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-[#0B1D30] transition-all shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#008F83]"
             >
-              <Globe className="w-3.5 h-3.5 text-[#697277] dark:text-[#A8B0B3]" />
+              <Globe className="w-3.5 h-3.5 text-slate-400 dark:text-slate-400" />
               <span>English</span>
-              <ChevronDown className="w-3 h-3 text-[#697277] dark:text-[#A8B0B3]" />
+              <ChevronDown className="w-3 h-3 text-slate-400 dark:text-slate-400" />
             </button>
 
             {langMenuOpen && (
-              <div className="absolute right-0 mt-1 w-36 py-1 bg-white dark:bg-[#152228] border border-black/10 dark:border-[#26373F] rounded-xl shadow-lg z-50 text-xs text-[#11181C] dark:text-white">
+              <div className="absolute right-0 mt-1 w-36 py-1 bg-white dark:bg-[#08182A] border border-slate-200 dark:border-white/[0.08] rounded-xl shadow-xl z-50 text-xs text-slate-900 dark:text-white">
                 <button
                   type="button"
                   onClick={() => setLangMenuOpen(false)}
-                  className="w-full px-3 py-1.5 text-left hover:bg-black/5 dark:hover:bg-white/5 font-medium flex items-center justify-between"
+                  className="w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#0B1D30] font-medium flex items-center justify-between"
                 >
                   <span>English (AU)</span>
-                  <span className="text-[#C7A66A]">✓</span>
+                  <span className="text-[#008F83] dark:text-[#00A99D]">✓</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setLangMenuOpen(false)}
-                  className="w-full px-3 py-1.5 text-left hover:bg-black/5 dark:hover:bg-white/5 text-[#697277] dark:text-[#A8B0B3]"
+                  className="w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#0B1D30] text-slate-600 dark:text-slate-400"
                 >
                   English (US)
                 </button>
@@ -97,14 +97,14 @@ export function AuthShell({ mode, children }: AuthShellProps) {
         </div>
 
         {/* Footer info */}
-        <div className="w-full max-w-[520px] mx-auto pt-6 text-center text-xs text-[#697277] dark:text-[#A8B0B3] border-t border-black/5 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="w-full max-w-[520px] mx-auto pt-6 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>&copy; {new Date().getFullYear()} PropertyLedge Pty Ltd</span>
           <div className="flex items-center gap-3">
-            <Link href="/#platform" className="hover:text-[#11181C] dark:hover:text-white transition-colors">
+            <Link href="/#platform" className="hover:text-slate-900 dark:hover:text-white transition-colors">
               Privacy Policy
             </Link>
             <span>•</span>
-            <Link href="/#pricing" className="hover:text-[#11181C] dark:hover:text-white transition-colors">
+            <Link href="/#pricing" className="hover:text-slate-900 dark:hover:text-white transition-colors">
               Terms of Service
             </Link>
           </div>

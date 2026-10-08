@@ -146,7 +146,7 @@ export function RoleBuilderDrawer({ workspaceId, role, onClose, onSaved }: RoleB
             ? 'System roles are managed centrally and cannot be altered.'
             : 'Configure permissions and access capabilities for this workspace role.'
         }
-        width="xl"
+        width="80"
         footer={
           <div className="flex items-center justify-between w-full">
             {role && !role.isSystemRole ? (

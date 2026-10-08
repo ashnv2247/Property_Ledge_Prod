@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link2, UserSearch, Copy, Check } from 'lucide-react';
+import { Link2, UserSearch, Copy, Check, Building2, Search, CheckSquare, Square } from 'lucide-react';
 import { Modal, Button, useToast } from '@/components/admin/ui';
 import {
   fetchAssignableRoles,
@@ -9,8 +9,10 @@ import {
   createInviteLink,
   lookupProfile,
   addMemberByProfileId,
+  fetchWorkspacePropertiesList,
   type TeamRoleOption,
   type PermissionRow,
+  type PropertyAccessItem,
 } from '@/app/actions/workspace-team';
 
 type Step = 'choose' | 'invite-link' | 'invite-created' | 'profile-id' | 'profile-preview' | 'profile-role';
@@ -95,7 +97,7 @@ function RoleSelect({
 }
 
 export function AddMemberModal({ workspaceId, onClose, onSuccess }: AddMemberModalProps) {
-  const { error: toastError } = useToast();
+  const { error: toastError, success: toastSuccess } = useToast();
   const [step, setStep] = useState<Step>('choose');
   const [roles, setRoles] = useState<TeamRoleOption[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState('');
@@ -111,8 +113,18 @@ export function AddMemberModal({ workspaceId, onClose, onSuccess }: AddMemberMod
     avatarUrl: string | null;
   } | null>(null);
 
+  // Property access state
+  const [properties, setProperties] = useState<PropertyAccessItem[]>([]);
+  const [propertyMode, setPropertyMode] = useState<'all' | 'custom'>('all');
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+  const [propertySearch, setPropertySearch] = useState('');
+
   useEffect(() => {
     fetchAssignableRoles(workspaceId).then(setRoles).catch(() => {});
+    fetchWorkspacePropertiesList(workspaceId).then((props) => {
+      setProperties(props);
+      setSelectedPropertyIds(props.map((p) => p.id));
+    }).catch(() => {});
   }, [workspaceId]);
 
   useEffect(() => {
@@ -121,6 +133,26 @@ export function AddMemberModal({ workspaceId, onClose, onSuccess }: AddMemberMod
   }, [selectedRoleId]);
 
   const selectedRole = useMemo(() => roles.find((r) => r.roleId === selectedRoleId), [roles, selectedRoleId]);
+
+  const filteredProperties = useMemo(() => {
+    if (!propertySearch.trim()) return properties;
+    const q = propertySearch.toLowerCase();
+    return properties.filter((p) => p.name.toLowerCase().includes(q) || p.address.toLowerCase().includes(q));
+  }, [properties, propertySearch]);
+
+  const toggleProperty = (propId: string) => {
+    setSelectedPropertyIds((prev) =>
+      prev.includes(propId) ? prev.filter((id) => id !== propId) : [...prev, propId]
+    );
+  };
+
+  const selectAllProperties = () => {
+    setSelectedPropertyIds(properties.map((p) => p.id));
+  };
+
+  const clearAllProperties = () => {
+    setSelectedPropertyIds([]);
+  };
 
   async function handleCreateInvite() {
     if (!selectedRoleId) return;
@@ -158,7 +190,13 @@ export function AddMemberModal({ workspaceId, onClose, onSuccess }: AddMemberMod
     if (!selectedRoleId || !profilePreview) return;
     setLoading(true);
     try {
-      await addMemberByProfileId(workspaceId, profilePreview.publicId, selectedRoleId);
+      await addMemberByProfileId(
+        workspaceId,
+        profilePreview.publicId,
+        selectedRoleId,
+        { mode: propertyMode, propertyIds: selectedPropertyIds }
+      );
+      toastSuccess('Success', 'Team member added with assigned permissions and property access.');
       onSuccess();
     } catch (e) {
       toastError('Error', (e as Error).message);
@@ -174,7 +212,7 @@ export function AddMemberModal({ workspaceId, onClose, onSuccess }: AddMemberMod
   }
 
   return (
-    <Modal isOpen onClose={onClose} title="Add team member" size="md">
+    <Modal isOpen onClose={onClose} title="Add team member" size={step === 'profile-role' ? 'lg' : 'md'}>
       {step === 'choose' && (
         <div className="space-y-4 p-1">
           <p className="text-sm text-admin-muted">Choose how you&apos;d like to add them.</p>
@@ -195,14 +233,147 @@ export function AddMemberModal({ workspaceId, onClose, onSuccess }: AddMemberMod
         </div>
       )}
 
-      {(step === 'invite-link' || step === 'profile-role') && (
+      {step === 'invite-link' && (
         <div className="space-y-4">
           <RoleSelect roles={roles} selectedRoleId={selectedRoleId} onChange={setSelectedRoleId} />
           <RolePreview role={selectedRole} permissions={permissions} />
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setStep(step === 'profile-role' ? 'profile-preview' : 'choose')}>Back</Button>
-            <Button onClick={step === 'profile-role' ? handleAddProfile : handleCreateInvite} disabled={!selectedRoleId || loading}>
-              {loading ? 'Processing...' : step === 'profile-role' ? 'Add member' : 'Generate link'}
+            <Button variant="secondary" onClick={() => setStep('choose')}>Back</Button>
+            <Button onClick={handleCreateInvite} disabled={!selectedRoleId || loading}>
+              {loading ? 'Processing...' : 'Generate link'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 'profile-role' && (
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <RoleSelect roles={roles} selectedRoleId={selectedRoleId} onChange={setSelectedRoleId} />
+              <RolePreview role={selectedRole} permissions={permissions} />
+            </div>
+
+            {/* Property Access Scope Selection */}
+            <div className="space-y-3 rounded-xl border border-admin-border/80 bg-admin-surface/40 p-3.5">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-admin-primary" />
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-admin-foreground">Property Access Scope</h4>
+              </div>
+
+              {/* Mode switch */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-lg bg-admin-surface border border-admin-border">
+                <button
+                  type="button"
+                  onClick={() => setPropertyMode('all')}
+                  className={`py-1.5 text-xs font-medium rounded-md transition-all ${
+                    propertyMode === 'all'
+                      ? 'bg-admin-primary text-white shadow-sm'
+                      : 'text-admin-muted hover:text-admin-foreground'
+                  }`}
+                >
+                  All Properties
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPropertyMode('custom')}
+                  className={`py-1.5 text-xs font-medium rounded-md transition-all ${
+                    propertyMode === 'custom'
+                      ? 'bg-admin-primary text-white shadow-sm'
+                      : 'text-admin-muted hover:text-admin-foreground'
+                  }`}
+                >
+                  Specific Properties
+                </button>
+              </div>
+
+              {propertyMode === 'all' ? (
+                <div className="p-3 text-center rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                  <p className="text-xs font-medium text-emerald-400">Full Workspace Access</p>
+                  <p className="text-[11px] text-admin-muted mt-0.5">
+                    Member will automatically have access to all {properties.length} active property/properties.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-admin-muted">
+                      {selectedPropertyIds.length} of {properties.length} selected
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={selectAllProperties}
+                        className="text-admin-primary hover:underline"
+                      >
+                        Select all
+                      </button>
+                      <span>•</span>
+                      <button
+                        type="button"
+                        onClick={clearAllProperties}
+                        className="text-admin-muted hover:text-admin-foreground"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+
+                  {properties.length > 4 && (
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-admin-muted" />
+                      <input
+                        type="text"
+                        placeholder="Search properties..."
+                        value={propertySearch}
+                        onChange={(e) => setPropertySearch(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-admin-border bg-admin-surface text-xs text-admin-foreground"
+                      />
+                    </div>
+                  )}
+
+                  <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                    {filteredProperties.length === 0 ? (
+                      <p className="text-xs text-admin-muted py-2 text-center">No properties found</p>
+                    ) : (
+                      filteredProperties.map((p) => {
+                        const isChecked = selectedPropertyIds.includes(p.id);
+                        return (
+                          <label
+                            key={p.id}
+                            className={`flex items-start gap-2.5 p-2 rounded-lg border cursor-pointer transition-all ${
+                              isChecked
+                                ? 'border-admin-primary/40 bg-admin-primary/5'
+                                : 'border-admin-border/60 hover:bg-admin-surface/80'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleProperty(p.id)}
+                              className="mt-0.5 rounded border-admin-border text-admin-primary focus:ring-0 cursor-pointer"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-medium text-admin-foreground truncate">{p.name}</p>
+                              {p.address && <p className="text-[10px] text-admin-muted truncate">{p.address}</p>}
+                            </div>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-admin-border">
+            <Button variant="secondary" onClick={() => setStep('profile-preview')}>Back</Button>
+            <Button
+              onClick={handleAddProfile}
+              disabled={!selectedRoleId || (propertyMode === 'custom' && selectedPropertyIds.length === 0) || loading}
+            >
+              {loading ? 'Adding member...' : 'Add member'}
             </Button>
           </div>
         </div>

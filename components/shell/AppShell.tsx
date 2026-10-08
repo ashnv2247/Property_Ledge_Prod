@@ -373,14 +373,14 @@ function Sidebar({
       animate={{ width: isCollapsed ? SHELL_SIDEBAR_WIDTH_COLLAPSED : sidebarWidth }}
       transition={isResizing ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 32 }}
       className={cn(
-        'relative hidden md:flex flex-col shrink-0 h-full bg-[#061222] text-white z-30 select-none overflow-hidden rounded-[24px] border border-[#17283A] shadow-2xl shadow-black/40',
+        'relative hidden md:flex flex-col shrink-0 h-full bg-[#061222] text-white z-30 select-none overflow-hidden rounded-[24px] border border-white/[0.06] shadow-2xl shadow-black/40',
         isCollapsed ? 'p-2' : 'p-3'
       )}
     >
       {/* 1. Sidebar Branding Header */}
       <div
         className={cn(
-          'flex items-center shrink-0 border-b border-[#17283A]/80 pb-3 mb-2',
+          'flex items-center shrink-0 border-b border-white/[0.04] pb-3 mb-2',
           isCollapsed ? 'justify-center px-0' : 'justify-between px-2 w-full'
         )}
       >
@@ -431,7 +431,7 @@ function Sidebar({
       </nav>
 
       {/* 3. Bottom Footer Area (Settings, User Profile & Collapse Toggle) */}
-      <div className={cn('pt-2 border-t border-[#17283A]/80 shrink-0 space-y-1.5', isCollapsed ? 'px-0' : '')}>
+      <div className={cn('pt-2 border-t border-white/[0.04] shrink-0 space-y-1.5', isCollapsed ? 'px-0' : '')}>
         {footerLink && !isCollapsed && (
           <motion.button
             type="button"
@@ -440,7 +440,7 @@ function Sidebar({
             onClick={() => {
               window.location.href = footerLink.href;
             }}
-            className="w-full h-8.5 px-2.5 rounded-xl bg-[#071526] border border-[#17283A] hover:bg-[#0E1E33] text-[#94A3B8] hover:text-white text-[11.5px] font-semibold flex items-center justify-between transition-all"
+            className="w-full h-8.5 px-2.5 rounded-xl bg-[#071526] border border-white/[0.06] hover:bg-[#0E1E33] text-[#94A3B8] hover:text-white text-[11.5px] font-semibold flex items-center justify-between transition-all"
           >
             <span className="flex items-center gap-2">
               <footerLink.icon className="w-3.5 h-3.5" />
@@ -462,7 +462,7 @@ function Sidebar({
 
         {/* User profile row */}
         {!isCollapsed ? (
-          <div className="flex items-center justify-between p-2 rounded-xl bg-[#071526]/80 border border-[#17283A]/60 my-1">
+          <div className="flex items-center justify-between p-2 rounded-xl bg-[#071526]/80 border border-white/[0.04] my-1">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-7 h-7 rounded-full bg-[#0E1E33] border border-[#17283A] flex items-center justify-center text-[11px] font-bold text-white shrink-0 shadow-xs">
                 {userName.charAt(0)}
@@ -587,10 +587,10 @@ function MobileDrawer({
         animate={{ x: 0 }}
         exit={{ x: '-100%' }}
         transition={{ type: 'spring', stiffness: 350, damping: 32 }}
-        className="absolute inset-y-0 left-0 w-4/5 max-w-xs bg-[#061222] text-white flex flex-col justify-between p-5 border-r border-[#17283A] shadow-2xl z-10"
+        className="absolute inset-y-0 left-0 w-4/5 max-w-xs bg-[#061222] text-white flex flex-col justify-between p-5 border-r border-white/[0.06] shadow-2xl z-10"
       >
         <div className="space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-[#17283A]/80">
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.04]">
             <div className="flex items-center gap-2.5 flex-1 min-w-0">
               <img
                 src="/logo_Dark.png"
@@ -635,7 +635,7 @@ function MobileDrawer({
           </nav>
         </div>
 
-        <div className="pt-3 border-t border-[#17283A]/80 space-y-3">
+        <div className="pt-3 border-t border-white/[0.04] space-y-3">
           {footerLink && (
             <motion.button
               type="button"

@@ -7,7 +7,7 @@ import { ShieldCheck } from "lucide-react";
 
 export function OwnerFinalCTA() {
   return (
-    <section className="py-24 sm:py-32 bg-[#0E1112] text-[#F2F4F3] border-t border-[#2A3032] relative overflow-hidden">
+    <section className="py-24 sm:py-32 bg-[#0E1112] text-[#F2F4F3] relative overflow-hidden">
       {/* Subtle background radial glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-accent/5 rounded-full blur-3xl pointer-events-none" />
 

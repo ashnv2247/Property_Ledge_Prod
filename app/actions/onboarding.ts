@@ -556,6 +556,58 @@ export async function skipOnboardingProperty(): Promise<void> {
   await completeStage('property', { propertySkipped: true });
 }
 
+export async function skipOnboardingTeam(): Promise<void> {
+  await completeStage('team', { teamSkipped: true });
+}
+
+export async function inviteOnboardingCollaborators(invites: { email: string; role: string }[]): Promise<void> {
+  const { user, supabase } = await getSupabaseForUser();
+  const validInvites = invites.filter((inv) => inv.email && inv.email.includes('@'));
+
+  if (validInvites.length > 0) {
+    const { data: workspace } = await supabase
+      .from('workspaces')
+      .select('id')
+      .eq('owner_id', user.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (workspace) {
+      const workspaceId = (workspace as { id: string }).id;
+      const { data: roles } = await supabase
+        .from('team_roles')
+        .select('id, name')
+        .or(`workspace_id.eq.${workspaceId},workspace_id.is.null`) as { data: { id: string; name: string }[] | null };
+
+      const admin = await createAdminClient();
+      for (const invite of validInvites) {
+        const targetRole =
+          roles?.find((r) => r.name?.toLowerCase() === invite.role?.toLowerCase()) ||
+          roles?.find((r) => r.name?.toLowerCase() === 'member') ||
+          roles?.[0];
+
+        if (targetRole) {
+          try {
+            await (admin as any).rpc('create_workspace_invitation', {
+              p_workspace_id: workspaceId,
+              p_invited_by: user.id,
+              p_role_id: targetRole.id,
+              p_invite_type: 'EMAIL',
+              p_email: invite.email.trim().toLowerCase(),
+            });
+          } catch (err) {
+            console.warn('[onboarding.ts] Could not send invite to', invite.email, err);
+          }
+        }
+      }
+    }
+  }
+
+  await completeStage('team', { invitedCount: validInvites.length, invites: validInvites });
+}
+
 export async function finishOnboarding(): Promise<void> {
   const { user, supabase } = await getSupabaseForUser();
   const progress = await readProgress(user.id, supabase);

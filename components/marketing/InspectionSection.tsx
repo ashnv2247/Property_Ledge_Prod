@@ -16,7 +16,7 @@ export function InspectionSection() {
   ];
 
   return (
-    <section className="py-20 md:py-28 bg-surface/30 border-y border-border/70 relative overflow-hidden">
+    <section className="py-20 md:py-28 bg-surface/20 relative overflow-hidden">
       <div className="max-w-[1440px] mx-auto px-5 sm:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
           {/* Left: Smartphone Inspection Mockup */}

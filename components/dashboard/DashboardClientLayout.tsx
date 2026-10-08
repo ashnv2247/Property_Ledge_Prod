@@ -93,6 +93,7 @@ const HIERARCHICAL_NAV: NavItemConfig[] = [
     label: 'Operations',
     icon: ClipboardText,
     children: [
+      { id: 'activity', label: 'Activities', href: '/dashboard/activity' },
       { id: 'documents', label: 'Documents', href: '/dashboard/documents' },
       { id: 'automations', label: 'Automations', href: '/dashboard/automations' },
       { id: 'tasks', label: 'Tasks', href: '/dashboard/tasks' },
@@ -173,6 +174,8 @@ import type { AccessibleWorkspace } from '@/lib/stores/useWorkspaceStore';
 
 import type { UserPropertyAccess } from '@/lib/properties/queries';
 
+import { applyThemeMode } from '@/lib/themeTransition';
+
 interface DashboardClientLayoutProps {
   children: React.ReactNode;
   userEmail?: string;
@@ -200,6 +203,15 @@ function DashboardShellInner({
 }: DashboardClientLayoutProps) {
   const router = useRouter();
   const [isOnboardingPending] = useState(initialIsOnboardingPending);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const stored = localStorage.getItem('propertyledge_theme');
+      if (!stored) {
+        applyThemeMode('light'); // 'light' is PropertyLedge's Mixed theme (dark sidebar + light workspace)
+      }
+    }
+  }, []);
 
   const navSections = buildNavSections(persona, permissions);
   const commandMenuLinks: CommandMenuLink[] = navSections.flatMap((s) =>

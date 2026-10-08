@@ -67,7 +67,7 @@ export function OwnerProblemSection() {
   };
 
   return (
-    <section id="problem-section" className="py-24 sm:py-32 border-y border-border/50 dark:border-[#2A3032]/50 bg-surface/30 dark:bg-[#151A1C]/20 relative overflow-hidden">
+    <section id="problem-section" className="py-24 sm:py-32 bg-surface/20 dark:bg-[#151A1C]/20 relative overflow-hidden">
       {/* Background patterns */}
       <div className="absolute inset-0 bg-dot-pattern opacity-10 pointer-events-none" />
 

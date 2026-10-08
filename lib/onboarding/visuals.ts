@@ -32,6 +32,12 @@ export const ONBOARDING_ASSETS: Record<OnboardingStage, OnboardingVisualAsset> =
     alt: 'PropertyLedge property and portfolio management',
     title: 'Property Management',
   },
+  team: {
+    light: '/onboarding/step3_light.png',
+    dark: '/onboarding/step3_dark.png',
+    alt: 'PropertyLedge team and collaborator management',
+    title: 'Team Management',
+  },
   ready: {
     light: '/onboarding/step4_light.png',
     dark: '/onboarding/step4_dark.png',
@@ -44,6 +50,7 @@ export const ONBOARDING_STEP_ORDER: OnboardingStage[] = [
   'workspace',
   'subscription',
   'property',
+  'team',
   'ready',
 ];
 

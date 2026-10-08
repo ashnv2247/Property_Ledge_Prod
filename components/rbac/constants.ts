@@ -23,6 +23,7 @@ import {
   Share2,
   Layers,
   Sparkles,
+  Activity,
 } from 'lucide-react';
 
 // Canonical ordering of actions for consistent column layout
@@ -57,13 +58,14 @@ export function normalizeActionKey(action: string): string {
 export const RESOURCE_CATEGORIES: Record<string, string[]> = {
   'Property Management': ['property', 'unit', 'tenant', 'lease', 'applicant', 'contract'],
   'Financial Operations': ['invoice', 'payment', 'expense', 'billing', 'subscription', 'payout', 'tax'],
-  'Operations & Maintenance': ['maintenance', 'inspection', 'document', 'task', 'insights', 'work_order'],
+  'Operations & Maintenance': ['activity', 'maintenance', 'inspection', 'document', 'task', 'insights', 'work_order'],
   'Team & Access': ['team.member', 'team.role', 'team.settings', 'team', 'team_role', 'invitation'],
   'Platform Administration': ['user', 'platform_role', 'audit', 'platform.settings', 'security', 'organization', 'api_key'],
 };
 
 // Resource display names mapping
 export const RESOURCE_NAME_OVERRIDES: Record<string, string> = {
+  activity: 'Activities & Autopilot',
   property: 'Properties',
   tenant: 'Tenants',
   lease: 'Leases',
@@ -91,6 +93,7 @@ export const RESOURCE_NAME_OVERRIDES: Record<string, string> = {
 
 // Resource descriptions mapping
 export const RESOURCE_DESCRIPTIONS: Record<string, string> = {
+  activity: 'Schedule, track, assign and automate recurring property compliance and inspections',
   property: 'Manage property profiles, addresses, configurations and portfolios',
   tenant: 'Manage tenant profiles, leases, communications and history',
   lease: 'Create, review, renew, execute and terminate lease agreements',
@@ -160,6 +163,8 @@ export function getCategoryForResource(resource: string): string {
 
 export function getResourceIcon(resource: string): React.ComponentType<{ className?: string }> {
   switch (resource.toLowerCase()) {
+    case 'activity':
+      return Activity;
     case 'property':
       return Building2;
     case 'unit':

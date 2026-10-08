@@ -80,7 +80,7 @@ export function PortfolioPerformanceSection({
   return (
     <div className={cn('grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-stretch', className)}>
       {/* LEFT (8 COLS / ~68%): Editorial Property Performance List */}
-      <div className="lg:col-span-8 rounded-[24px] border border-slate-200/80 dark:border-[#17283A] bg-white dark:bg-[#07111F] p-6 lg:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col justify-between">
+      <div className="lg:col-span-8 rounded-[24px] border border-slate-200/80 dark:border-white/[0.06] bg-white dark:bg-[#08182A] p-6 lg:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between pb-3">
             <div>
@@ -102,7 +102,7 @@ export function PortfolioPerformanceSection({
           </div>
 
           {/* Editorial Property Rows */}
-          <div className="mt-3 divide-y divide-slate-100 dark:divide-[#17283A]/60">
+          <div className="mt-3 divide-y divide-slate-100 dark:divide-white/[0.04]">
             {displayProperties.slice(0, 5).map((prop) => {
               const isPositive = prop.netCashFlow >= 0;
 
@@ -190,7 +190,7 @@ export function PortfolioPerformanceSection({
         </div>
 
         {/* Footer */}
-        <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-[#17283A]/80 flex items-center justify-between text-xs text-slate-500 dark:text-[#7F8B99]">
+        <div className="mt-4 pt-3.5 border-t border-border-subtle flex items-center justify-between text-xs text-slate-500 dark:text-[#7F8B99]">
           <span>
             {displayProperties.length} {displayProperties.length === 1 ? 'property' : 'properties'} in portfolio
           </span>

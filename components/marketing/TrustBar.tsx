@@ -167,7 +167,7 @@ export function TrustBar() {
   const marqueeList = [...integrations, ...integrations, ...integrations];
 
   return (
-    <section className="py-12 md:py-16 relative overflow-hidden bg-background text-foreground border-y border-border/40 transition-colors duration-300">
+    <section className="py-12 md:py-16 relative overflow-hidden bg-background text-foreground transition-colors duration-300">
       {/* Background Layer 1: Ambient Radial Glow matching Hero */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[220px] rounded-full bg-accent/5 blur-3xl pointer-events-none" />
 

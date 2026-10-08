@@ -57,7 +57,7 @@ export function PasswordStrengthMeter({ password = "" }: PasswordStrengthMeterPr
 
       {/* Strength Label */}
       <div className="flex items-center justify-between text-xs">
-        <span className="text-[#7C878B] font-medium">
+        <span className="text-slate-500 dark:text-slate-400 font-medium">
           Password strength: <span className={`capitalize ${getLabelColor()}`}>{label}</span>
         </span>
       </div>

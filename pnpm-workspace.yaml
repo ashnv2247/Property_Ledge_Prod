@@ -4,3 +4,6 @@ allowBuilds:
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - lucide-react@1.37.0
+  - '@radix-ui/react-primitive@2.1.11'
+  - '@radix-ui/react-separator@1.1.16'
+  - '@radix-ui/react-slot@1.4.0'

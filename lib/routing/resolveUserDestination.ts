@@ -27,7 +27,7 @@ function matchesPrefix(pathname: string, prefixes: string[]) {
 }
 
 function needsOnboarding(status: string | null | undefined) {
-  return status === 'not_started' || status === 'in_progress';
+  return status !== 'completed';
 }
 
 export function resolveUserDestination(input: RouteResolutionInput): RouteResolution | null {
@@ -86,6 +86,14 @@ export function resolveUserDestination(input: RouteResolutionInput): RouteResolu
 
   if (persona === 'tenant' && pathname.startsWith('/dashboard')) {
     return { destination: 'TENANT', path: '/tenant', reason: 'tenant_persona' };
+  }
+
+  if (pathname.startsWith('/dashboard') && needsOnboarding(onboardingStatus)) {
+    return {
+      destination: 'ONBOARDING',
+      path: onboardingRoute || '/onboarding',
+      reason: 'onboarding_required',
+    };
   }
 
   if (persona === 'staff' && (pathname === '/dashboard' || pathname === '/dashboard/')) {

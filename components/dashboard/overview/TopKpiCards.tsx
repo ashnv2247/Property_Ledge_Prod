@@ -57,7 +57,7 @@ export function TopKpiCards({
   return (
     <div className={cn('grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-stretch', className)}>
       {/* 1. HERO CARD (7 Cols on Desktop): Dominant Portfolio Value Hero */}
-      <div className="lg:col-span-7 rounded-[24px] border border-slate-200/80 dark:border-[#17283A] bg-white dark:bg-[#07111F] p-6 lg:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col justify-between relative overflow-hidden group">
+      <div className="lg:col-span-7 rounded-[24px] border border-slate-200/80 dark:border-white/[0.06] bg-white dark:bg-[#08182A] p-6 lg:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col justify-between relative overflow-hidden group">
         {/* Subtle Ambient Background Gradient in Dark / Mixed mode */}
         <div className="absolute -top-24 -right-24 w-72 h-72 bg-[#008F83]/5 dark:bg-[#32D5C4]/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -118,18 +118,18 @@ export function TopKpiCards({
         </div>
 
         {/* Quick Action Pills in Footer */}
-        <div className="mt-6 pt-5 border-t border-slate-100 dark:border-[#17283A]/80 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-6 pt-5 border-t border-border-subtle flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Link
               href="/dashboard/properties"
-              className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0E1E33] border border-slate-200/70 dark:border-[#17283A] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0E1E33] border border-slate-200/70 dark:border-white/[0.06] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
             >
               <Building2 className="w-3.5 h-3.5 text-[#008F83] dark:text-[#32D5C4]" />
               <span>Properties</span>
             </Link>
             <Link
               href="/dashboard/money"
-              className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0E1E33] border border-slate-200/70 dark:border-[#17283A] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0E1E33] border border-slate-200/70 dark:border-white/[0.06] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
             >
               <DollarSign className="w-3.5 h-3.5 text-[#008F83] dark:text-[#32D5C4]" />
               <span>Ledger</span>
@@ -145,7 +145,7 @@ export function TopKpiCards({
       {/* 2. STACKED INCOME & EXPENSE CARDS (5 Cols on Desktop) */}
       <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-4.5">
         {/* Income Card */}
-        <div className="rounded-[22px] border border-slate-200/80 dark:border-[#17283A] bg-white dark:bg-[#07111F] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col justify-between group hover:border-[#008F83]/30 transition-all">
+        <div className="rounded-[22px] border border-slate-200/80 dark:border-white/[0.06] bg-white dark:bg-[#08182A] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col justify-between group hover:border-[#008F83]/30 transition-all">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-slate-500 dark:text-[#7F8B99]">
               Rental income
@@ -204,7 +204,7 @@ export function TopKpiCards({
         </div>
 
         {/* Expense Card */}
-        <div className="rounded-[22px] border border-slate-200/80 dark:border-[#17283A] bg-white dark:bg-[#07111F] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col justify-between group hover:border-[#008F83]/30 transition-all">
+        <div className="rounded-[22px] border border-slate-200/80 dark:border-white/[0.06] bg-white dark:bg-[#08182A] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col justify-between group hover:border-[#008F83]/30 transition-all">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-slate-500 dark:text-[#7F8B99]">
               Expenses

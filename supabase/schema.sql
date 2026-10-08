@@ -35,14 +35,16 @@ CREATE OR REPLACE FUNCTION public.accept_workspace_invitation (
   )
   LANGUAGE plpgsql
   SECURITY DEFINER
-  SET search_path TO 'public'
+  SET search_path TO 'public', 'extensions'
   AS $function$
+#variable_conflict use_column
 DECLARE
   v_user UUID;
   v_hash TEXT;
   v_inv RECORD;
   v_member_id UUID;
   v_role_name TEXT;
+  v_workspace_id UUID;
 BEGIN
   v_user := auth.uid();
   IF v_user IS NULL THEN RAISE EXCEPTION 'UNAUTHENTICATED'; END IF;
@@ -80,13 +82,13 @@ BEGIN
   INSERT INTO public.workspace_members (workspace_id, user_id, role_id, role, status, invited_by, joined_at)
   VALUES (
     v_inv.workspace_id, v_user, v_inv.role_id,
-    (SELECT CASE lower(name)
+    (SELECT CASE lower(tr.name)
       WHEN 'owner' THEN 'owner' WHEN 'admin' THEN 'admin' WHEN 'manager' THEN 'manager'
       WHEN 'leasing agent' THEN 'agent' WHEN 'staff' THEN 'staff' ELSE 'viewer' END
-     FROM public.team_roles WHERE id = v_inv.role_id),
+     FROM public.team_roles tr WHERE tr.id = v_inv.role_id),
     'active', v_inv.invited_by, NOW()
   )
-  ON CONFLICT (workspace_id, user_id) DO UPDATE
+  ON CONFLICT ON CONSTRAINT uq_workspace_members_ws_user DO UPDATE
   SET role_id = EXCLUDED.role_id, role = EXCLUDED.role, status = 'active', joined_at = NOW(), updated_at = NOW()
   RETURNING id INTO v_member_id;
 
@@ -105,7 +107,8 @@ BEGIN
   );
 
   v_role_name := v_inv.role_name_text;
-  RETURN QUERY SELECT v_inv.workspace_id, v_member_id, v_role_name;
+  v_workspace_id := v_inv.workspace_id;
+  RETURN QUERY SELECT v_workspace_id, v_member_id, v_role_name;
 END;
 $function$;
 
@@ -717,7 +720,7 @@ CREATE OR REPLACE FUNCTION public.create_workspace_invitation (
   )
   LANGUAGE plpgsql
   SECURITY DEFINER
-  SET search_path TO 'public'
+  SET search_path TO 'public', 'extensions'
   AS $function$
 DECLARE
   v_user UUID;
@@ -744,8 +747,7 @@ BEGIN
     RAISE EXCEPTION 'FORBIDDEN: cannot assign role with permissions you do not have';
   END IF;
 
-  v_token := encode(gen_random_bytes(32), 'base64');
-  v_token := replace(replace(replace(v_token, '+', '-'), '/', '_'), '=', '');
+  v_token := replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '');
   v_token_hash := public.hash_invitation_token(v_token);
 
   INSERT INTO public.workspace_invitations (

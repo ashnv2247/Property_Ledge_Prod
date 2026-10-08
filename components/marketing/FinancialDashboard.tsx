@@ -1,9 +1,11 @@
 "use client";
 
-import React from "react";
-import { ChevronDown, TrendingUp } from "lucide-react";
+import React, { useState } from "react";
+import { ChevronDown, TrendingUp, DollarSign, PieChart, BarChart3, Sparkles } from "lucide-react";
 
 export function FinancialDashboard() {
+  const [selectedMonth, setSelectedMonth] = useState<string>("Jun");
+
   const financialMetrics = [
     {
       label: "Rental Income",
@@ -14,11 +16,11 @@ export function FinancialDashboard() {
     {
       label: "Operating Expenses",
       amount: "$42,820",
-      change: "+4.1%",
-      isPositive: false,
+      change: "-3.2%",
+      isPositive: true,
     },
     {
-      label: "Net Income",
+      label: "Net Cashflow",
       amount: "$139,580",
       change: "+10.2%",
       isPositive: true,
@@ -26,107 +28,128 @@ export function FinancialDashboard() {
   ];
 
   const barData = [
-    { month: "Jan", income: 80, expense: 35 },
-    { month: "Feb", income: 85, expense: 30 },
-    { month: "Mar", income: 90, expense: 45 },
-    { month: "Apr", income: 88, expense: 38 },
-    { month: "May", income: 95, expense: 40 },
-    { month: "Jun", income: 98, expense: 42 },
+    { month: "Jan", income: 80, expense: 35, val: "$28.4k" },
+    { month: "Feb", income: 85, expense: 30, val: "$30.1k" },
+    { month: "Mar", income: 90, expense: 45, val: "$32.0k" },
+    { month: "Apr", income: 88, expense: 38, val: "$31.4k" },
+    { month: "May", income: 95, expense: 40, val: "$34.2k" },
+    { month: "Jun", income: 98, expense: 42, val: "$35.8k" },
   ];
 
   const expenseBreakdown = [
-    { name: "Maintenance", pct: "39%", color: "#10B981" },
-    { name: "Management Fees", pct: "25%", color: "var(--foreground)" },
-    { name: "Council Rates", pct: "18%", color: "#A9927D" },
-    { name: "Insurance", pct: "10%", color: "#D4A771" },
-    { name: "Other Expenses", pct: "8%", color: "#66737A" },
+    { name: "Repairs & Maintenance", pct: "39%", color: "#00A99D" },
+    { name: "Agency & Mgmt Fees", pct: "25%", color: "#38BDF8" },
+    { name: "Council & Water Rates", pct: "18%", color: "#FBBF24" },
+    { name: "Building Insurance", pct: "10%", color: "#A78BFA" },
+    { name: "Depreciation & Other", pct: "8%", color: "#64788D" },
   ];
 
   return (
-    <div className="w-full rounded-2xl border border-border bg-surface shadow-mockup overflow-hidden text-foreground text-xs select-none">
+    <div className="w-full rounded-2xl border border-white/[0.06] bg-[#08182A]/90 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden text-foreground text-xs select-none">
       {/* Header bar */}
-      <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between bg-surface-subtle/30">
-        <div>
-          <h3 className="font-heading font-bold text-sm sm:text-base text-foreground">
-            Financial Overview
-          </h3>
-          <p className="text-[11px] text-muted">Year to date performance</p>
+      <div className="p-4 sm:p-5 border-b border-white/[0.04] flex items-center justify-between bg-[#061222]/50">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-[#008F83]/15 border border-[#008F83]/30 flex items-center justify-center text-[#00A99D] shrink-0">
+            <BarChart3 className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-heading font-bold text-sm sm:text-base text-white">
+                ATO Real-Time Tax Telemetry
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                FY26 Live
+              </span>
+            </div>
+            <p className="text-[11px] text-[#8FA3B8]">Automated Rental Schedules & Depreciation</p>
+          </div>
         </div>
-        <button
-          type="button"
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-[11px] font-medium text-foreground hover:bg-surface-subtle"
-        >
-          <span>This Financial Year</span>
-          <ChevronDown className="w-3 h-3 text-muted" />
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono text-[#8FA3B8] hidden sm:inline">AU Standard</span>
+        </div>
       </div>
 
-      <div className="p-4 sm:p-5 space-y-5">
+      <div className="p-4 sm:p-5 space-y-4">
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {financialMetrics.map((m, idx) => (
             <div
               key={idx}
-              className="p-3 rounded-xl border border-border bg-surface-subtle/40 space-y-1"
+              className="p-3.5 rounded-xl border border-white/[0.04] bg-[#071526]/80 hover:border-[#008F83]/30 transition-all space-y-1 group"
             >
-              <span className="text-[10px] uppercase font-medium text-muted">
+              <span className="text-[9.5px] uppercase font-bold tracking-wider text-[#64788D]">
                 {m.label}
               </span>
-              <div className="text-lg font-bold font-heading text-foreground">
+              <div className="text-xl font-bold font-heading text-white">
                 {m.amount}
               </div>
-              <div className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                <TrendingUp className="w-2.5 h-2.5" />
-                <span>{m.change}</span>
+              <div className="flex items-center gap-1 text-[10.5px] font-semibold text-emerald-400">
+                <TrendingUp className="w-3 h-3" />
+                <span>{m.change} vs prior FY</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Charts: Bar Chart + Donut Chart */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 pt-1">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           {/* Income vs Expenses Bar Chart */}
-          <div className="md:col-span-7 p-3.5 rounded-xl border border-border bg-surface space-y-3">
+          <div className="md:col-span-7 p-4 rounded-xl border border-white/[0.04] bg-[#071526]/60 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="font-heading font-semibold text-xs text-foreground">
-                Income vs Expenses
+              <span className="font-heading font-semibold text-xs text-white">
+                Monthly Cash Velocity
               </span>
-              <div className="flex items-center gap-2 text-[10px]">
-                <span className="flex items-center gap-1 text-muted">
-                  <span className="w-2 h-2 rounded-xs bg-emerald-600" /> Income
+              <div className="flex items-center gap-3 text-[10px]">
+                <span className="flex items-center gap-1.5 text-[#8FA3B8]">
+                  <span className="w-2 h-2 rounded-xs bg-[#00A99D]" /> Rent In
                 </span>
-                <span className="flex items-center gap-1 text-muted">
-                  <span className="w-2 h-2 rounded-xs bg-accent" /> Expense
+                <span className="flex items-center gap-1.5 text-[#8FA3B8]">
+                  <span className="w-2 h-2 rounded-xs bg-amber-500/80" /> Expense Out
                 </span>
               </div>
             </div>
 
             {/* Custom Bar Visualization */}
-            <div className="h-36 flex items-end justify-between gap-2 pt-4 px-2 border-b border-border/60">
-              {barData.map((b, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-1 flex-1 h-full justify-end group">
-                  <div className="w-full flex items-end justify-center gap-1 h-28">
-                    {/* Income Bar */}
-                    <div
-                      style={{ height: `${b.income}%` }}
-                      className="w-3 sm:w-3.5 bg-emerald-600/80 group-hover:bg-emerald-600 rounded-t-xs transition-all duration-300"
-                    />
-                    {/* Expense Bar */}
-                    <div
-                      style={{ height: `${b.expense}%` }}
-                      className="w-3 sm:w-3.5 bg-accent/80 group-hover:bg-accent rounded-t-xs transition-all duration-300"
-                    />
+            <div className="h-36 flex items-end justify-between gap-2 pt-4 px-2 border-b border-white/[0.04]">
+              {barData.map((b, idx) => {
+                const isSelected = selectedMonth === b.month;
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => setSelectedMonth(b.month)}
+                    className="flex flex-col items-center gap-1.5 flex-1 h-full justify-end cursor-pointer group"
+                  >
+                    <div className="w-full flex items-end justify-center gap-1.5 h-28">
+                      {/* Income Bar */}
+                      <div
+                        style={{ height: `${b.income}%` }}
+                        className={`w-3 sm:w-3.5 rounded-t-sm transition-all duration-300 ${
+                          isSelected ? "bg-[#00A99D] shadow-sm shadow-[#00A99D]/50" : "bg-[#00A99D]/70 group-hover:bg-[#00A99D]"
+                        }`}
+                      />
+                      {/* Expense Bar */}
+                      <div
+                        style={{ height: `${b.expense}%` }}
+                        className={`w-3 sm:w-3.5 rounded-t-sm transition-all duration-300 ${
+                          isSelected ? "bg-amber-500" : "bg-amber-500/60 group-hover:bg-amber-500"
+                        }`}
+                      />
+                    </div>
+                    <span className={`text-[10px] font-mono transition-colors ${
+                      isSelected ? "text-[#00A99D] font-bold" : "text-[#8FA3B8]"
+                    }`}>
+                      {b.month}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-muted font-medium">{b.month}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
           {/* Expenses Breakdown Donut Chart */}
-          <div className="md:col-span-5 p-3.5 rounded-xl border border-border bg-surface flex flex-col justify-between">
-            <span className="font-heading font-semibold text-xs text-foreground">
-              Expenses Breakdown
+          <div className="md:col-span-5 p-4 rounded-xl border border-white/[0.04] bg-[#071526]/60 flex flex-col justify-between">
+            <span className="font-heading font-semibold text-xs text-white">
+              ATO Expense Tax Categories
             </span>
 
             <div className="flex items-center gap-4 py-2">
@@ -138,8 +161,8 @@ export function FinancialDashboard() {
                     cy="50"
                     r="38"
                     fill="transparent"
-                    stroke="#10B981"
-                    strokeWidth="16"
+                    stroke="#00A99D"
+                    strokeWidth="15"
                     strokeDasharray="93 145"
                   />
                   <circle
@@ -147,8 +170,8 @@ export function FinancialDashboard() {
                     cy="50"
                     r="38"
                     fill="transparent"
-                    stroke="var(--foreground)"
-                    strokeWidth="16"
+                    stroke="#38BDF8"
+                    strokeWidth="15"
                     strokeDasharray="60 178"
                     strokeDashoffset="-93"
                   />
@@ -157,8 +180,8 @@ export function FinancialDashboard() {
                     cy="50"
                     r="38"
                     fill="transparent"
-                    stroke="#A9927D"
-                    strokeWidth="16"
+                    stroke="#FBBF24"
+                    strokeWidth="15"
                     strokeDasharray="43 195"
                     strokeDashoffset="-153"
                   />
@@ -167,15 +190,15 @@ export function FinancialDashboard() {
                     cy="50"
                     r="38"
                     fill="transparent"
-                    stroke="#D4A771"
-                    strokeWidth="16"
+                    stroke="#A78BFA"
+                    strokeWidth="15"
                     strokeDasharray="24 214"
                     strokeDashoffset="-196"
                   />
                 </svg>
                 <div className="absolute text-center">
-                  <div className="text-[10px] font-bold text-foreground">$42,820</div>
-                  <div className="text-[8px] text-muted">Total Exp</div>
+                  <div className="text-[11px] font-bold text-white font-mono">$42.8k</div>
+                  <div className="text-[8px] text-[#8FA3B8] uppercase">Claimed</div>
                 </div>
               </div>
 
@@ -188,9 +211,9 @@ export function FinancialDashboard() {
                         className="w-1.5 h-1.5 rounded-full"
                         style={{ backgroundColor: item.color }}
                       />
-                      <span className="text-muted truncate">{item.name}</span>
+                      <span className="text-[#8FA3B8] truncate">{item.name}</span>
                     </div>
-                    <span className="font-medium text-foreground ml-1">{item.pct}</span>
+                    <span className="font-semibold text-white ml-1">{item.pct}</span>
                   </div>
                 ))}
               </div>

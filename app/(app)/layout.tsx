@@ -5,13 +5,12 @@ import { getPersonaForUser } from '@/lib/auth/resolvePersona';
 import { DashboardClientLayout } from '@/components/dashboard/DashboardClientLayout';
 import { resolveWorkspaceContext, getUserWorkspaces } from '@/lib/workspace/context';
 import { getUserProperties } from '@/lib/properties/queries';
-
+import { resolveOnboardingStage } from '@/lib/onboarding/resolver';
 import { getActiveWorkspaceId } from '@/lib/auth/authorization';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-
   const [activeWsId, user] = await Promise.all([
     getActiveWorkspaceId(),
     getCurrentUser(),
@@ -29,14 +28,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     getAccountContext(user.id),
   ]);
 
-  const workspaces = userWorkspaces.map((ws) => ({
-    id: ws.id,
-    name: ws.name,
-    slug: ws.slug,
-    status: ws.status,
-    role: ws.roleName ?? 'Owner',
-  }));
-
   if (personaContext.persona === 'tenant') {
     redirect('/tenant');
   }
@@ -45,6 +36,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const isOnboardingPending = accountCtx?.onboarding_status !== 'completed';
+
+  if (isOnboardingPending) {
+    const resolution = await resolveOnboardingStage(user.id);
+    if (!resolution.completed) {
+      redirect(resolution.route || '/onboarding');
+    }
+  }
+
+  const workspaces = userWorkspaces.map((ws) => ({
+    id: ws.id,
+    name: ws.name,
+    slug: ws.slug,
+    status: ws.status,
+    role: ws.roleName ?? 'Owner',
+  }));
 
   return (
     <DashboardClientLayout
@@ -59,7 +65,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       entitlements={workspaceContext?.entitlements ?? {}}
       workspaces={workspaces}
       initialProperties={initialProperties}
-      isOnboardingPending={isOnboardingPending}
+      isOnboardingPending={false}
     >
       {children}
     </DashboardClientLayout>

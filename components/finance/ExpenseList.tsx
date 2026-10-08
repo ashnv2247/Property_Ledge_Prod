@@ -24,6 +24,7 @@ import {
   Download,
   Calendar,
   PieChart as PieChartIcon,
+  FileCheck2,
 } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { Button, useToast, ConfirmDialog } from '@/components/admin/ui';
@@ -46,6 +47,7 @@ import { ExpenseDetailModal } from './ExpenseDetailModal';
 import { BulkExpenseUploadModal } from './BulkExpenseUploadModal';
 import { ExpenseCategoryPieChart } from './ExpenseCategoryPieChart';
 import { ExpenseBudgetTrackerCard } from './ExpenseBudgetTrackerCard';
+import { AccountantReportModal } from '@/components/reports/AccountantReportModal';
 import { formatCurrency } from '@/lib/format/currency';
 import { formatAuDisplayDate } from '@/lib/format/australian-time';
 import { cn } from '@/lib/utils';
@@ -82,6 +84,7 @@ export function ExpenseList({ initialExpenses, initialCategories }: ExpenseListP
   // Modals & Dialogs
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [isAccountantReportOpen, setIsAccountantReportOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<ExpenseDTO | null>(null);
   const [expenseToEdit, setExpenseToEdit] = useState<ExpenseDTO | null>(null);
   const [expenseToDelete, setExpenseToDelete] = useState<ExpenseDTO | null>(null);
@@ -581,6 +584,18 @@ export function ExpenseList({ initialExpenses, initialCategories }: ExpenseListP
             <span className="hidden sm:inline">Analytics</span>
           </button>
 
+          {/* Accountant Verification Report Button */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsAccountantReportOpen(true)}
+            className="text-xs font-semibold text-admin-primary border-admin-primary/30 hover:bg-admin-primary/10"
+            leftIcon={<FileCheck2 className="w-3.5 h-3.5 text-admin-primary" />}
+          >
+            Accountant Report
+          </Button>
+
           {/* Import / Bulk Upload */}
           <Button
             type="button"
@@ -947,6 +962,15 @@ export function ExpenseList({ initialExpenses, initialCategories }: ExpenseListP
         onSuccess={() => {
           loadExpenses();
         }}
+      />
+
+      {/* Accountant Expense Verification Report Modal */}
+      <AccountantReportModal
+        isOpen={isAccountantReportOpen}
+        onClose={() => setIsAccountantReportOpen(false)}
+        properties={properties}
+        categories={categories}
+        initialPropertyId={activePropertyId || undefined}
       />
 
       {/* Delete Confirmation Dialog */}

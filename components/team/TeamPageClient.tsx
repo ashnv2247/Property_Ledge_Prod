@@ -14,6 +14,8 @@ import {
   fetchPendingInvitations,
   fetchSeatUsage,
   revokeInvitation,
+  reactivateMember,
+  suspendMember,
   type WorkspaceMemberRow,
   type PendingInvitationRow,
 } from '@/app/actions/workspace-team';
@@ -36,6 +38,7 @@ export function TeamPageClient({
   const { workspaceId } = useAppContext();
   const canInvite = useCan('team.member.invite');
   const canView = useCan('team.member.view');
+  const canUpdate = useCan('team.member.update');
   const canManageRoles = useCan('team.role.view');
   const canRevoke = useCan('team.member.invite');
   const { toast, error: toastError, success: toastSuccess } = useToast();
@@ -125,12 +128,47 @@ export function TeamPageClient({
     {
       field: 'status',
       headerName: 'Status',
-      width: 110,
-      cellRenderer: (params: { value: string }) => (
-        <Badge variant={params.value === 'active' ? 'success' : 'neutral'}>
-          {params.value}
-        </Badge>
-      ),
+      width: 170,
+      cellRenderer: (params: { data?: WorkspaceMemberRow; value: string }) => {
+        if (!params.data) return null;
+        const member = params.data;
+        const isOwner = member.roleName?.toLowerCase() === 'owner';
+        return (
+          <div className="flex items-center gap-2">
+            <Badge variant={member.status === 'active' ? 'success' : 'neutral'}>
+              {member.status}
+            </Badge>
+            {canUpdate && !isOwner && (
+              <button
+                type="button"
+                className={`text-xs font-medium px-2 py-0.5 rounded transition-colors ${
+                  member.status === 'suspended'
+                    ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-950/40'
+                    : 'text-amber-700 bg-amber-50 hover:bg-amber-100 dark:text-amber-300 dark:bg-amber-950/40'
+                }`}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (!workspaceId || !member.id) return;
+                  try {
+                    if (member.status === 'suspended') {
+                      await reactivateMember(workspaceId, member.id);
+                      toastSuccess('Status updated', `${member.fullName || 'Member'} is now active.`);
+                    } else if (member.status === 'active') {
+                      await suspendMember(workspaceId, member.id);
+                      toastSuccess('Status updated', `${member.fullName || 'Member'} has been suspended.`);
+                    }
+                    load(true);
+                  } catch (err) {
+                    toastAuthorizationError(err, toastError);
+                  }
+                }}
+              >
+                {member.status === 'suspended' ? 'Activate' : 'Suspend'}
+              </button>
+            )}
+          </div>
+        );
+      },
     },
     {
       field: 'joinedAt',

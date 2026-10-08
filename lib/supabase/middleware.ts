@@ -140,7 +140,7 @@ export async function updateSession(request: NextRequest) {
   let onboardingRoute: string | null = null;
   let persona: Persona | null = null;
 
-  if (user && isAuthRoute) {
+  if (user && (isAuthRoute || pathname.startsWith('/dashboard'))) {
     const { data: accountContext } = await supabase
       .from('account_context')
       .select('onboarding_status')

@@ -120,19 +120,19 @@ svg {
 
 /* ---------- DARK THEME ---------- */
 .dark {
-  --background: #07111F;
-  --foreground: #F4F7F9;
-  --surface: #0B1726;
-  --surface-elevated: #0F1D2D;
-  --surface-subtle: #152538;
-  --muted: #7F8B99;
-  --muted-dark: #536170;
+  --background: #061222;
+  --foreground: #FFFFFF;
+  --surface: #08182A;
+  --surface-elevated: #0B1D30;
+  --surface-subtle: #0E1E33;
+  --muted: #8FA3B8;
+  --muted-dark: #64788D;
   --accent: #008F83;
   --accent-hover: #00A99D;
   --accent-subtle: rgba(0, 143, 131, 0.15);
-  --border: #1B2B3D;
-  --border-subtle: #152538;
-  --border-strong: #24384E;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-strong: rgba(255, 255, 255, 0.09);
   --border-focus: #008F83;
   --success: #16845A;
   --warning: #B77908;
@@ -140,13 +140,13 @@ svg {
   --info: #28709E;
   --primary: #008F83;
   --primary-foreground: #FFFFFF;
-  --secondary: #152538;
+  --secondary: #0E1E33;
   --secondary-foreground: #F4F7F9;
-  --input: #1B2B3D;
+  --input: rgba(255, 255, 255, 0.06);
   --ring: #008F83;
-  --card: #0B1726;
+  --card: #08182A;
   --card-foreground: #F4F7F9;
-  --popover: #0B1726;
+  --popover: #08182A;
   --popover-foreground: #F4F7F9;
   --destructive: #D64545;
   --destructive-foreground: #FFFFFF;
@@ -156,34 +156,34 @@ svg {
   --chart-4: #FB7185;
   --chart-5: #A78BFA;
   --shadow-color: rgba(0, 0, 0, 0.55);
-  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.32);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.14);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.24);
   --scrollbar-track: transparent;
 
   /* ---------- DARK ADMIN SHELL ---------- */
-  --admin-background: #07111F;
+  --admin-background: #061222;
   --admin-shell: #061222;
   --shell-navbar-height: 48px;
   --admin-sidebar: #061222;
   --admin-sidebar-surface: #071526;
-  --admin-sidebar-border: #17283A;
-  --admin-sidebar-border-subtle: #112030;
+  --admin-sidebar-border: rgba(255, 255, 255, 0.06);
+  --admin-sidebar-border-subtle: rgba(255, 255, 255, 0.04);
   --admin-sidebar-foreground: #D5DCE3;
-  --admin-sidebar-muted: #7F8B99;
+  --admin-sidebar-muted: #8FA3B8;
   --admin-sidebar-hover: #08182A;
   --admin-sidebar-active-pill: #008F83;
   --admin-sidebar-active-pill-border: #008F83;
   --admin-sidebar-active-text: #FFFFFF;
   --admin-sidebar-active-icon: #FFFFFF;
   --admin-shell-search-bg: #071526;
-  --admin-shell-search-border: #17283A;
-  --admin-surface: #0B1726;
-  --admin-surface-elevated: #0F1D2D;
-  --admin-surface-subtle: #152538;
-  --admin-border: #1B2B3D;
-  --admin-border-subtle: #152538;
-  --admin-border-strong: #24384E;
-  --admin-divider: #17283A;
+  --admin-shell-search-border: rgba(255, 255, 255, 0.06);
+  --admin-surface: #08182A;
+  --admin-surface-elevated: #0B1D30;
+  --admin-surface-subtle: #0E1E33;
+  --admin-border: rgba(255, 255, 255, 0.06);
+  --admin-border-subtle: rgba(255, 255, 255, 0.04);
+  --admin-border-strong: rgba(255, 255, 255, 0.09);
+  --admin-divider: rgba(255, 255, 255, 0.06);
   --admin-primary: #008F83;
   --admin-primary-hover: #00A99D;
   --admin-primary-soft: rgba(0, 143, 131, 0.18);
@@ -200,10 +200,10 @@ svg {
   --admin-danger-soft: rgba(214, 69, 69, 0.18);
   --admin-info: #28709E;
   --admin-info-soft: rgba(40, 112, 158, 0.18);
-  --admin-foreground: #F4F7F9;
-  --admin-muted: #7F8B99;
-  --admin-muted-foreground: #B7C1CB;
-  --admin-text-secondary: #B7C1CB;
+  --admin-foreground: #FFFFFF;
+  --admin-muted: #8FA3B8;
+  --admin-muted-foreground: #8FA3B8;
+  --admin-text-secondary: #8FA3B8;
 }
 
 /* ---------- THEME MODE OVERRIDES ---------- */
@@ -340,51 +340,52 @@ html[data-theme-mode="full-light"] {
 
 html[data-theme-mode="full-dark"],
 html[data-theme-mode="dark"] {
-  --background: #07111F;
-  --foreground: #F4F7F9;
-  --surface: #0B1726;
-  --surface-elevated: #0F1D2D;
-  --surface-subtle: #152538;
-  --muted: #7F8B99;
-  --muted-dark: #536170;
+  --background: #061222;
+  --foreground: #FFFFFF;
+  --surface: #08182A;
+  --surface-elevated: #0B1D30;
+  --surface-subtle: #0E1E33;
+  --muted: #8FA3B8;
+  --muted-dark: #64788D;
   --accent: #008F83;
   --accent-hover: #00A99D;
   --accent-subtle: rgba(0, 143, 131, 0.15);
-  --border: #1B2B3D;
-  --border-subtle: #152538;
-  --border-strong: #24384E;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-strong: rgba(255, 255, 255, 0.09);
   --border-focus: #008F83;
   --success: #16845A;
   --warning: #B77908;
   --danger: #D64545;
   --info: #28709E;
 
-  --admin-background: #07111F;
+  --admin-background: #061222;
   --admin-shell: #061222;
   --admin-sidebar: #061222;
   --admin-sidebar-surface: #071526;
   --admin-sidebar-hover: #08182A;
-  --admin-sidebar-border: #17283A;
+  --admin-sidebar-border: rgba(255, 255, 255, 0.06);
+  --admin-sidebar-border-subtle: rgba(255, 255, 255, 0.04);
   --admin-sidebar-foreground: #D5DCE3;
-  --admin-sidebar-muted: #7F8B99;
+  --admin-sidebar-muted: #8FA3B8;
   --admin-sidebar-active-pill: #008F83;
   --admin-sidebar-active-pill-border: #008F83;
   --admin-sidebar-active-text: #FFFFFF;
   --admin-sidebar-active-icon: #FFFFFF;
-  --admin-surface: #0B1726;
-  --admin-surface-elevated: #0F1D2D;
-  --admin-surface-subtle: #152538;
-  --admin-border: #1B2B3D;
-  --admin-border-subtle: #152538;
-  --admin-border-strong: #24384E;
-  --admin-divider: #17283A;
+  --admin-surface: #08182A;
+  --admin-surface-elevated: #0B1D30;
+  --admin-surface-subtle: #0E1E33;
+  --admin-border: rgba(255, 255, 255, 0.06);
+  --admin-border-subtle: rgba(255, 255, 255, 0.04);
+  --admin-border-strong: rgba(255, 255, 255, 0.09);
+  --admin-divider: rgba(255, 255, 255, 0.06);
   --admin-primary: #008F83;
   --admin-primary-hover: #00A99D;
   --admin-primary-soft: rgba(0, 143, 131, 0.18);
-  --admin-foreground: #F4F7F9;
-  --admin-muted: #7F8B99;
-  --admin-muted-foreground: #B7C1CB;
-  --admin-text-secondary: #B7C1CB;
+  --admin-foreground: #FFFFFF;
+  --admin-muted: #8FA3B8;
+  --admin-muted-foreground: #8FA3B8;
+  --admin-text-secondary: #8FA3B8;
 }
 
 /* ============================================================
@@ -726,4 +727,61 @@ body {
   );
   background-size: 800px 100%;
   animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+/* ============================================================
+   GLOBAL SUBTLE BORDERS & DIVIDERS (Subconscious & Non-distracting)
+   ============================================================ */
+
+.dark hr,
+hr {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: 1.5rem 0;
+  opacity: 0.6;
+}
+
+/* Ensure all slate / hardcoded dark borders blend subtly */
+.dark .border-slate-800,
+.dark .border-slate-700,
+.dark .border-slate-900,
+.dark .dark\:border-slate-800,
+.dark .dark\:border-slate-700,
+.dark .dark\:border-slate-900,
+.dark .dark\:border-slate-800\/60,
+.dark .dark\:border-slate-800\/80,
+.dark .dark\:border-slate-700\/60,
+.dark .dark\:border-\[\#17283A\],
+.dark .dark\:border-\[\#17283A\]\/80,
+.dark .dark\:border-\[\#17283A\]\/60,
+.dark .dark\:border-\[\#1E293B\]\/60 {
+  border-color: var(--border) !important;
+}
+
+.dark .border-b-slate-800,
+.dark .border-b-slate-700,
+.dark .dark\:border-b-slate-800,
+.dark .dark\:border-b-\[\#17283A\],
+.dark .dark\:border-b-\[\#17283A\]\/80 {
+  border-bottom-color: var(--border-subtle) !important;
+}
+
+.dark .border-t-slate-800,
+.dark .border-t-slate-700,
+.dark .dark\:border-t-slate-800,
+.dark .dark\:border-t-\[\#17283A\],
+.dark .dark\:border-t-\[\#17283A\]\/80 {
+  border-top-color: var(--border-subtle) !important;
+}
+
+.dark .divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-700 > :not([hidden]) ~ :not([hidden]),
+.dark .dark\:divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+.dark .dark\:divide-slate-700 > :not([hidden]) ~ :not([hidden]),
+.dark .dark\:divide-slate-800\/60 > :not([hidden]) ~ :not([hidden]),
+.dark .dark\:divide-\[\#17283A\]\/60 > :not([hidden]) ~ :not([hidden]),
+.dark .dark\:divide-\[\#1E293B\]\/60 > :not([hidden]) ~ :not([hidden]),
+.dark .dark\:divide-admin-border\/40 > :not([hidden]) ~ :not([hidden]),
+.dark .dark\:divide-admin-border\/60 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-subtle) !important;
 }

@@ -67,7 +67,7 @@ interface ListPageHeaderProps {
 
 export function ListPageHeader({ title, description, breadcrumb, actions, className }: ListPageHeaderProps) {
   return (
-    <header className={cn('shrink-0 space-y-1.5 border-b border-admin-border pb-5', className)}>
+    <header className={cn('shrink-0 space-y-1.5 pb-4', className)}>
       {breadcrumb && breadcrumb.length > 0 && <Breadcrumb items={breadcrumb} />}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
@@ -91,7 +91,7 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ greeting, subtitle, actions, className }: DashboardHeaderProps) {
   return (
-    <header className={cn('flex shrink-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between', className)}>
+    <header className={cn('flex shrink-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between pb-2', className)}>
       <div className="min-w-0 space-y-1">
         <h1 className="font-heading text-page-title font-bold tracking-tight text-admin-foreground">{greeting}</h1>
         <p className="text-body-sm text-admin-muted">{subtitle}</p>
@@ -125,7 +125,7 @@ export function EntityDetailHeader({
   return (
     <header
       className={cn(
-        'shrink-0 space-y-3 border-b border-admin-border pb-5',
+        'shrink-0 space-y-3 pb-4',
         identitySurface && 'rounded-xl border border-admin-border bg-admin-surface-subtle/60 p-5 mb-0',
         className
       )}

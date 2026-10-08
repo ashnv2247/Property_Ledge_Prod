@@ -296,8 +296,8 @@ export function OwnerDashboard({
             {(attentionItems.length > 0 || upcomingItems.length > 0) && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-start">
                 {/* Needs Attention (7 cols) */}
-                <div className="lg:col-span-7 rounded-[24px] border border-slate-200/80 dark:border-[#17283A] bg-white dark:bg-[#07111F] p-6 lg:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none">
-                  <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-[#17283A]/80">
+                <div className="lg:col-span-7 rounded-[24px] border border-slate-200/80 dark:border-white/[0.06] bg-white dark:bg-[#08182A] p-6 lg:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none">
+                  <div className="flex items-center justify-between pb-2">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-amber-500" />
                       <h3 className="text-base font-bold text-slate-900 dark:text-white">
@@ -320,7 +320,7 @@ export function OwnerDashboard({
                       <p className="text-[11px] text-slate-400 dark:text-[#7F8B99]">No overdue invoices, open maintenance, or expiring items.</p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-slate-100 dark:divide-[#17283A]/60 mt-1">
+                    <div className="divide-y divide-slate-100 dark:divide-white/[0.04] mt-1">
                       {attentionItems.map((item) => (
                         <div key={item.id} className="py-3 flex items-center justify-between gap-3 group">
                           <div className="min-w-0">
@@ -350,8 +350,8 @@ export function OwnerDashboard({
 
                 {/* Upcoming Milestones (5 cols) */}
                 {upcomingItems.length > 0 && (
-                  <div className="lg:col-span-5 rounded-[24px] border border-slate-200/80 dark:border-[#17283A] bg-white dark:bg-[#07111F] p-6 lg:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none">
-                    <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-[#17283A]/80">
+                  <div className="lg:col-span-5 rounded-[24px] border border-slate-200/80 dark:border-white/[0.06] bg-white dark:bg-[#08182A] p-6 lg:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none">
+                    <div className="flex items-center justify-between pb-2">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-slate-400 dark:text-[#7F8B99]" />
                         <h3 className="text-base font-bold text-slate-900 dark:text-white">
@@ -363,7 +363,7 @@ export function OwnerDashboard({
                       </span>
                     </div>
 
-                    <div className="divide-y divide-slate-100 dark:divide-[#17283A]/60 mt-1">
+                    <div className="divide-y divide-slate-100 dark:divide-white/[0.04] mt-1">
                       {upcomingItems.slice(0, 4).map((item) => (
                         <div key={item.id} className="py-2.5 flex items-center justify-between gap-2">
                           <div className="min-w-0">

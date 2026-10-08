@@ -86,14 +86,14 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
     <div className="w-full space-y-6 animate-in fade-in duration-300">
       {/* Header */}
       <div className="space-y-2 text-left">
-        <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#EFE2C9]/60 dark:bg-[#C7A66A]/20 border border-[#C7A66A]/30 text-[11px] font-mono tracking-widest text-[#C7A66A] font-bold uppercase">
+        <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#008F83]/15 border border-[#008F83]/30 text-[11px] font-mono tracking-widest text-[#008F83] dark:text-[#00A99D] font-bold uppercase">
           CREATE ACCOUNT
         </div>
 
-        <h2 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight text-[#11181C] dark:text-[#F4F3EF]">
+        <h2 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
           Create your account
         </h2>
-        <p className="text-sm text-[#697277] dark:text-[#A8B0B3]">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Start managing your property portfolio from one place.
         </p>
       </div>
@@ -116,7 +116,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
           type="button"
           disabled={isLoading}
           onClick={handleGoogleSignIn}
-          className="w-full py-3.5 sm:py-4 h-12 sm:h-14 min-h-[52px] px-4 rounded-xl bg-white dark:bg-[#152228] border border-[#11181C]/20 dark:border-[#26373F] hover:border-[#11181C]/40 dark:hover:border-[#C7A66A]/40 text-base font-bold text-[#11181C] dark:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-3 shadow-md group disabled:opacity-50"
+          className="w-full py-3.5 sm:py-4 h-12 sm:h-14 min-h-[52px] px-4 rounded-xl bg-white dark:bg-[#08182A] border border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.2] text-base font-bold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-[#0B1D30] transition-all flex items-center justify-center gap-3 shadow-sm group disabled:opacity-50"
         >
           <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
             <path
@@ -143,9 +143,9 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
       {/* Divider */}
       <div className="relative py-1 flex items-center justify-center">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-black/10 dark:border-white/10" />
+          <div className="w-full border-t border-slate-200 dark:border-white/[0.08]" />
         </div>
-        <div className="relative bg-[#F7F6F2] dark:bg-[#0E171B] px-4 text-xs text-[#697277] dark:text-[#A8B0B3] font-medium">
+        <div className="relative bg-slate-50 dark:bg-[#061222] px-4 text-xs text-slate-500 dark:text-slate-400 font-medium">
           or sign up with email
         </div>
       </div>
@@ -157,7 +157,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
           <div className="space-y-1.5">
             <label
               htmlFor="first-name"
-              className="block text-xs font-semibold text-[#11181C] dark:text-[#F4F3EF] tracking-wide"
+              className="block text-xs font-semibold text-slate-900 dark:text-white tracking-wide"
             >
               First Name
             </label>
@@ -171,16 +171,16 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder="e.g. Sarah"
-                className="w-full h-12 pl-10 pr-3.5 rounded-xl bg-white dark:bg-[#152228] border border-[#11181C]/15 dark:border-[#26373F] text-sm text-[#11181C] dark:text-white placeholder:text-[#697277]/60 dark:placeholder:text-[#A8B0B3]/50 focus:outline-none focus:border-[#C7A66A] focus:ring-2 focus:ring-[#C7A66A]/20 transition-all duration-150 shadow-sm"
+                className="w-full h-12 pl-10 pr-3.5 rounded-xl bg-white dark:bg-[#08182A] border border-slate-200 dark:border-white/[0.08] text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#008F83] focus:ring-2 focus:ring-[#008F83]/20 transition-all duration-150 shadow-sm"
               />
-              <User className="w-4 h-4 text-[#697277] dark:text-[#A8B0B3] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <User className="w-4 h-4 text-slate-400 dark:text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             </div>
           </div>
 
           <div className="space-y-1.5">
             <label
               htmlFor="last-name"
-              className="block text-xs font-semibold text-[#11181C] dark:text-[#F4F3EF] tracking-wide"
+              className="block text-xs font-semibold text-slate-900 dark:text-white tracking-wide"
             >
               Last Name
             </label>
@@ -194,9 +194,9 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="e.g. Williams"
-                className="w-full h-12 pl-10 pr-3.5 rounded-xl bg-white dark:bg-[#152228] border border-[#11181C]/15 dark:border-[#26373F] text-sm text-[#11181C] dark:text-white placeholder:text-[#697277]/60 dark:placeholder:text-[#A8B0B3]/50 focus:outline-none focus:border-[#C7A66A] focus:ring-2 focus:ring-[#C7A66A]/20 transition-all duration-150 shadow-sm"
+                className="w-full h-12 pl-10 pr-3.5 rounded-xl bg-white dark:bg-[#08182A] border border-slate-200 dark:border-white/[0.08] text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#008F83] focus:ring-2 focus:ring-[#008F83]/20 transition-all duration-150 shadow-sm"
               />
-              <User className="w-4 h-4 text-[#697277] dark:text-[#A8B0B3] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <User className="w-4 h-4 text-slate-400 dark:text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             </div>
           </div>
         </div>
@@ -205,7 +205,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         <div className="space-y-1.5">
           <label
             htmlFor="signup-email"
-            className="block text-xs font-semibold text-[#11181C] dark:text-[#F4F3EF] tracking-wide"
+            className="block text-xs font-semibold text-slate-900 dark:text-white tracking-wide"
           >
             Email Address
           </label>
@@ -219,15 +219,15 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="sarah.williams@propertyledge.com.au"
-              className="w-full h-12 pl-10 pr-3.5 rounded-xl bg-white dark:bg-[#152228] border border-[#11181C]/15 dark:border-[#26373F] text-sm text-[#11181C] dark:text-white placeholder:text-[#697277]/60 dark:placeholder:text-[#A8B0B3]/50 focus:outline-none focus:border-[#C7A66A] focus:ring-2 focus:ring-[#C7A66A]/20 transition-all duration-150 shadow-sm"
+              className="w-full h-12 pl-10 pr-3.5 rounded-xl bg-white dark:bg-[#08182A] border border-slate-200 dark:border-white/[0.08] text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#008F83] focus:ring-2 focus:ring-[#008F83]/20 transition-all duration-150 shadow-sm"
             />
-            <Mail className="w-4 h-4 text-[#697277] dark:text-[#A8B0B3] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Mail className="w-4 h-4 text-slate-400 dark:text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           </div>
         </div>
 
         {/* Account Type Selection (Individual vs Business) */}
         <div className="space-y-1.5">
-          <label className="block text-xs font-semibold text-[#11181C] dark:text-[#F4F3EF] tracking-wide">
+          <label className="block text-xs font-semibold text-slate-900 dark:text-white tracking-wide">
             Account Type
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -236,11 +236,11 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
               onClick={() => setAccountType("individual")}
               className={`p-2.5 rounded-xl border text-xs font-medium text-left transition-all flex items-center gap-2 ${
                 accountType === "individual"
-                  ? "bg-[#11181C] dark:bg-[#C7A66A] text-white dark:text-[#081216] border-[#11181C] dark:border-[#C7A66A] shadow-sm font-semibold"
-                  : "bg-white dark:bg-[#152228] text-[#11181C] dark:text-white border-[#11181C]/15 dark:border-[#26373F] hover:border-[#11181C]/30"
+                  ? "bg-[#008F83] text-white border-[#008F83] shadow-sm font-semibold"
+                  : "bg-white dark:bg-[#08182A] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.2]"
               }`}
             >
-              <User className="w-4 h-4 text-[#C7A66A] dark:text-[#081216] shrink-0" />
+              <User className={`w-4 h-4 shrink-0 ${accountType === "individual" ? "text-white" : "text-[#008F83] dark:text-[#00A99D]"}`} />
               <span>Individual Landlord</span>
             </button>
 
@@ -249,11 +249,11 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
               onClick={() => setAccountType("business")}
               className={`p-2.5 rounded-xl border text-xs font-medium text-left transition-all flex items-center gap-2 ${
                 accountType === "business"
-                  ? "bg-[#11181C] dark:bg-[#C7A66A] text-white dark:text-[#081216] border-[#11181C] dark:border-[#C7A66A] shadow-sm font-semibold"
-                  : "bg-white dark:bg-[#152228] text-[#11181C] dark:text-white border-[#11181C]/15 dark:border-[#26373F] hover:border-[#11181C]/30"
+                  ? "bg-[#008F83] text-white border-[#008F83] shadow-sm font-semibold"
+                  : "bg-white dark:bg-[#08182A] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.2]"
               }`}
             >
-              <Building2 className="w-4 h-4 text-[#C7A66A] dark:text-[#081216] shrink-0" />
+              <Building2 className={`w-4 h-4 shrink-0 ${accountType === "business" ? "text-white" : "text-[#008F83] dark:text-[#00A99D]"}`} />
               <span>Business / PM</span>
             </button>
           </div>
@@ -263,7 +263,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         <div className="space-y-1.5">
           <label
             htmlFor="signup-password"
-            className="block text-xs font-semibold text-[#11181C] dark:text-[#F4F3EF] tracking-wide"
+            className="block text-xs font-semibold text-slate-900 dark:text-white tracking-wide"
           >
             Create Password
           </label>
@@ -277,19 +277,19 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Min 8 chars with 1 uppercase & 1 number"
-              className="w-full h-12 pl-10 pr-10 rounded-xl bg-white dark:bg-[#152228] border border-[#11181C]/15 dark:border-[#26373F] text-sm text-[#11181C] dark:text-white placeholder:text-[#697277]/60 dark:placeholder:text-[#A8B0B3]/50 focus:outline-none focus:border-[#C7A66A] focus:ring-2 focus:ring-[#C7A66A]/20 transition-all duration-150 shadow-sm"
+              className="w-full h-12 pl-10 pr-10 rounded-xl bg-white dark:bg-[#08182A] border border-slate-200 dark:border-white/[0.08] text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-[#008F83] focus:ring-2 focus:ring-[#008F83]/20 transition-all duration-150 shadow-sm"
             />
-            <Lock className="w-4 h-4 text-[#697277] dark:text-[#A8B0B3] absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Lock className="w-4 h-4 text-slate-400 dark:text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? "Hide password" : "Show password"}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#697277] dark:text-[#A8B0B3] hover:text-[#11181C] dark:hover:text-white transition-colors p-1 rounded"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors p-1 rounded"
             >
               {showPassword ? (
-                <EyeOff className="w-4 h-4 text-[#697277] dark:text-[#A8B0B3]" />
+                <EyeOff className="w-4 h-4 text-slate-400 dark:text-slate-400" />
               ) : (
-                <Eye className="w-4 h-4 text-[#697277] dark:text-[#A8B0B3]" />
+                <Eye className="w-4 h-4 text-slate-400 dark:text-slate-400" />
               )}
             </button>
           </div>
@@ -305,20 +305,20 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
               required
               checked={agreeTerms}
               onChange={(e) => setAgreeTerms(e.target.checked)}
-              className="mt-1 w-4 h-4 rounded border-[#11181C]/20 text-[#11181C] accent-[#11181C] focus:ring-[#C7A66A]"
+              className="mt-1 w-4 h-4 rounded border-slate-300 dark:border-white/[0.1] text-[#008F83] accent-[#008F83] focus:ring-[#008F83]"
             />
-            <span className="text-xs text-[#697277] dark:text-[#A8B0B3] group-hover:text-[#11181C] dark:group-hover:text-white transition-colors leading-relaxed">
+            <span className="text-xs text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-relaxed">
               I agree to the{" "}
               <Link
                 href="/#platform"
-                className="text-[#C7A66A] font-semibold underline hover:text-[#11181C] dark:hover:text-white"
+                className="text-[#008F83] dark:text-[#00A99D] font-semibold underline hover:text-slate-900 dark:hover:text-white"
               >
                 Terms of Service
               </Link>{" "}
               and{" "}
               <Link
                 href="/#platform"
-                className="text-[#C7A66A] font-semibold underline hover:text-[#11181C] dark:hover:text-white"
+                className="text-[#008F83] dark:text-[#00A99D] font-semibold underline hover:text-slate-900 dark:hover:text-white"
               >
                 Privacy Policy
               </Link>
@@ -332,17 +332,17 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
           <button
             type="submit"
             disabled={isLoading || !agreeTerms}
-            className="w-full py-3.5 sm:py-4 h-12 sm:h-14 min-h-[52px] bg-[#11181C] dark:bg-[#C7A66A] text-white dark:text-[#081216] font-bold text-base rounded-xl hover:bg-[#1A262B] dark:hover:bg-[#d8b77b] hover:shadow-xl active:scale-[0.99] transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            className="w-full py-3.5 sm:py-4 h-12 sm:h-14 min-h-[52px] bg-[#008F83] hover:bg-[#00A99D] text-white font-bold text-base rounded-xl hover:shadow-lg active:scale-[0.99] transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#008F83]/15"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin text-[#C7A66A] dark:text-[#081216]" />
+                <Loader2 className="w-5 h-5 animate-spin text-white" />
                 <span>Creating account...</span>
               </>
             ) : (
               <>
                 <span>Create Account with Email</span>
-                <ArrowRight className="w-4 h-4 text-[#C7A66A] dark:text-[#081216] transition-transform duration-200 group-hover:translate-x-1" />
+                <ArrowRight className="w-4 h-4 text-white transition-transform duration-200 group-hover:translate-x-1" />
               </>
             )}
           </button>
@@ -350,11 +350,11 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
       </form>
 
       {/* Switch to Login */}
-      <div className="pt-2 text-center text-xs text-[#697277] dark:text-[#A8B0B3] border-t border-black/10 dark:border-white/10">
+      <div className="pt-2 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-white/[0.08]">
         Already have an account?{" "}
         <Link
           href="/login"
-          className="text-[#C7A66A] font-bold hover:underline transition-colors ml-1 inline-flex items-center gap-1"
+          className="text-[#008F83] dark:text-[#00A99D] font-bold hover:underline transition-colors ml-1 inline-flex items-center gap-1"
         >
           Log in &rarr;
         </Link>

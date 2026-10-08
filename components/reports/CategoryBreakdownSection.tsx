@@ -28,9 +28,9 @@ export function CategoryBreakdownSection({
   return (
     <div className={cn('grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5', className)}>
       {/* 1. Income by Category */}
-      <div className="bg-white dark:bg-[#0B1726] border border-border rounded-2xl p-5 lg:p-6 shadow-2xs flex flex-col justify-between">
+      <div className="bg-white dark:bg-[#08182A] border border-border rounded-2xl p-5 lg:p-6 shadow-2xs flex flex-col justify-between">
         <div>
-          <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between pb-3">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
                 Income by Category
@@ -93,9 +93,9 @@ export function CategoryBreakdownSection({
       </div>
 
       {/* 2. Expenses by Category */}
-      <div className="bg-white dark:bg-[#0B1726] border border-border rounded-2xl p-5 lg:p-6 shadow-2xs flex flex-col justify-between">
+      <div className="bg-white dark:bg-[#08182A] border border-border rounded-2xl p-5 lg:p-6 shadow-2xs flex flex-col justify-between">
         <div>
-          <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between pb-3">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
                 Expenses by Category

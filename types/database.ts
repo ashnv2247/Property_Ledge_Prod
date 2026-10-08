@@ -1663,6 +1663,223 @@ export interface Database {
           updated_at?: string
         }
       }
+      activity_types: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          icon: string
+          color: string
+          description: string | null
+          is_system: boolean
+          workspace_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id: string
+          name: string
+          slug: string
+          icon?: string
+          color?: string
+          description?: string | null
+          is_system?: boolean
+          workspace_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          icon?: string
+          color?: string
+          description?: string | null
+          is_system?: boolean
+          workspace_id?: string | null
+          created_at?: string
+        }
+      }
+      activities: {
+        Row: {
+          id: string
+          workspace_id: string
+          property_id: string
+          lease_id: string | null
+          tenant_id: string | null
+          activity_type_id: string
+          title: string
+          description: string | null
+          lifecycle_status: 'draft' | 'active' | 'archived'
+          created_by: string | null
+          owner_id: string | null
+          is_recurring: boolean
+          recurrence_enabled: boolean
+          recurrence_frequency: 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual' | 'custom' | null
+          recurrence_interval: number
+          recurrence_start_date: string | null
+          recurrence_end_date: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          property_id: string
+          lease_id?: string | null
+          tenant_id?: string | null
+          activity_type_id: string
+          title: string
+          description?: string | null
+          lifecycle_status?: 'draft' | 'active' | 'archived'
+          created_by?: string | null
+          owner_id?: string | null
+          is_recurring?: boolean
+          recurrence_enabled?: boolean
+          recurrence_frequency?: 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual' | 'custom' | null
+          recurrence_interval?: number
+          recurrence_start_date?: string | null
+          recurrence_end_date?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          property_id?: string
+          lease_id?: string | null
+          tenant_id?: string | null
+          activity_type_id?: string
+          title?: string
+          description?: string | null
+          lifecycle_status?: 'draft' | 'active' | 'archived'
+          created_by?: string | null
+          owner_id?: string | null
+          is_recurring?: boolean
+          recurrence_enabled?: boolean
+          recurrence_frequency?: 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannual' | 'annual' | 'custom' | null
+          recurrence_interval?: number
+          recurrence_start_date?: string | null
+          recurrence_end_date?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      activity_occurrences: {
+        Row: {
+          id: string
+          activity_id: string
+          workspace_id: string
+          property_id: string
+          due_date: string
+          assigned_to: string | null
+          status: 'open' | 'in_progress' | 'delayed' | 'completed' | 'cancelled'
+          completed_at: string | null
+          completed_by: string | null
+          completion_notes: string | null
+          sequence_number: number
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          activity_id: string
+          workspace_id: string
+          property_id: string
+          due_date: string
+          assigned_to?: string | null
+          status?: 'open' | 'in_progress' | 'delayed' | 'completed' | 'cancelled'
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_notes?: string | null
+          sequence_number?: number
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          activity_id?: string
+          workspace_id?: string
+          property_id?: string
+          due_date?: string
+          assigned_to?: string | null
+          status?: 'open' | 'in_progress' | 'delayed' | 'completed' | 'cancelled'
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_notes?: string | null
+          sequence_number?: number
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      activity_comments: {
+        Row: {
+          id: string
+          workspace_id: string
+          activity_id: string
+          occurrence_id: string | null
+          user_id: string
+          comment: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          activity_id: string
+          occurrence_id?: string | null
+          user_id: string
+          comment: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          activity_id?: string
+          occurrence_id?: string | null
+          user_id?: string
+          comment?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      activity_journal: {
+        Row: {
+          id: string
+          workspace_id: string
+          activity_id: string
+          occurrence_id: string | null
+          event_type: string
+          actor_id: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          activity_id: string
+          occurrence_id?: string | null
+          event_type: string
+          actor_id?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          activity_id?: string
+          occurrence_id?: string | null
+          event_type?: string
+          actor_id?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

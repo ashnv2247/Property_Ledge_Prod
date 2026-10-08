@@ -146,8 +146,10 @@ export async function resolveOnboardingStage(userId: string): Promise<Onboarding
       context,
       progress,
     };
-  } else if (!context.hasProperty) {
+  } else if (!context.hasProperty && !progress.completedStages.includes('property')) {
     stage = 'property';
+  } else if (!progress.completedStages.includes('team')) {
+    stage = 'team';
   } else {
     stage = 'ready';
   }

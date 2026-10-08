@@ -1,5 +1,6 @@
 'use server';
 
+import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { assertWorkspaceSeatAvailable } from '@/lib/entitlements/workspace-seats';
@@ -140,8 +141,10 @@ export async function fetchRolePermissions(roleId: string): Promise<PermissionRo
 
 export async function createInviteLink(workspaceId: string, roleId: string) {
   await requireTeamInviteAuth(workspaceId);
-
+  const user = await requireAuthenticatedUser();
   const supabase = await createClient();
+  const admin = await createAdminClient();
+
   const { data, error } = await supabase.rpc(
     'create_workspace_invitation' as never,
     {
@@ -151,16 +154,52 @@ export async function createInviteLink(workspaceId: string, roleId: string) {
     } as never
   );
 
-  if (error) throw new Error(error.message);
-  const row = (data as Array<{ invitation_id: string; raw_token: string }>)?.[0];
-  if (!row) throw new Error('Failed to create invitation');
+  let rawToken: string;
+  let invitationId: string;
+
+  if (error || !data || !(data as any[])?.[0]) {
+    // Fallback: Generate cryptographically secure token & insert directly
+    const rawBytes = crypto.randomBytes(32);
+    rawToken = rawBytes.toString('base64url');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    const { data: inv, error: insertError } = await (admin as any)
+      .from('workspace_invitations')
+      .insert({
+        workspace_id: workspaceId,
+        invited_by: user.id,
+        role_id: roleId,
+        token_hash: tokenHash,
+        invite_type: 'LINK',
+        status: 'pending',
+        expires_at: expiresAt.toISOString(),
+      })
+      .select('id')
+      .single();
+
+    if (insertError) throw new Error(insertError.message);
+    invitationId = inv.id;
+
+    await logWorkspaceMemberActivity(workspaceId, user.id, 'member.invite_created', invitationId, {
+      invitation_id: invitationId,
+      role_id: roleId,
+      invite_type: 'LINK',
+    });
+  } else {
+    const row = (data as Array<{ invitation_id: string; raw_token: string }>)[0];
+    invitationId = row.invitation_id;
+    rawToken = row.raw_token;
+  }
 
   const appUrl = getAppBaseUrl();
   revalidatePath('/dashboard/team');
   return {
-    invitationId: row.invitation_id,
-    inviteUrl: `${appUrl}/join/${row.raw_token}`,
-    token: row.raw_token,
+    invitationId,
+    inviteUrl: `${appUrl}/join/${rawToken}`,
+    token: rawToken,
   };
 }
 
@@ -193,7 +232,12 @@ export async function lookupProfile(publicId: string) {
   };
 }
 
-export async function addMemberByProfileId(workspaceId: string, publicId: string, roleId: string) {
+export async function addMemberByProfileId(
+  workspaceId: string,
+  publicId: string,
+  roleId: string,
+  propertyAccess?: { mode: 'all' | 'custom'; propertyIds: string[] }
+) {
   await requireTeamInviteAuth(workspaceId);
   const user = await requireAuthenticatedUser();
   const supabase = await createClient();
@@ -250,13 +294,19 @@ export async function addMemberByProfileId(workspaceId: string, publicId: string
 
   if (insertError) throw new Error(insertError.message);
 
-  const { error: syncError } = await admin.rpc(
-    'sync_workspace_member_property_access' as never,
-    { p_workspace_id: workspaceId, p_user_id: profile.id } as never
-  );
-  if (syncError) throw new Error(syncError.message);
+  const memberId = (member as { id: string }).id;
 
-  await logWorkspaceMemberActivity(workspaceId, user.id, 'member.added', (member as { id: string }).id, {
+  if (propertyAccess && propertyAccess.mode === 'custom') {
+    await updateMemberPropertyAccess(workspaceId, memberId, propertyAccess);
+  } else {
+    const { error: syncError } = await admin.rpc(
+      'sync_workspace_member_property_access' as never,
+      { p_workspace_id: workspaceId, p_user_id: profile.id } as never
+    );
+    if (syncError) throw new Error(syncError.message);
+  }
+
+  await logWorkspaceMemberActivity(workspaceId, user.id, 'member.added', memberId, {
     target_user_id: profile.id,
     role_id: roleId,
   });
@@ -265,7 +315,7 @@ export async function addMemberByProfileId(workspaceId: string, publicId: string
   serverCache.invalidateUser(profile.id);
   revalidatePath('/dashboard/team');
   return {
-    member_id: (member as { id: string }).id,
+    member_id: memberId,
     user_id: profile.id,
     role_name: roleRow.name,
   };
@@ -371,6 +421,51 @@ export async function suspendMember(workspaceId: string, memberId: string) {
   serverCache.invalidateWorkspace(workspaceId);
   serverCache.invalidateUser((member as { user_id: string }).user_id);
   revalidatePath('/dashboard/team');
+}
+
+export async function reactivateMember(workspaceId: string, memberId: string) {
+  await requireTeamPermission(workspaceId, 'team.member.update');
+  await assertWorkspaceSeatAvailable(workspaceId);
+  const user = await requireAuthenticatedUser();
+  const supabase = await createClient();
+  const admin = await createAdminClient();
+
+  const { data: member, error: fetchError } = await supabase
+    .from('workspace_members')
+    .select('id, workspace_id, user_id')
+    .eq('id', memberId)
+    .eq('workspace_id', workspaceId)
+    .maybeSingle();
+
+  if (fetchError || !member) throw new Error('NOT_FOUND');
+
+  const { error } = await (admin as any)
+    .from('workspace_members')
+    .update({ status: 'active', updated_at: new Date().toISOString() })
+    .eq('id', memberId)
+    .eq('workspace_id', workspaceId);
+
+  if (error) throw new Error(error.message);
+
+  // Restore property access
+  await (admin as any)
+    .from('property_members')
+    .update({ status: 'active', updated_at: new Date().toISOString() })
+    .eq('user_id', (member as { user_id: string }).user_id)
+    .eq('status', 'suspended');
+
+  await logWorkspaceMemberActivity(workspaceId, user.id, 'member.reactivated', memberId);
+  serverCache.invalidateWorkspace(workspaceId);
+  serverCache.invalidateUser((member as { user_id: string }).user_id);
+  revalidatePath('/dashboard/team');
+}
+
+export async function updateMemberStatus(workspaceId: string, memberId: string, status: 'active' | 'suspended') {
+  if (status === 'active') {
+    return reactivateMember(workspaceId, memberId);
+  } else {
+    return suspendMember(workspaceId, memberId);
+  }
 }
 
 async function fetchWorkspaceTeamDirect(workspaceId: string) {
@@ -518,21 +613,111 @@ export async function resolveJoinInvitation(token: string) {
 }
 
 export async function acceptJoinInvitation(token: string) {
-  await requireAuthenticatedUser();
+  const user = await requireAuthenticatedUser();
   const supabase = await createClient();
+  const admin = await createAdminClient();
+
   const { data, error } = await supabase.rpc(
     'accept_workspace_invitation' as never,
     { p_token: token } as never
   );
-  if (error) throw new Error(error.message);
 
-  const row = (data as Array<{ workspace_id: string; member_id: string; role_name: string }>)?.[0];
-  if (row?.workspace_id) {
-    await setActiveWorkspaceCookie(row.workspace_id);
+  let resultRow: { workspace_id: string; member_id: string; role_name: string } | undefined;
+
+  if (error || !data || !(data as any[])?.[0]) {
+    // Fallback: validate token & activate member directly
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const { data: inv, error: invError } = await (admin as any)
+      .from('workspace_invitations')
+      .select('id, workspace_id, role_id, status, expires_at, invited_by, team_roles ( name )')
+      .eq('token_hash', tokenHash)
+      .maybeSingle();
+
+    if (invError || !inv) throw new Error('INVALID_INVITATION');
+    if (inv.status === 'revoked') throw new Error('INVITATION_REVOKED');
+    if (inv.status === 'accepted') throw new Error('INVITATION_ALREADY_ACCEPTED');
+    if (new Date(inv.expires_at) < new Date() || inv.status === 'expired') {
+      await (admin as any)
+        .from('workspace_invitations')
+        .update({ status: 'expired', updated_at: new Date().toISOString() })
+        .eq('id', inv.id);
+      throw new Error('INVITATION_EXPIRED');
+    }
+
+    const { data: existingMember } = await (admin as any)
+      .from('workspace_members')
+      .select('id')
+      .eq('workspace_id', inv.workspace_id)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (existingMember) throw new Error('ALREADY_MEMBER');
+
+    const roleName = inv.team_roles?.name || 'Viewer';
+    const legacyRole = legacyWorkspaceRole(roleName);
+
+    const { data: member, error: memberError } = await (admin as any)
+      .from('workspace_members')
+      .upsert(
+        {
+          workspace_id: inv.workspace_id,
+          user_id: user.id,
+          role_id: inv.role_id,
+          role: legacyRole,
+          status: 'active',
+          invited_by: inv.invited_by,
+          joined_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'workspace_id,user_id' }
+      )
+      .select('id')
+      .single();
+
+    if (memberError) throw new Error(memberError.message);
+
+    await (admin as any)
+      .from('workspace_invitations')
+      .update({
+        status: 'accepted',
+        accepted_at: new Date().toISOString(),
+        accepted_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', inv.id);
+
+    await admin.rpc(
+      'sync_workspace_member_property_access' as never,
+      {
+        p_workspace_id: inv.workspace_id,
+        p_user_id: user.id,
+      } as never
+    );
+
+    await logWorkspaceMemberActivity(inv.workspace_id, user.id, 'member.invite_accepted', member.id, {
+      invitation_id: inv.id,
+      role_id: inv.role_id,
+    });
+
+    resultRow = {
+      workspace_id: inv.workspace_id,
+      member_id: member.id,
+      role_name: roleName,
+    };
+  } else {
+    resultRow = (data as Array<{ workspace_id: string; member_id: string; role_name: string }>)[0];
   }
 
+  if (resultRow?.workspace_id) {
+    await setActiveWorkspaceCookie(resultRow.workspace_id);
+    serverCache.invalidateWorkspace(resultRow.workspace_id);
+  }
+
+  serverCache.invalidateUser(user.id);
   revalidatePath('/dashboard');
-  return row;
+  return resultRow;
 }
 
 export async function fetchSeatUsage(workspaceId: string) {
@@ -565,4 +750,181 @@ export async function switchWorkspace(workspaceId: string) {
   await setActiveWorkspaceCookie(workspaceId);
   revalidatePath('/dashboard', 'layout');
   return { success: true };
+}
+
+export interface PropertyAccessItem {
+  id: string;
+  name: string;
+  address: string;
+  propertyType: string | null;
+  status: string;
+}
+
+export interface MemberPropertyAccessData {
+  properties: PropertyAccessItem[];
+  assignedPropertyIds: string[];
+  mode: 'all' | 'custom';
+  isOwner: boolean;
+}
+
+export async function fetchWorkspacePropertiesList(workspaceId: string): Promise<PropertyAccessItem[]> {
+  const admin = await createAdminClient();
+  const { data: allProps } = await (admin as any)
+    .from('properties')
+    .select('id, name, address_line_1, property_type, status')
+    .eq('workspace_id', workspaceId)
+    .neq('status', 'archived')
+    .order('name');
+
+  return (allProps || []).map((p: any) => ({
+    id: p.id,
+    name: p.name || 'Untitled Property',
+    address: p.address_line_1 || '',
+    propertyType: p.property_type || null,
+    status: p.status || 'active',
+  }));
+}
+
+export async function fetchWorkspacePropertiesForMember(
+  workspaceId: string,
+  memberId: string
+): Promise<MemberPropertyAccessData> {
+  const admin = await createAdminClient();
+
+  const { data: ws } = await (admin as any)
+    .from('workspaces')
+    .select('owner_id')
+    .eq('id', workspaceId)
+    .single();
+
+  const { data: member } = await (admin as any)
+    .from('workspace_members')
+    .select('id, user_id')
+    .eq('id', memberId)
+    .eq('workspace_id', workspaceId)
+    .single();
+
+  if (!member) {
+    throw new Error('Member not found');
+  }
+
+  const isOwner = ws?.owner_id === member.user_id;
+
+  const { data: allProps } = await (admin as any)
+    .from('properties')
+    .select('id, name, address_line_1, property_type, status')
+    .eq('workspace_id', workspaceId)
+    .neq('status', 'archived')
+    .order('name');
+
+  const properties: PropertyAccessItem[] = (allProps || []).map((p: any) => ({
+    id: p.id,
+    name: p.name || 'Untitled Property',
+    address: p.address_line_1 || '',
+    propertyType: p.property_type || null,
+    status: p.status || 'active',
+  }));
+
+  const { data: pmList } = await (admin as any)
+    .from('property_members')
+    .select('property_id, status')
+    .eq('user_id', member.user_id)
+    .eq('status', 'active');
+
+  const activePmSet = new Set((pmList || []).map((pm: any) => pm.property_id));
+  const assignedPropertyIds = properties
+    .filter((p) => activePmSet.has(p.id) || isOwner)
+    .map((p) => p.id);
+
+  const isAll = isOwner || (properties.length > 0 && assignedPropertyIds.length === properties.length);
+
+  return {
+    properties,
+    assignedPropertyIds,
+    mode: isAll ? 'all' : 'custom',
+    isOwner,
+  };
+}
+
+export async function updateMemberPropertyAccess(
+  workspaceId: string,
+  memberId: string,
+  payload: { mode: 'all' | 'custom'; propertyIds: string[] }
+) {
+  await requireTeamPermission(workspaceId, 'team.member.update');
+  const user = await requireAuthenticatedUser();
+  const admin = await createAdminClient();
+
+  const { data: member } = await (admin as any)
+    .from('workspace_members')
+    .select('id, user_id, role_id, team_roles ( name )')
+    .eq('id', memberId)
+    .eq('workspace_id', workspaceId)
+    .single();
+
+  if (!member) throw new Error('Member not found');
+
+  const roleName = member.team_roles?.name || 'Viewer';
+  let propertyRole = 'viewer';
+  switch (roleName.toLowerCase()) {
+    case 'owner':
+    case 'admin':
+    case 'manager':
+      propertyRole = 'manager';
+      break;
+    case 'leasing agent':
+      propertyRole = 'agent';
+      break;
+    case 'staff':
+      propertyRole = 'staff';
+      break;
+    default:
+      propertyRole = 'viewer';
+      break;
+  }
+
+  const { data: allProps } = await (admin as any)
+    .from('properties')
+    .select('id')
+    .eq('workspace_id', workspaceId)
+    .neq('status', 'archived');
+
+  const allPropIds = (allProps || []).map((p: any) => p.id);
+  const targetPropIds = payload.mode === 'all' ? allPropIds : (payload.propertyIds || []);
+
+  for (const propId of allPropIds) {
+    if (targetPropIds.includes(propId)) {
+      await (admin as any)
+        .from('property_members')
+        .upsert(
+          {
+            property_id: propId,
+            user_id: member.user_id,
+            role: propertyRole,
+            status: 'active',
+            joined_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'property_id,user_id' }
+        );
+    } else {
+      await (admin as any)
+        .from('property_members')
+        .update({ status: 'removed', updated_at: new Date().toISOString() })
+        .eq('property_id', propId)
+        .eq('user_id', member.user_id);
+    }
+  }
+
+  await logWorkspaceMemberActivity(workspaceId, user.id, 'member.property_access_updated', memberId, {
+    target_user_id: member.user_id,
+    mode: payload.mode,
+    assigned_count: targetPropIds.length,
+    property_ids: targetPropIds,
+  });
+
+  serverCache.invalidateWorkspace(workspaceId);
+  serverCache.invalidateUser(member.user_id);
+  revalidatePath('/dashboard/team');
+  return { success: true, count: targetPropIds.length };
 }

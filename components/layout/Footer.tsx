@@ -42,7 +42,7 @@ export function Footer() {
   };
 
   return (
-    <footer className="bg-surface dark:bg-[#0E1112] border-t border-border dark:border-[#2A3032] pt-16 pb-12 text-xs text-muted dark:text-[#AEB6B8]">
+    <footer className="bg-surface dark:bg-[#0E1112] border-t border-border-subtle dark:border-white/[0.04] pt-16 pb-12 text-xs text-muted dark:text-[#AEB6B8]">
       <div className="max-w-[1440px] mx-auto px-5 sm:px-8 space-y-12">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
           

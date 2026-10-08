@@ -35,20 +35,20 @@ export function OnboardingFooter({
   const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <div className={cn('space-y-4 pt-8 border-t border-admin-border/30 mt-8', className)}>
+    <div className={cn('space-y-3 pt-5 border-t border-white/[0.06] mt-6', className)}>
       {error && (
-        <p className="text-sm font-medium text-admin-danger" role="alert">
+        <p className="text-xs font-medium text-rose-400 leading-relaxed bg-rose-500/10 border border-rose-500/20 px-3 py-2 rounded-xl" role="alert">
           {error}
         </p>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         {/* Back / Skip Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg text-xs font-semibold text-admin-muted hover:text-admin-foreground hover:bg-admin-surface-subtle transition-all cursor-pointer select-none"
+              className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-xl text-xs font-semibold text-[#8FA3B8] hover:text-[#FFFFFF] hover:bg-white/[0.06] transition-all cursor-pointer select-none"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>{backLabel}</span>
@@ -58,7 +58,7 @@ export function OnboardingFooter({
             <button
               type="button"
               onClick={onSkip}
-              className="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold text-admin-muted hover:text-admin-foreground hover:bg-admin-surface-subtle transition-all cursor-pointer select-none"
+              className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-xs font-semibold text-[#8FA3B8] hover:text-[#FFFFFF] hover:bg-white/[0.06] transition-all cursor-pointer select-none"
             >
               {skipLabel}
             </button>
@@ -74,10 +74,10 @@ export function OnboardingFooter({
           onMouseLeave={() => setIsHovered(false)}
           whileTap={{ scale: continueDisabled || continueLoading ? 1 : 0.98 }}
           className={cn(
-            "inline-flex items-center justify-center gap-2 h-11 px-5 sm:px-6 rounded-lg text-xs font-semibold text-white transition-colors cursor-pointer select-none shadow-sm shadow-admin-primary/10",
+            "inline-flex items-center justify-center gap-2 h-11 px-5 sm:px-6 rounded-xl text-xs font-semibold text-[#FFFFFF] transition-all cursor-pointer select-none shadow-md shadow-[#008F83]/15",
             continueDisabled || continueLoading
-              ? "bg-admin-primary/60 pointer-events-none opacity-80"
-              : "bg-admin-primary hover:bg-admin-primary-hover active:bg-admin-primary-hover/90"
+              ? "bg-[#008F83]/50 pointer-events-none opacity-80"
+              : "bg-[#008F83] hover:bg-[#00A99D] active:bg-[#00A99D]/90 hover:shadow-lg hover:shadow-[#008F83]/25"
           )}
         >
           {continueLoading ? (
@@ -89,7 +89,7 @@ export function OnboardingFooter({
             <>
               <span>{continueLabel}</span>
               <motion.span
-                animate={{ x: isHovered ? 3.5 : 0 }}
+                animate={{ x: isHovered ? 3 : 0 }}
                 transition={{ type: 'spring', stiffness: 350, damping: 20 }}
                 className="shrink-0"
               >
@@ -102,3 +102,4 @@ export function OnboardingFooter({
     </div>
   );
 }
+

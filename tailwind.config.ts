@@ -26,6 +26,7 @@ const config: Config = {
         border: "var(--border)",
         "border-subtle": "var(--border-subtle)",
         "border-strong": "var(--border-strong)",
+        "border-muted": "var(--border-subtle)",
         success: "var(--success)",
         warning: "var(--warning)",
         primary: {
