@@ -8,10 +8,22 @@ import {
   ChevronRight,
   CheckCircle2,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { formatCurrencyNoDecimals } from '@/lib/format/currency';
 import type { UserPropertyAccess } from '@/lib/properties/queries';
-import { PortfolioPatternPieChart } from './PortfolioPatternPieChart';
 import { cn } from '@/lib/utils';
+
+const PortfolioPatternPieChart = dynamic(
+  () => import('./PortfolioPatternPieChart').then((mod) => mod.PortfolioPatternPieChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-64 w-full flex items-center justify-center animate-pulse bg-slate-50 dark:bg-slate-900/40 rounded-xl">
+        <div className="w-16 h-16 rounded-full border-2 border-slate-200 dark:border-slate-800 border-t-amber-500 animate-spin" />
+      </div>
+    ),
+  }
+);
 
 export interface PropertyPerformanceItem {
   propertyId: string;

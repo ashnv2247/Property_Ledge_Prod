@@ -1,9 +1,20 @@
 'use client';
 
-import React from 'react';
+import dynamic from 'next/dynamic';
 import { FinancialOverviewReportDTO } from '@/modules/finance/domain/reporting-types';
 import { FinancialKpiCards } from '@/components/reports/FinancialKpiCards';
-import { IncomeExpenseAnalytics } from '@/components/reports/IncomeExpenseAnalytics';
+
+const IncomeExpenseAnalytics = dynamic(
+  () => import('@/components/reports/IncomeExpenseAnalytics').then((mod) => mod.IncomeExpenseAnalytics),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-80 w-full flex items-center justify-center animate-pulse bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+        <span className="text-xs text-slate-400">Loading analytics chart...</span>
+      </div>
+    ),
+  }
+);
 import { MonthlyBreakdownTable } from '@/components/reports/MonthlyBreakdownTable';
 import { CategoryBreakdownSection } from '@/components/reports/CategoryBreakdownSection';
 

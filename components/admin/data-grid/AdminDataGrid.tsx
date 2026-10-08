@@ -437,6 +437,28 @@ export function AdminDataGrid<TData = any>({
     refreshLabel,
   };
 
+  const mergedGridOptions = useMemo(
+    () => ({
+      ...defaultGridOptions,
+      ...(rowHeight ? { rowHeight } : {}),
+      ...customGridOptions,
+    }),
+    [rowHeight, customGridOptions]
+  );
+
+  const rowSelectionConfig = useMemo(
+    () =>
+      enableSelection
+        ? {
+            mode: 'multiRow' as const,
+            enableClickSelection: false,
+            checkboxes: false,
+            headerCheckbox: false,
+          }
+        : undefined,
+    [enableSelection]
+  );
+
   return (
     <div
       className={cn(
@@ -476,11 +498,7 @@ export function AdminDataGrid<TData = any>({
               rowData={rowData || []}
               columnDefs={effectiveColDefs}
               defaultColDef={defaultGridColDef}
-              gridOptions={{
-                ...defaultGridOptions,
-                ...(rowHeight ? { rowHeight } : {}),
-                ...customGridOptions,
-              }}
+              gridOptions={mergedGridOptions}
               rowHeight={rowHeight}
               components={components}
               pagination={!isServerSide && !disablePagination}
@@ -500,16 +518,7 @@ export function AdminDataGrid<TData = any>({
                 }
               }}
               getRowId={getRowId}
-              rowSelection={
-                enableSelection
-                  ? {
-                      mode: 'multiRow',
-                      enableClickSelection: false,
-                      checkboxes: false,
-                      headerCheckbox: false,
-                    }
-                  : undefined
-              }
+              rowSelection={rowSelectionConfig}
             />
           </div>
         )}
