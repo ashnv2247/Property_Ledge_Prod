@@ -115,6 +115,8 @@ export function OwnerDashboard({
     return () => clearInterval(interval);
   }, [lastFetchedAt]);
 
+  const hasDataRef = useRef(Boolean(initialResolved?.overview || initialResolved?.reports));
+
   const loadData = useCallback(async (isManual = false) => {
     if (typeof window !== 'undefined' && !navigator.onLine) {
       return;
@@ -131,7 +133,7 @@ export function OwnerDashboard({
       return;
     }
 
-    if (!overview && !reports) {
+    if (!hasDataRef.current) {
       setIsLoading(true);
     } else {
       setIsRefreshing(true);
@@ -148,6 +150,7 @@ export function OwnerDashboard({
       setNeedsAttention(data.needsAttention);
       setReports(data.reports);
       setLeases(data.leases as typeof leases);
+      hasDataRef.current = true;
       setCachedDashboard(data, activeWorkspaceId, propertyId);
       const now = Date.now();
       setLastFetchedAt(now);
@@ -160,7 +163,7 @@ export function OwnerDashboard({
         setIsRefreshing(false);
       }
     }
-  }, [activeWorkspaceId, propertyId, cacheKey, setCachedDashboard, overview, reports]);
+  }, [activeWorkspaceId, propertyId, cacheKey, setCachedDashboard]);
 
   // Main SWR coordination on property or workspace change
   useEffect(() => {
@@ -177,6 +180,7 @@ export function OwnerDashboard({
         setReports(currentCache.data.reports);
         setLeases(currentCache.data.leases);
         setLastFetchedAt(currentCache.fetchedAt);
+        hasDataRef.current = true;
         setIsLoading(false);
       }
       return;
@@ -185,20 +189,25 @@ export function OwnerDashboard({
     loadData(false);
   }, [propertyId, activeWorkspaceId, loadData]);
 
-  // Visibility handler
+  // Visibility handler with stable ref to avoid re-binding on every render
+  const loadDataRef = useRef(loadData);
+  useEffect(() => {
+    loadDataRef.current = loadData;
+  }, [loadData]);
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         const currentCache = useEntityCacheStore.getState().dashboard;
         if (!isDataFresh(currentCache, FRESHNESS_THRESHOLDS.live)) {
-          loadData(false);
+          loadDataRef.current(false);
         }
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [loadData]);
+  }, []);
 
   const hasProperties = availableProperties.length > 0;
   const attentionItems = useMemo(() => buildAttentionItems(needsAttention), [needsAttention]);

@@ -102,15 +102,19 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
     }
   };
 
+  const hasDataRef = useRef(Boolean(initialProperties && initialProperties.length > 0));
+  const prevWorkspaceIdRef = useRef<string | null>(activeWorkspaceId ?? null);
+
   const loadData = useCallback(async (isManualRefresh = false) => {
     if (isManualRefresh) {
       setIsRefreshing(true);
-    } else if (!hasMatchingCache && (!availableProperties || availableProperties.length === 0)) {
+    } else if (!hasDataRef.current) {
       setIsLoading(true);
     }
     try {
       const data = await fetchDashboardProperties();
       setRows(data);
+      hasDataRef.current = data.length > 0;
       setCachedProperties(data, activeWorkspaceId);
       setLastRefreshedAt(new Date());
     } catch {
@@ -125,17 +129,28 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
         setIsLoading(false);
       }
     }
-  }, [activeWorkspaceId, availableProperties, hasMatchingCache, setCachedProperties, showError]);
+  }, [activeWorkspaceId, setCachedProperties, showError]);
 
   useEffect(() => {
+    // Initial mount: if server provided data, cache it and skip duplicate fetch
     if (isInitialMount.current) {
       isInitialMount.current = false;
+      prevWorkspaceIdRef.current = activeWorkspaceId ?? null;
       if (initialProperties && initialProperties.length > 0) {
         setCachedProperties(initialProperties, activeWorkspaceId);
+        hasDataRef.current = true;
         return;
       }
+      // Only fetch if no initial server data was provided
+      loadData();
+      return;
     }
-    loadData();
+
+    // After mount: only refetch if the active workspace genuinely changed
+    if (activeWorkspaceId && activeWorkspaceId !== prevWorkspaceIdRef.current) {
+      prevWorkspaceIdRef.current = activeWorkspaceId;
+      loadData();
+    }
   }, [activeWorkspaceId, initialProperties, loadData, setCachedProperties]);
 
   // Escape key exits table expanded mode

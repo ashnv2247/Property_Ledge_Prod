@@ -166,22 +166,27 @@ export function TenantDirectoryPage({
   const [selectedTenantForEdit, setSelectedTenantForEdit] = useState<TenantRecord | null>(null);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
 
+  const hasDataRef = useRef(Boolean(initialTenants && initialTenants.length > 0));
+  const prevWorkspaceIdRef = useRef<string | null>(activeWorkspaceId ?? null);
+  const prevPropertyIdRef = useRef<string | null>(activePropertyId ?? null);
+
   const loadData = useCallback(
-    async (isManualRefresh = false) => {
+    async (isManualRefresh = false, overridePropId?: string | null) => {
       if (isManualRefresh) {
         setIsRefreshing(true);
-      } else if (!hasMatchingCache) {
+      } else if (!hasDataRef.current) {
         setIsLoading(true);
       }
       try {
-        const activePropId = selectedProperty?.propertyId ?? null;
+        const propIdToUse = overridePropId !== undefined ? overridePropId : activePropertyId;
         const [tenantsData, propertiesData] = await Promise.all([
-          fetchAllWorkspaceTenants(activePropId),
+          fetchAllWorkspaceTenants(propIdToUse),
           fetchDashboardProperties(),
         ]);
         setTenants(tenantsData as unknown as TenantRecord[]);
         setProperties(propertiesData as unknown as PropertyOption[]);
-        setCachedTenants(tenantsData, activeWorkspaceId, activePropId);
+        hasDataRef.current = tenantsData.length > 0;
+        setCachedTenants(tenantsData, activeWorkspaceId, propIdToUse);
         setCachedProperties(propertiesData, activeWorkspaceId);
         setLastRefreshedAt(new Date());
       } catch (err: any) {
@@ -200,21 +205,36 @@ export function TenantDirectoryPage({
         }
       }
     },
-    [activeWorkspaceId, hasMatchingCache, selectedProperty?.propertyId, setCachedProperties, setCachedTenants, showError]
+    [activePropertyId, activeWorkspaceId, setCachedProperties, setCachedTenants, showError]
   );
 
   useEffect(() => {
+    // Initial mount: if server provided data, cache it and skip duplicate fetch
     if (isInitialMount.current) {
       isInitialMount.current = false;
+      prevWorkspaceIdRef.current = activeWorkspaceId ?? null;
+      prevPropertyIdRef.current = activePropertyId ?? null;
       if (initialTenants && initialTenants.length > 0) {
         setCachedTenants(initialTenants, activeWorkspaceId, activePropertyId);
         if (initialProperties && initialProperties.length > 0) {
           setCachedProperties(initialProperties, activeWorkspaceId);
         }
+        hasDataRef.current = true;
         return;
       }
+      loadData();
+      return;
     }
-    loadData();
+
+    // After mount: only refetch if the active property or workspace genuinely changed
+    const propChanged = activePropertyId !== prevPropertyIdRef.current;
+    const wsChanged = activeWorkspaceId !== prevWorkspaceIdRef.current;
+
+    if (propChanged || wsChanged) {
+      prevPropertyIdRef.current = activePropertyId;
+      prevWorkspaceIdRef.current = activeWorkspaceId;
+      loadData(false, activePropertyId);
+    }
   }, [activePropertyId, activeWorkspaceId, initialProperties, initialTenants, loadData, setCachedProperties, setCachedTenants]);
 
   // Escape key exits table expanded mode

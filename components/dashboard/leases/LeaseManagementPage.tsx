@@ -186,22 +186,27 @@ export function LeaseManagementPage({ initialLeases, initialProperties }: LeaseM
   const [deletingPropertyId, setDeletingPropertyId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const hasDataRef = useRef(Boolean(initialLeases && initialLeases.length > 0));
+  const prevWorkspaceIdRef = useRef<string | null>(activeWorkspaceId ?? null);
+  const prevPropertyIdRef = useRef<string | null>(activePropertyId ?? null);
+
   const loadData = useCallback(
-    async (isManualRefresh = false) => {
+    async (isManualRefresh = false, overridePropId?: string | null) => {
       if (isManualRefresh) {
         setIsRefreshing(true);
-      } else if (!hasMatchingCache) {
+      } else if (!hasDataRef.current) {
         setIsLoading(true);
       }
       try {
-        const activePropId = selectedProperty?.propertyId ?? null;
+        const propIdToUse = overridePropId !== undefined ? overridePropId : activePropertyId;
         const [leasesData, propertiesData] = await Promise.all([
-          fetchAllWorkspaceLeases(activePropId),
+          fetchAllWorkspaceLeases(propIdToUse),
           fetchDashboardProperties(),
         ]);
         setLeases(leasesData as unknown as LeaseRecord[]);
         setProperties(propertiesData);
-        setCachedLeases(leasesData, activeWorkspaceId, activePropId);
+        hasDataRef.current = leasesData.length > 0;
+        setCachedLeases(leasesData, activeWorkspaceId, propIdToUse);
         setCachedProperties(propertiesData, activeWorkspaceId);
         setLastRefreshedAt(new Date());
       } catch (err: any) {
@@ -220,21 +225,36 @@ export function LeaseManagementPage({ initialLeases, initialProperties }: LeaseM
         }
       }
     },
-    [activeWorkspaceId, hasMatchingCache, selectedProperty?.propertyId, setCachedLeases, setCachedProperties, showError]
+    [activePropertyId, activeWorkspaceId, setCachedLeases, setCachedProperties, showError]
   );
 
   useEffect(() => {
+    // Initial mount: if server provided data, cache it and skip duplicate fetch
     if (isInitialMount.current) {
       isInitialMount.current = false;
+      prevWorkspaceIdRef.current = activeWorkspaceId ?? null;
+      prevPropertyIdRef.current = activePropertyId ?? null;
       if (initialLeases && initialLeases.length > 0) {
         setCachedLeases(initialLeases, activeWorkspaceId, activePropertyId);
         if (initialProperties && initialProperties.length > 0) {
           setCachedProperties(initialProperties, activeWorkspaceId);
         }
+        hasDataRef.current = true;
         return;
       }
+      loadData();
+      return;
     }
-    loadData();
+
+    // After mount: only refetch if the active property or workspace genuinely changed
+    const propChanged = activePropertyId !== prevPropertyIdRef.current;
+    const wsChanged = activeWorkspaceId !== prevWorkspaceIdRef.current;
+
+    if (propChanged || wsChanged) {
+      prevPropertyIdRef.current = activePropertyId;
+      prevWorkspaceIdRef.current = activeWorkspaceId;
+      loadData(false, activePropertyId);
+    }
   }, [activePropertyId, activeWorkspaceId, initialProperties, initialLeases, loadData, setCachedLeases, setCachedProperties]);
 
   // Escape key exits table expanded mode

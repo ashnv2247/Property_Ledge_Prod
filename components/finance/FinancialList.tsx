@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   DollarSign,
@@ -112,16 +112,21 @@ export function FinancialList({ initialData }: FinancialListProps = {}) {
     }
   }, [availableProperties]);
 
+  const hasDataRef = useRef(Boolean(initialData && (initialData.transactions?.length || initialData.ledgerEntries?.length)));
+  const prevPropertyIdRef = useRef<string | null>(activePropertyId ?? null);
+  const prevWorkspaceIdRef = useRef<string | null>(activeWorkspaceId ?? null);
+
   // Load Transactions & Overview Data in a single consolidated pass
-  const loadData = useCallback(async (isManualRefresh = false) => {
+  const loadData = useCallback(async (isManualRefresh = false, overridePropId?: string | null) => {
     if (isManualRefresh) {
       setIsRefreshing(true);
-    } else {
+    } else if (!hasDataRef.current) {
       setIsLoading(true);
     }
     try {
+      const propIdToUse = overridePropId !== undefined ? overridePropId : activePropertyId;
       const filterParams = {
-        property_id: activePropertyId || undefined,
+        property_id: propIdToUse || undefined,
       };
 
       const pageData = await fetchFinancialPageDataAction(filterParams);
@@ -132,6 +137,7 @@ export function FinancialList({ initialData }: FinancialListProps = {}) {
       if (pageData.categories?.length > 0) {
         setCategories(pageData.categories);
       }
+      hasDataRef.current = true;
       setLastRefreshedAt(new Date());
     } catch (err: any) {
       console.error('Failed to load transaction data:', err);
@@ -150,14 +156,29 @@ export function FinancialList({ initialData }: FinancialListProps = {}) {
   }, [activePropertyId, toast]);
 
   useEffect(() => {
+    // Initial mount: if server provided data, skip duplicate fetch
     if (isInitialMount.current) {
       isInitialMount.current = false;
-      if (initialData && (!activePropertyId || activePropertyId === '')) {
+      prevPropertyIdRef.current = activePropertyId ?? null;
+      prevWorkspaceIdRef.current = activeWorkspaceId ?? null;
+      if (initialData) {
+        hasDataRef.current = true;
         return;
       }
+      loadData();
+      return;
     }
-    loadData();
-  }, [loadData, activePropertyId, initialData]);
+
+    // After mount: only refetch if the active property or workspace genuinely changed
+    const propChanged = activePropertyId !== prevPropertyIdRef.current;
+    const wsChanged = activeWorkspaceId !== prevWorkspaceIdRef.current;
+
+    if (propChanged || wsChanged) {
+      prevPropertyIdRef.current = activePropertyId;
+      prevWorkspaceIdRef.current = activeWorkspaceId;
+      loadData(false, activePropertyId);
+    }
+  }, [loadData, activePropertyId, activeWorkspaceId, initialData]);
 
   // Filter options for QuickFilterBar (modelled after tenant directory)
   const filterOptions = useMemo<QuickFilterOption[]>(
