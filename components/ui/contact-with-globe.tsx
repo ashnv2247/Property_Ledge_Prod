@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Mail, Phone, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/Button";

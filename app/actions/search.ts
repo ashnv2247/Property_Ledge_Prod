@@ -21,7 +21,7 @@ export interface SearchResult {
 
 const TYPE_ROUTES: Record<SearchResultType, string> = {
   property: '/dashboard/properties',
-  tenant: '/dashboard/tenants',
+  tenant: '/dashboard/people',
   lease: '/dashboard/leases',
   invoice: '/dashboard/invoices',
   maintenance: '/dashboard/maintenance',
