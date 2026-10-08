@@ -130,6 +130,10 @@ export async function getTransactions(
   if (filters.end_date) {
     query = query.lte('transaction_date', filters.end_date);
   }
+  if (filters.search_query && filters.search_query.trim()) {
+    const q = filters.search_query.trim();
+    query = query.or(`description.ilike.%${q}%,reference.ilike.%${q}%,vendor_name.ilike.%${q}%`);
+  }
   if (filters.offset) {
     query = query.range(filters.offset, filters.offset + (filters.limit || 100) - 1);
   } else {
@@ -142,26 +146,7 @@ export async function getTransactions(
     throw new Error(`Failed to fetch transactions: ${error.message}`);
   }
 
-  let results = (data || []) as unknown as TransactionDTO[];
-
-  // In-memory text search if query provided
-  if (filters.search_query && filters.search_query.trim()) {
-    const q = filters.search_query.toLowerCase().trim();
-    results = results.filter((tx) => {
-      return (
-        tx.description?.toLowerCase().includes(q) ||
-        tx.reference?.toLowerCase().includes(q) ||
-        tx.vendor_name?.toLowerCase().includes(q) ||
-        tx.category?.name.toLowerCase().includes(q) ||
-        tx.property?.name.toLowerCase().includes(q) ||
-        (tx.tenant && `${tx.tenant.first_name} ${tx.tenant.last_name}`.toLowerCase().includes(q)) ||
-        tx.invoice?.invoice_number.toLowerCase().includes(q) ||
-        String(tx.amount).includes(q)
-      );
-    });
-  }
-
-  return results;
+  return (data || []) as unknown as TransactionDTO[];
 }
 
 /**
