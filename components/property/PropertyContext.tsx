@@ -158,14 +158,31 @@ export function PropertyProvider({ children, initialProperties }: PropertyProvid
     }
   }, [activeWorkspaceId, fetchProperties, initialProperties]);
 
+  const prevInitialPropsRef = useRef<UserPropertyAccess[] | undefined>(initialProperties);
+
   useEffect(() => {
     if (initialProperties !== undefined) {
-      setAvailableProperties(initialProperties);
-      if (activeWorkspaceId) {
-        setSelectedPropertyState(resolveSelection(initialProperties, activeWorkspaceId));
+      const prev = prevInitialPropsRef.current;
+      const isSame =
+        prev &&
+        prev.length === initialProperties.length &&
+        prev.every((p, i) => p.propertyId === initialProperties[i]?.propertyId);
+
+      prevInitialPropsRef.current = initialProperties;
+
+      if (!isSame) {
+        setAvailableProperties(initialProperties);
+        if (activeWorkspaceId) {
+          setSelectedPropertyState((current) => {
+            if (current && initialProperties.some((p) => p.propertyId === current.propertyId)) {
+              return current;
+            }
+            return resolveSelection(initialProperties, activeWorkspaceId);
+          });
+        }
+        setIsLoading(false);
+        isHydratedRef.current = true;
       }
-      setIsLoading(false);
-      isHydratedRef.current = true;
     }
   }, [initialProperties, activeWorkspaceId]);
 

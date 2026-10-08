@@ -10,6 +10,9 @@ import { getActiveWorkspaceId } from '@/lib/auth/authorization';
 
 export const dynamic = 'force-dynamic';
 
+const EMPTY_PERMISSIONS: string[] = [];
+const EMPTY_ENTITLEMENTS = {};
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const [activeWsId, user] = await Promise.all([
     getActiveWorkspaceId(),
@@ -20,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const [workspaceContext, personaContext, profile, userWorkspaces, initialProperties, accountCtx] = await Promise.all([
-    resolveWorkspaceContext(),
+    resolveWorkspaceContext(activeWsId),
     getPersonaForUser(user.id),
     getUserProfile(user.id),
     getUserWorkspaces(user.id),
@@ -61,8 +64,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       workspaceId={workspaceContext?.workspaceId ?? null}
       workspaceName={workspaceContext?.workspaceName ?? null}
       roleName={workspaceContext?.roleName ?? null}
-      permissions={workspaceContext?.permissions ?? []}
-      entitlements={workspaceContext?.entitlements ?? {}}
+      permissions={workspaceContext?.permissions ?? EMPTY_PERMISSIONS}
+      entitlements={workspaceContext?.entitlements ?? EMPTY_ENTITLEMENTS}
       workspaces={workspaces}
       initialProperties={initialProperties}
       isOnboardingPending={false}
