@@ -16,6 +16,7 @@ import {
   createExpenseAction,
   updateExpenseAction,
 } from '@/app/actions/expenses';
+import { uploadTransactionReceiptAction } from '@/app/actions/finance';
 import {
   getCachedDropdownOptionsSync,
   getDropdownOptions,
@@ -293,12 +294,38 @@ export function ExpenseModal({
           throw new Error(res.error || 'Failed to update expense');
         }
 
+        let finalExpenseData = res.data;
+
+        // If user attached a new receipt file during edit, upload it to Vercel Blob
+        if (selectedReceiptFile && expenseToEdit.id) {
+          try {
+            const formData = new FormData();
+            formData.append('transactionId', expenseToEdit.id);
+            formData.append('receipt', selectedReceiptFile);
+            const uploadRes = await uploadTransactionReceiptAction(formData);
+
+            if (uploadRes.success && uploadRes.data) {
+              finalExpenseData = {
+                ...finalExpenseData,
+                receipt_url: uploadRes.data.url,
+                receipt_blob_path: uploadRes.data.blobPath,
+                receipt_file_name: uploadRes.data.fileName,
+                receipt_file_size: uploadRes.data.fileSize,
+                receipt_mime_type: uploadRes.data.mimeType,
+                receipt_uploaded_at: uploadRes.data.uploadedAt,
+              };
+            }
+          } catch (uploadErr: any) {
+            console.warn('Receipt upload failed during expense update:', uploadErr);
+          }
+        }
+
         toast({
           title: 'Expense Updated',
           description: 'The operating expense transaction was updated successfully.',
           variant: 'success',
         });
-        onSuccess?.(res.data);
+        onSuccess?.(finalExpenseData);
         onClose();
       } else {
         const createPayload: CreateExpenseInput = {
@@ -329,12 +356,45 @@ export function ExpenseModal({
           throw new Error(res.error || 'Failed to record expense');
         }
 
+        let finalExpenseData = res.data;
+
+        // If user attached a receipt file during creation, upload it to Vercel Blob and attach to transaction
+        if (selectedReceiptFile && res.data.id) {
+          try {
+            const formData = new FormData();
+            formData.append('transactionId', res.data.id);
+            formData.append('receipt', selectedReceiptFile);
+            const uploadRes = await uploadTransactionReceiptAction(formData);
+
+            if (uploadRes.success && uploadRes.data) {
+              finalExpenseData = {
+                ...finalExpenseData,
+                receipt_url: uploadRes.data.url,
+                receipt_blob_path: uploadRes.data.blobPath,
+                receipt_file_name: uploadRes.data.fileName,
+                receipt_file_size: uploadRes.data.fileSize,
+                receipt_mime_type: uploadRes.data.mimeType,
+                receipt_uploaded_at: uploadRes.data.uploadedAt,
+              };
+            } else {
+              toast({
+                title: 'Expense Created (Receipt Pending)',
+                description:
+                  uploadRes.error || 'Expense created, but the receipt could not be uploaded to Vercel Blob.',
+                variant: 'warning',
+              });
+            }
+          } catch (uploadErr: any) {
+            console.warn('Receipt upload failed after creating expense:', uploadErr);
+          }
+        }
+
         toast({
           title: 'Expense Recorded',
           description: 'Operating expense recorded directly in the financial ledger.',
           variant: 'success',
         });
-        onSuccess?.(res.data);
+        onSuccess?.(finalExpenseData);
         onClose();
       }
     } catch (err: any) {
@@ -640,6 +700,7 @@ export function ExpenseModal({
                     receipt={existingReceipt}
                     selectedFile={selectedReceiptFile}
                     onFileSelect={setSelectedReceiptFile}
+                    transactionId={expenseToEdit?.id}
                     onReceiptUploaded={(uploaded) => setExistingReceipt(uploaded)}
                     onReceiptRemoved={() => {
                       setExistingReceipt(null);
