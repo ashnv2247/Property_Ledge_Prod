@@ -3,10 +3,6 @@
 -- Step 3 of 9 — Run third in Supabase SQL Editor
 -- ====================================================================
 
--- FUNCTIONS & STORED PROCEDURES
--- ====================================================================
-
--- Function: accept_workspace_invitation
 CREATE OR REPLACE FUNCTION public.accept_workspace_invitation (
   p_token text
 )
@@ -2945,22 +2941,3 @@ GRANT EXECUTE ON FUNCTION "public"."user_owns_or_member_workspace"(uuid) TO PUBL
 
 
 -- ====================================================================
--- TABLES, COLUMNS, INDEXES & RLS POLICIES
--- ====================================================================
-
--- Table: account_context
-CREATE TABLE "public"."account_context" (
-  "user_id"           uuid                     NOT NULL,
-  "status"            text                     NOT NULL DEFAULT 'active'::text,
-  "onboarding_status" text                     NOT NULL DEFAULT 'completed'::text,
-  "first_login_at"    timestamp with time zone,
-  "last_login_at"     timestamp with time zone,
-  "created_at"        timestamp with time zone NOT NULL DEFAULT now(),
-  "updated_at"        timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT "account_context_onboarding_status_check" CHECK ((onboarding_status = ANY (ARRAY['not_started'::text, 'in_progress'::text, 'completed'::text]))),
-  CONSTRAINT "account_context_pkey" PRIMARY KEY (user_id),
-  CONSTRAINT "account_context_status_check" CHECK ((status = ANY (ARRAY['active'::text, 'suspended'::text, 'deactivated'::text]))),
-  CONSTRAINT "account_context_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
-);
-
-ALTER TABLE "public"."account_context"

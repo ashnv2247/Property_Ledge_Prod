@@ -1,5 +1,5 @@
 -- ====================================================================
--- CHUNK 05: SEED DATA — SYSTEM ROLES, TAX CLASSIFICATIONS & CATEGORIES
+-- CHUNK 05: SEED DATA — SYSTEM REFERENCE, ROLES, TAX & PLANS
 -- Step 5 of 9 — Run fifth in Supabase SQL Editor
 -- ====================================================================
 
