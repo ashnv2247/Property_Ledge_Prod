@@ -1,0 +1,688 @@
+[
+  {
+    "file": "app/(marketing)/page.tsx",
+    "path": "/",
+    "type": "Public/Auth",
+    "isClient": "Client",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "path": "/admin",
+    "type": "Admin Page",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/admin/activity/page.tsx",
+    "path": "/admin/activity",
+    "type": "Admin Page",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/admin/audit-logs/page.tsx",
+    "path": "/admin/audit-logs",
+    "type": "Admin Page",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/admin/billing-events/page.tsx",
+    "path": "/admin/billing-events",
+    "type": "Admin Page",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/admin/entitlements/page.tsx",
+    "path": "/admin/entitlements",
+    "type": "Admin Page",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/admin/organizations/page.tsx",
+    "path": "/admin/organizations",
+    "type": "Admin Page",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/admin/payments/page.tsx",
+    "path": "/admin/payments",
+    "type": "Admin Page",
+    "isClient": "Client",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/admin/plans/page.tsx",
+    "path": "/admin/plans",
+    "type": "Admin Page",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/admin/plans/[id]/page.tsx",
+    "path": "/admin/plans/[id]",
+    "type": "Admin Page",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/admin/platform-roles/page.tsx",
+    "path": "/admin/platform-roles",
+    "type": "Admin Page",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/admin/subscriptions/page.tsx",
+    "path": "/admin/subscriptions",
+    "type": "Admin Page",
+    "isClient": "Client",
+    "dataSources": "Server Action / API, Direct DB Query"
+  },
+  {
+    "file": "app/admin/subscriptions/[id]/page.tsx",
+    "path": "/admin/subscriptions/[id]",
+    "type": "Admin Page",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/admin/team-roles/page.tsx",
+    "path": "/admin/team-roles",
+    "type": "Admin Page",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/admin/users/page.tsx",
+    "path": "/admin/users",
+    "type": "Admin Page",
+    "isClient": "Client",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/api/automation/process/route.ts",
+    "path": "/api/automation/process",
+    "type": "API Route",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/api/cron/evaluate-automations/route.ts",
+    "path": "/api/cron/evaluate-automations",
+    "type": "API Route",
+    "isClient": "Server",
+    "dataSources": "Supabase, Server Action / API, Direct DB Query"
+  },
+  {
+    "file": "app/api/invoices/[id]/pdf/route.ts",
+    "path": "/api/invoices/[id]/pdf",
+    "type": "API Route",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/api/properties/accessible/route.ts",
+    "path": "/api/properties/accessible",
+    "type": "API Route",
+    "isClient": "Server",
+    "dataSources": "Supabase, Server Action / API, Direct DB Query"
+  },
+  {
+    "file": "app/api/transactions/[transactionId]/receipt/route.ts",
+    "path": "/api/transactions/[transactionId]/receipt",
+    "type": "API Route",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/api/webhooks/billing/route.ts",
+    "path": "/api/webhooks/billing",
+    "type": "API Route",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/api/workspaces/accessible/route.ts",
+    "path": "/api/workspaces/accessible",
+    "type": "API Route",
+    "isClient": "Server",
+    "dataSources": "Supabase"
+  },
+  {
+    "file": "app/audit-templates/page.tsx",
+    "path": "/audit-templates",
+    "type": "Public/Auth",
+    "isClient": "Client",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/auth/callback/route.ts",
+    "path": "/auth/callback",
+    "type": "API Route",
+    "isClient": "Server",
+    "dataSources": "Supabase"
+  },
+  {
+    "file": "app/checkout/page.tsx",
+    "path": "/checkout",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/page.tsx",
+    "path": "/dashboard",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/activity/page.tsx",
+    "path": "/dashboard/activity",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/automations/page.tsx",
+    "path": "/dashboard/automations",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/bas/page.tsx",
+    "path": "/dashboard/bas",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/condition-report-wizard/[id]/page.tsx",
+    "path": "/dashboard/condition-report-wizard/[id]",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/condition-reports/page.tsx",
+    "path": "/dashboard/condition-reports",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/condition-reports/[id]/page.tsx",
+    "path": "/dashboard/condition-reports/[id]",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/documents/page.tsx",
+    "path": "/dashboard/documents",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/expenses/page.tsx",
+    "path": "/dashboard/expenses",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/inspections/page.tsx",
+    "path": "/dashboard/inspections",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/inspections/[id]/page.tsx",
+    "path": "/dashboard/inspections/[id]",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/invoices/page.tsx",
+    "path": "/dashboard/invoices",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/invoices/templates/page.tsx",
+    "path": "/dashboard/invoices/templates",
+    "type": "Dashboard",
+    "isClient": "Client",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/invoices/templates/[id]/page.tsx",
+    "path": "/dashboard/invoices/templates/[id]",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/leases/page.tsx",
+    "path": "/dashboard/leases",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/leases/[leaseId]/page.tsx",
+    "path": "/dashboard/leases/[leaseId]",
+    "type": "Dashboard",
+    "isClient": "Client",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/leases/[leaseId]/renew/page.tsx",
+    "path": "/dashboard/leases/[leaseId]/renew",
+    "type": "Dashboard",
+    "isClient": "Client",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/maintenance/page.tsx",
+    "path": "/dashboard/maintenance",
+    "type": "Dashboard",
+    "isClient": "Client",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/maintenance/[id]/page.tsx",
+    "path": "/dashboard/maintenance/[id]",
+    "type": "Dashboard",
+    "isClient": "Client",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/money/page.tsx",
+    "path": "/dashboard/money",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/money/templates/page.tsx",
+    "path": "/dashboard/money/templates",
+    "type": "Dashboard",
+    "isClient": "Client",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/payments/page.tsx",
+    "path": "/dashboard/payments",
+    "type": "Dashboard",
+    "isClient": "Client",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/people/page.tsx",
+    "path": "/dashboard/people",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/people/[tenantId]/page.tsx",
+    "path": "/dashboard/people/[tenantId]",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/properties/page.tsx",
+    "path": "/dashboard/properties",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/properties/[id]/page.tsx",
+    "path": "/dashboard/properties/[id]",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/properties/[id]/units/[unitId]/page.tsx",
+    "path": "/dashboard/properties/[id]/units/[unitId]",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/properties/new/page.tsx",
+    "path": "/dashboard/properties/new",
+    "type": "Dashboard",
+    "isClient": "Client",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/reports/page.tsx",
+    "path": "/dashboard/reports",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/schedules/page.tsx",
+    "path": "/dashboard/schedules",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/settings/page.tsx",
+    "path": "/dashboard/settings",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/settings/notifications/page.tsx",
+    "path": "/dashboard/settings/notifications",
+    "type": "Dashboard",
+    "isClient": "Client",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/settings/security/page.tsx",
+    "path": "/dashboard/settings/security",
+    "type": "Dashboard",
+    "isClient": "Client",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/settings/subscription/page.tsx",
+    "path": "/dashboard/settings/subscription",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/settings/team/page.tsx",
+    "path": "/dashboard/settings/team",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/settings/team/roles/page.tsx",
+    "path": "/dashboard/settings/team/roles",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/settings/workspace/page.tsx",
+    "path": "/dashboard/settings/workspace",
+    "type": "Dashboard",
+    "isClient": "Client",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/tasks/page.tsx",
+    "path": "/dashboard/tasks",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/team/page.tsx",
+    "path": "/dashboard/team",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(app)/dashboard/team/roles/page.tsx",
+    "path": "/dashboard/team/roles",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/tenants/page.tsx",
+    "path": "/dashboard/tenants",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/dashboard/units/page.tsx",
+    "path": "/dashboard/units",
+    "type": "Dashboard",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(auth)/forgot-password/page.tsx",
+    "path": "/forgot-password",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/invite/[token]/page.tsx",
+    "path": "/invite/[token]",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/join/[token]/page.tsx",
+    "path": "/join/[token]",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/(auth)/login/page.tsx",
+    "path": "/login",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/onboarding/page.tsx",
+    "path": "/onboarding",
+    "type": "Onboarding",
+    "isClient": "Client",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/onboarding/complete/page.tsx",
+    "path": "/onboarding/complete",
+    "type": "Onboarding",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/onboarding/leases/page.tsx",
+    "path": "/onboarding/leases",
+    "type": "Onboarding",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/onboarding/member/page.tsx",
+    "path": "/onboarding/member",
+    "type": "Onboarding",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/onboarding/payment/page.tsx",
+    "path": "/onboarding/payment",
+    "type": "Onboarding",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/onboarding/plan/page.tsx",
+    "path": "/onboarding/plan",
+    "type": "Onboarding",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/onboarding/plans/page.tsx",
+    "path": "/onboarding/plans",
+    "type": "Onboarding",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/onboarding/profile/page.tsx",
+    "path": "/onboarding/profile",
+    "type": "Onboarding",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/onboarding/property/page.tsx",
+    "path": "/onboarding/property",
+    "type": "Onboarding",
+    "isClient": "Client",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/onboarding/subscription/page.tsx",
+    "path": "/onboarding/subscription",
+    "type": "Onboarding",
+    "isClient": "Server",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/onboarding/team/page.tsx",
+    "path": "/onboarding/team",
+    "type": "Onboarding",
+    "isClient": "Client",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/onboarding/tenants/page.tsx",
+    "path": "/onboarding/tenants",
+    "type": "Onboarding",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/onboarding/units/page.tsx",
+    "path": "/onboarding/units",
+    "type": "Onboarding",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/onboarding/workspace/page.tsx",
+    "path": "/onboarding/workspace",
+    "type": "Onboarding",
+    "isClient": "Client",
+    "dataSources": "Server Action / API"
+  },
+  {
+    "file": "app/pricing/page.tsx",
+    "path": "/pricing",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "path": "/profile",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(auth)/reset-password/page.tsx",
+    "path": "/reset-password",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(auth)/signup/page.tsx",
+    "path": "/signup",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(marketing)/solutions/owners/page.tsx",
+    "path": "/solutions/owners",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(app)/subscription/page.tsx",
+    "path": "/subscription",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/tenant/page.tsx",
+    "path": "/tenant",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/tenant/documents/page.tsx",
+    "path": "/tenant/documents",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/tenant/maintenance/page.tsx",
+    "path": "/tenant/maintenance",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/tenant/notifications/page.tsx",
+    "path": "/tenant/notifications",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/tenant/profile/page.tsx",
+    "path": "/tenant/profile",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/tenant/rent/page.tsx",
+    "path": "/tenant/rent",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  },
+  {
+    "file": "app/(auth)/verify-email/page.tsx",
+    "path": "/verify-email",
+    "type": "Public/Auth",
+    "isClient": "Server",
+    "dataSources": "Static / Client props"
+  }
+]

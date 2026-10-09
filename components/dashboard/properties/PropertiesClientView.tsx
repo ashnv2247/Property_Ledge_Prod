@@ -39,6 +39,7 @@ import {
 import { usePropertyContext } from '@/components/property/PropertyContext';
 import { useEntityCacheStore } from '@/lib/stores/useEntityCacheStore';
 import { useWorkspaceStore } from '@/lib/stores/useWorkspaceStore';
+import { useGridExpandedPreference } from '@/lib/hooks/useGridExpandedPreference';
 
 export interface PropertiesClientViewProps {
   initialProperties?: Record<string, unknown>[];
@@ -85,7 +86,7 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Draft' | 'Archived'>('All');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [isTableExpanded, setIsTableExpanded] = useState(false);
+  const [isTableExpanded, setIsTableExpanded] = useGridExpandedPreference(false);
 
   const isNewQueryParam = searchParams.get('new') === 'true' || searchParams.get('action') === 'new';
 

@@ -20,6 +20,7 @@ import { RoleBuilderDrawer } from '@/components/team/RoleBuilderDrawer';
 import { ConfigDetailDrawer, PermissionMatrix, AdminConfigPageSkeleton } from '@/components/admin/config';
 import { CrossRolePermissionMatrix } from '@/components/rbac/CrossRolePermissionMatrix';
 import { useCollapsibleWorkspaceOptional } from '@/components/workspace/useCollapsibleDataWorkspace';
+import { useGridExpandedPreference } from '@/lib/hooks/useGridExpandedPreference';
 import type { PermissionItem } from '@/components/rbac/PermissionMatrix';
 
 export function TeamRolesPageClient() {
@@ -31,7 +32,7 @@ export function TeamRolesPageClient() {
   const canView = useCan('team.role.view');
 
   const workspaceStore = useCollapsibleWorkspaceOptional();
-  const [isMatrixExpanded, setIsMatrixExpanded] = useState(true);
+  const [isMatrixExpanded, setIsMatrixExpanded] = useGridExpandedPreference(false);
 
   const [activeTab, setActiveTab] = useState<'list' | 'matrix'>('list');
   const [roles, setRoles] = useState<WorkspaceRoleRow[]>([]);
@@ -59,7 +60,7 @@ export function TeamRolesPageClient() {
     if (workspaceStore) {
       workspaceStore.setExpanded(next);
     }
-  }, [isMatrixExpanded, workspaceStore]);
+  }, [isMatrixExpanded, setIsMatrixExpanded, workspaceStore]);
 
   const load = useCallback(async (isManualRefresh = false) => {
     if (!workspaceId) return;

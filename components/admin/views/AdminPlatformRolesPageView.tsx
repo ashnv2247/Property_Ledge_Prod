@@ -9,6 +9,7 @@ import { AdminPlatformRolesGridView } from '@/components/admin/data-grid/views/A
 import { PlatformRoleDetailDrawer } from '@/components/admin/platform-roles/PlatformRoleDetailDrawer';
 import { PlatformRoleBuilderDrawer } from '@/components/admin/platform-roles/PlatformRoleBuilderDrawer';
 import { CrossRolePermissionMatrix } from '@/components/rbac/CrossRolePermissionMatrix';
+import { useGridExpandedPreference } from '@/lib/hooks/useGridExpandedPreference';
 import {
   handleDeletePlatformRole,
   fetchAdminPlatformRoles,
@@ -126,7 +127,7 @@ export function AdminPlatformRolesPageView({ roles: initialRoles }: AdminPlatfor
     }
   }
 
-  const [isMatrixExpanded, setIsMatrixExpanded] = useState(true);
+  const [isMatrixExpanded, setIsMatrixExpanded] = useGridExpandedPreference(false);
 
   const headerActions = (
     <div className="flex items-center gap-2">

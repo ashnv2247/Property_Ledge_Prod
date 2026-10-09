@@ -30,6 +30,7 @@ import { PageLayout, PageContent } from '@/components/workspace/layout';
 import { usePropertyContext } from '@/components/property/PropertyContext';
 import { useEntityCacheStore } from '@/lib/stores/useEntityCacheStore';
 import { useWorkspaceStore } from '@/lib/stores/useWorkspaceStore';
+import { useGridExpandedPreference } from '@/lib/hooks/useGridExpandedPreference';
 import {
   fetchAllWorkspaceLeases,
   fetchDashboardProperties,
@@ -160,7 +161,7 @@ export function LeaseManagementPage({ initialLeases, initialProperties }: LeaseM
   // Status Filter Tabs: All, Active, Pending, Expired, Renewed
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Pending' | 'Expired' | 'Renewed'>('All');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [isTableExpanded, setIsTableExpanded] = useState(false);
+  const [isTableExpanded, setIsTableExpanded] = useGridExpandedPreference(false);
 
   // Selected Property for Health Donut
   const [healthPropertyId, setHealthPropertyId] = useState<string | null>(activePropertyId);

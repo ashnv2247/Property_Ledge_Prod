@@ -9,6 +9,7 @@ import { AdminSystemTeamRolesGridView } from '@/components/admin/data-grid/views
 import { SystemTeamRoleDetailDrawer } from '@/components/admin/team-roles/SystemTeamRoleDetailDrawer';
 import { SystemTeamRoleBuilderDrawer } from '@/components/admin/team-roles/SystemTeamRoleBuilderDrawer';
 import { CrossRolePermissionMatrix } from '@/components/rbac/CrossRolePermissionMatrix';
+import { useGridExpandedPreference } from '@/lib/hooks/useGridExpandedPreference';
 import {
   fetchAdminSystemTeamRoles,
   fetchAdminSystemTeamRolesMatrixData,
@@ -104,7 +105,7 @@ export function AdminSystemTeamRolesPageView({ roles: initialRoles }: AdminSyste
     }
   }
 
-  const [isMatrixExpanded, setIsMatrixExpanded] = useState(true);
+  const [isMatrixExpanded, setIsMatrixExpanded] = useGridExpandedPreference(false);
 
   const headerActions = (
     <div className="flex items-center gap-2">

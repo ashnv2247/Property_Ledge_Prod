@@ -27,6 +27,7 @@ import { Button, useToast } from '@/components/admin/ui';
 import { AdminDataGrid } from '@/components/admin/data-grid/AdminDataGrid';
 import { PageLayout, PageContent } from '@/components/workspace/layout';
 import { usePropertyContext } from '@/components/property/PropertyContext';
+import { useGridExpandedPreference } from '@/lib/hooks/useGridExpandedPreference';
 import {
   fetchAllWorkspaceTenants,
   fetchDashboardProperties,
@@ -152,7 +153,7 @@ export function TenantDirectoryPage({
     'All' | 'Active Resident' | 'Inactive / Past Resident' | 'Prospect / Applicant' | 'Archived'
   >('All');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [isTableExpanded, setIsTableExpanded] = useState(false);
+  const [isTableExpanded, setIsTableExpanded] = useGridExpandedPreference(false);
 
   // Selected property for Lease Overview filtering
   const [overviewPropertyId, setOverviewPropertyId] = useState<string | null>(activePropertyId);

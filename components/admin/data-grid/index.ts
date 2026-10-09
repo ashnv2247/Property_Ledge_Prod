@@ -14,3 +14,4 @@ export * from './cells/CodeCell';
 export * from './cells/ActionsCell';
 export * from './theme/gridDefaults';
 export * from './GridRefreshButton';
+export * from '@/lib/hooks/useGridExpandedPreference';

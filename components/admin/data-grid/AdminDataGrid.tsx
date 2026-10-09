@@ -28,6 +28,7 @@ const AgGridReact = dynamic(
   }
 ) as unknown as typeof import('ag-grid-react').AgGridReact;
 import { useCollapsibleWorkspaceOptional, useCollapsibleWorkspaceSnapshot } from '@/components/workspace/useCollapsibleDataWorkspace';
+import { useGridExpandedPreference } from '@/lib/hooks/useGridExpandedPreference';
 import { cn } from '@/lib/utils';
 import type { AdminDataGridToolbarProps } from './AdminDataGridToolbar';
 
@@ -119,7 +120,7 @@ export function AdminDataGrid<TData = any>({
   disablePagination = false,
   isExpanded: propIsExpanded,
   onExpandedChange,
-  defaultExpanded = true,
+  defaultExpanded,
   onRefresh,
   isRefreshing,
   lastRefreshedAt,
@@ -133,22 +134,21 @@ export function AdminDataGrid<TData = any>({
   const [isFiltered, setIsFiltered] = useState(false);
   const [clientPage, setClientPage] = useState(1);
   const [clientPageSize, setClientPageSize] = useState(defaultPageSize);
-  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+  const [globalExpanded, setGlobalExpanded] = useGridExpandedPreference(defaultExpanded ?? false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const gridContainerRef = useRef<HTMLDivElement>(null);
   const viewportScrollRef = useRef(onViewportScroll);
 
-  const isExpanded = propIsExpanded ?? internalExpanded;
+  const isExpanded = propIsExpanded !== undefined ? propIsExpanded : globalExpanded;
 
   const handleToggleExpand = useCallback(() => {
     const next = !isExpanded;
+    setGlobalExpanded(next);
     if (onExpandedChange) {
       onExpandedChange(next);
-    } else {
-      setInternalExpanded(next);
     }
-  }, [isExpanded, onExpandedChange]);
+  }, [isExpanded, onExpandedChange, setGlobalExpanded]);
 
   const workspaceStore = useCollapsibleWorkspaceOptional();
 
