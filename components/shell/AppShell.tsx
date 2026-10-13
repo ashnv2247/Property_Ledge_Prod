@@ -461,23 +461,6 @@ function Sidebar({
             </div>
           )}
         </Link>
-
-        {/* Header Icon Button to Collapse / Expand All Tabs */}
-        {!isCollapsed && hasExpandableTabs && (
-          <button
-            type="button"
-            onClick={handleToggleCollapseAllTabs}
-            title={allTabsCollapsed ? 'Expand all navigation tabs' : 'Collapse all navigation tabs'}
-            aria-label={allTabsCollapsed ? 'Expand all navigation tabs' : 'Collapse all navigation tabs'}
-            className="p-1.5 rounded-lg text-[#7F8B99] hover:text-white hover:bg-[#0E1E33] transition-colors ml-1 shrink-0 cursor-pointer"
-          >
-            {allTabsCollapsed ? (
-              <UnfoldVertical className="w-4 h-4 text-[#32D5C4]" />
-            ) : (
-              <ListCollapse className="w-4 h-4" />
-            )}
-          </button>
-        )}
       </div>
 
       {/* Navigation Section Subheader with Collapse All Action */}
@@ -907,7 +890,7 @@ export function AppShell({
           setSidebarWidth(parsed);
         }
       }
-    } catch {}
+    } catch { }
   }, []);
 
   const handleStartResizing = React.useCallback((mouseDownEvent: React.MouseEvent) => {
@@ -936,7 +919,7 @@ export function AppShell({
       setSidebarWidth((currentWidth) => {
         try {
           localStorage.setItem('propertyledge_sidebar_width', String(currentWidth));
-        } catch {}
+        } catch { }
         return currentWidth;
       });
     };
@@ -949,7 +932,7 @@ export function AppShell({
     setSidebarWidth(SHELL_SIDEBAR_WIDTH_DEFAULT);
     try {
       localStorage.setItem('propertyledge_sidebar_width', String(SHELL_SIDEBAR_WIDTH_DEFAULT));
-    } catch {}
+    } catch { }
   }, []);
 
   const handleChangeWidth = React.useCallback((delta: number) => {
@@ -957,7 +940,7 @@ export function AppShell({
       const next = Math.min(SHELL_SIDEBAR_WIDTH_MAX, Math.max(SHELL_SIDEBAR_WIDTH_MIN, prev + delta));
       try {
         localStorage.setItem('propertyledge_sidebar_width', String(next));
-      } catch {}
+      } catch { }
       return next;
     });
   }, []);
@@ -1089,23 +1072,23 @@ export function AppShell({
         <div id="workspace-drawer-root" className="absolute inset-0 z-40 pointer-events-none [&>*]:pointer-events-auto" />
       </div>
 
-        {useGlobalSearch ? (
-          <GlobalSearch
-            isOpen={isSearchOpen}
-            onClose={() => setIsSearchOpen(false)}
-            quickLinks={commandMenuLinks}
-            footerLabel={commandMenuFooter}
-          />
-        ) : (
-          <CommandMenu
-            isOpen={isSearchOpen}
-            onClose={() => setIsSearchOpen(false)}
-            links={commandMenuLinks}
-            footerLabel={commandMenuFooter}
-          />
-        )}
+      {useGlobalSearch ? (
+        <GlobalSearch
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          quickLinks={commandMenuLinks}
+          footerLabel={commandMenuFooter}
+        />
+      ) : (
+        <CommandMenu
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          links={commandMenuLinks}
+          footerLabel={commandMenuFooter}
+        />
+      )}
 
-        {mobileBottomNav}
-      </div>
+      {mobileBottomNav}
+    </div>
   );
 }
