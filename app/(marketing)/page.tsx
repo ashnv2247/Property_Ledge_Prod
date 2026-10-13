@@ -23,7 +23,7 @@ export default function Home() {
     if (typeof document !== "undefined") {
       const stored = localStorage.getItem("propertyledge_theme");
       if (!stored) {
-        applyThemeMode("dark");
+        applyThemeMode("dark", false);
       }
     }
   }, []);

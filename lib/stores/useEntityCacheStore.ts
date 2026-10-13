@@ -78,19 +78,54 @@ export const useEntityCacheStore = create<EntityCacheState>((set) => ({
   cacheMap: {},
 
   setInvoices: (data, workspaceId, isRefreshing = false, error = null) =>
-    set({ invoices: makeCacheEntry(data, workspaceId, null, isRefreshing, error) }),
+    set((state) => {
+      const entry = makeCacheEntry(data, workspaceId, null, isRefreshing, error);
+      const key = buildCacheKey('invoices', workspaceId, 'all');
+      return {
+        invoices: entry,
+        cacheMap: { ...state.cacheMap, [key]: entry },
+      };
+    }),
 
   setProperties: (data, workspaceId, isRefreshing = false, error = null) =>
-    set({ properties: makeCacheEntry(data, workspaceId, null, isRefreshing, error) }),
+    set((state) => {
+      const entry = makeCacheEntry(data, workspaceId, null, isRefreshing, error);
+      const key = buildCacheKey('properties', workspaceId, 'all');
+      return {
+        properties: entry,
+        cacheMap: { ...state.cacheMap, [key]: entry },
+      };
+    }),
 
   setLeases: (data, workspaceId, propertyId, isRefreshing = false, error = null) =>
-    set({ leases: makeCacheEntry(data, workspaceId, propertyId, isRefreshing, error) }),
+    set((state) => {
+      const entry = makeCacheEntry(data, workspaceId, propertyId, isRefreshing, error);
+      const key = buildCacheKey('leases', workspaceId, propertyId);
+      return {
+        leases: entry,
+        cacheMap: { ...state.cacheMap, [key]: entry },
+      };
+    }),
 
   setTenants: (data, workspaceId, propertyId, isRefreshing = false, error = null) =>
-    set({ tenants: makeCacheEntry(data, workspaceId, propertyId, isRefreshing, error) }),
+    set((state) => {
+      const entry = makeCacheEntry(data, workspaceId, propertyId, isRefreshing, error);
+      const key = buildCacheKey('tenants', workspaceId, propertyId);
+      return {
+        tenants: entry,
+        cacheMap: { ...state.cacheMap, [key]: entry },
+      };
+    }),
 
   setAutomations: (data, workspaceId, isRefreshing = false, error = null) =>
-    set({ automations: makeCacheEntry(data, workspaceId, null, isRefreshing, error) }),
+    set((state) => {
+      const entry = makeCacheEntry(data, workspaceId, null, isRefreshing, error);
+      const key = buildCacheKey('automations', workspaceId, 'all');
+      return {
+        automations: entry,
+        cacheMap: { ...state.cacheMap, [key]: entry },
+      };
+    }),
 
   setDashboard: (data, workspaceId, propertyId, isRefreshing = false, error = null) =>
     set((state) => {
@@ -189,7 +224,14 @@ export const useEntityCacheStore = create<EntityCacheState>((set) => ({
           delete newCacheMap[k];
         }
       });
-      return { cacheMap: newCacheMap };
+      const partial: Record<string, any> = { cacheMap: newCacheMap };
+      const topLevelEntities = ['invoices', 'properties', 'leases', 'tenants', 'automations', 'dashboard'] as const;
+      for (const ent of topLevelEntities) {
+        if (prefix.startsWith(`${ent}:`)) {
+          partial[ent] = null;
+        }
+      }
+      return partial as any;
     }),
 }));
 
@@ -248,3 +290,8 @@ export function buildCacheKey(
   const prop = propertyId || 'all';
   return extra ? `${entity}:${ws}:${prop}:${extra}` : `${entity}:${ws}:${prop}`;
 }
+
+export function getCachedEntry<T>(key: string): CachedData<T> | undefined {
+  return useEntityCacheStore.getState().cacheMap[key] as CachedData<T> | undefined;
+}
+

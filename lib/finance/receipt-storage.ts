@@ -36,19 +36,15 @@ export async function uploadReceiptToBlob({
   const fileSize = file.size;
 
   if (!token) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[RECEIPT_STORAGE] CRITICAL: BLOB_READ_WRITE_TOKEN is missing in production environment.');
+      throw new Error('Receipt storage service is not configured. Please ensure BLOB_READ_WRITE_TOKEN is set in environment variables.');
+    }
+
     console.warn(
-      '[RECEIPT_STORAGE] BLOB_READ_WRITE_TOKEN is not configured. Running in local fallback mode.'
+      '[RECEIPT_STORAGE] BLOB_READ_WRITE_TOKEN is not configured. Real persistent receipt storage requires BLOB_READ_WRITE_TOKEN.'
     );
-    // Graceful fallback for local development without active Vercel Blob token
-    const mockUrl = `https://mock-blob.vercel-storage.com/${blobPath}`;
-    return {
-      url: mockUrl,
-      blobPath,
-      fileName: sanitizedName,
-      fileSize,
-      mimeType: effectiveMime,
-      uploadedAt: new Date().toISOString(),
-    };
+    throw new Error('Vercel Blob storage is not configured. Please set BLOB_READ_WRITE_TOKEN to upload receipts.');
   }
 
   try {

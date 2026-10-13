@@ -40,6 +40,7 @@ import { NeedsAttentionSection, buildAttentionItems } from '@/components/dashboa
 import { usePropertyContext } from '@/components/property/PropertyContext';
 import { TenancySetupWizard } from '@/components/dashboard/workflows/TenancySetupWizard';
 import { CreateLeaseWizard } from '@/components/dashboard/workflows/CreateLeaseWizard';
+import { PropertyDrawer } from '@/components/dashboard/properties/PropertyDrawer';
 import { cn } from '@/lib/utils';
 
 interface PropertyDetailHubProps {
@@ -77,6 +78,7 @@ export function PropertyDetailHub({ propertyId }: PropertyDetailHubProps) {
 
   const [isTenancyWizardOpen, setIsTenancyWizardOpen] = useState(false);
   const [isCreateLeaseWizardOpen, setIsCreateLeaseWizardOpen] = useState(false);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
 
   const loadAll = (isManualRefresh = false) => {
     if (isManualRefresh) {
@@ -201,7 +203,7 @@ export function PropertyDetailHub({ propertyId }: PropertyDetailHubProps) {
           status={<StatusBadge domain="lease" status={isOccupied ? 'active' : 'draft'} />}
           actions={
             <EntityActions
-              onEdit={() => router.push('/dashboard/properties')}
+              onEdit={() => setIsEditDrawerOpen(true)}
               addItems={[
                 { label: 'Setup Tenancy / Tenant', onClick: () => setIsTenancyWizardOpen(true) },
                 { label: 'Create Lease', onClick: () => setIsCreateLeaseWizardOpen(true) },
@@ -347,6 +349,21 @@ export function PropertyDetailHub({ propertyId }: PropertyDetailHubProps) {
           propertyName={property.name}
           onClose={() => setIsCreateLeaseWizardOpen(false)}
           onSuccess={() => {
+            loadAll();
+          }}
+        />
+      )}
+
+      {/* Property Edit Drawer */}
+      {property && (
+        <PropertyDrawer
+          isOpen={isEditDrawerOpen}
+          property={property as any}
+          propertyId={property.id}
+          isCreate={false}
+          onClose={() => setIsEditDrawerOpen(false)}
+          onSuccess={() => {
+            setIsEditDrawerOpen(false);
             loadAll();
           }}
         />

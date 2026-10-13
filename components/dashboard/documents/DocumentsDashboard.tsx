@@ -40,6 +40,7 @@ import {
   uploadWorkspaceDocumentAction,
   deleteWorkspaceDocumentAction,
 } from '@/app/actions/documents';
+import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
 import {
   PageLayout,
   PageContent,
@@ -65,7 +66,22 @@ export function DocumentsDashboard({
   initialStats,
   properties,
 }: DocumentsDashboardProps) {
-  const [documents, setDocuments] = useState<UnifiedDocument[]>(initialDocuments);
+  const {
+    data: documents = initialDocuments,
+    isRefreshing,
+    mutate: refreshDocuments,
+    setData: setDocuments,
+  } = usePersistentEntityQuery<UnifiedDocument[]>({
+    entity: 'documents',
+    initialData: initialDocuments,
+    freshnessTier: 'stable',
+    fetcher: async () => {
+      const res = await fetchWorkspaceDocumentsAction();
+      if (!res.success) throw new Error(res.error || 'Failed to refresh documents');
+      if (res.stats) setStats(res.stats);
+      return (res.data || []) as UnifiedDocument[];
+    },
+  });
   const [stats, setStats] = useState<DocumentStats>(initialStats);
   const [activeCategory, setActiveCategory] = useState<DocumentCategory>('all');
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('all');
@@ -91,12 +107,10 @@ export function DocumentsDashboard({
   const refreshData = () => {
     startTransition(async () => {
       setActionError(null);
-      const res = await fetchWorkspaceDocumentsAction();
-      if (res.success && res.data) {
-        setDocuments(res.data);
-        if (res.stats) setStats(res.stats);
-      } else {
-        setActionError(res.error || 'Failed to refresh documents');
+      try {
+        await refreshDocuments();
+      } catch (err: any) {
+        setActionError(err.message || 'Failed to refresh documents');
       }
     });
   };

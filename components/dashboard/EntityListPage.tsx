@@ -37,8 +37,10 @@ function EntityRowActions<T extends { id: string }>({
         </button>
       }
     >
-      <DropdownItem label={hasDetail ? 'View record' : 'Open record'} icon={<Eye className="h-3.5 w-3.5" />} onClick={() => onOpen(data)} />
-      {hasDetail && <DropdownItem label="Edit record" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => onEdit(data)} />}
+      {hasDetail && (
+        <DropdownItem label="View record" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => onOpen(data)} />
+      )}
+      <DropdownItem label="Edit record" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => onEdit(data)} />
     </Dropdown>
   );
 }
@@ -198,7 +200,7 @@ export function EntityListPage<T extends { id: string }>({
             data={params.data}
             entityLabel={entityLabel}
             hasDetail={Boolean(onRowClick)}
-            onOpen={(data) => (onRowClick ? onRowClick(data) : handleOpenEdit(data))}
+            onOpen={(data) => onRowClick?.(data)}
             onEdit={handleOpenEdit}
           />
         ),
@@ -234,13 +236,7 @@ export function EntityListPage<T extends { id: string }>({
               labelSingular={entityLabel}
               labelPlural={entityLabelPlural}
               searchPlaceholder={`Search ${entityLabelPlural}...`}
-              onRowClick={(row) => {
-                if (onRowClick) {
-                  onRowClick(row);
-                } else {
-                  handleOpenEdit(row);
-                }
-              }}
+              onRowClick={onRowClick ? (row) => onRowClick(row) : undefined}
               getRowId={(params) => params.data.id}
             />
           </ListPageGrid>

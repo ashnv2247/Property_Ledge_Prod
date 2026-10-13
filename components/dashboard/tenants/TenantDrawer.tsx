@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Trash2 } from 'lucide-react';
 import { Input, Select, Textarea, useToast, ConfirmDialog } from '@/components/admin/ui';
@@ -79,8 +79,17 @@ export function TenantDrawer({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  const prevTenantIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (isOpen) {
+      const currentTenantId = tenant?.id || '__new__';
+      if (prevTenantIdRef.current === currentTenantId) {
+        // Same tenant already loaded in open drawer: protect active unsaved form edits from background refreshes
+        return;
+      }
+      prevTenantIdRef.current = currentTenantId;
+
       if (tenant && !isCreate) {
         setFirstName(tenant.first_name || '');
         setLastName(tenant.last_name || '');
@@ -101,6 +110,8 @@ export function TenantDrawer({
         setEmergencyPhone('');
       }
       setFormErrors({});
+    } else {
+      prevTenantIdRef.current = null;
     }
   }, [isOpen, tenant, isCreate]);
 

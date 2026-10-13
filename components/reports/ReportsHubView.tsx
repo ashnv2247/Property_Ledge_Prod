@@ -158,11 +158,16 @@ export function ReportsHubView({
         {/* Page Header Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-1">
           <div>
-            <h1 className="text-2xl sm:text-[28px] lg:text-[30px] font-bold tracking-tight text-slate-900 dark:text-white">
-              Financial Reporting & Insights
-            </h1>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-2xl sm:text-[28px] lg:text-[30px] font-bold tracking-tight text-slate-900 dark:text-white">
+                Financial Reporting & Insights
+              </h1>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#008F83]/10 text-[#008F83] dark:text-[#32D5C4] border border-[#008F83]/20 shadow-2xs">
+                Australian Financial Year (AFY)
+              </span>
+            </div>
             <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-              Analyze your financial performance across properties, categories, and reporting periods.
+              Australian Financial Year (AFY) cash flow trajectory, tax classifications, BAS quarterly summaries, and ledger performance.
             </p>
           </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -72,27 +72,36 @@ const BulkInvoiceModal = dynamic(
 import { useEntityCacheStore } from '@/lib/stores/useEntityCacheStore';
 import { useWorkspaceStore } from '@/lib/stores/useWorkspaceStore';
 import { usePropertyContext } from '@/components/property/PropertyContext';
+import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
 
 export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[] } = {}) {
   const router = useRouter();
-  const { toast } = useToast();
-  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
-  const cachedInvoices = useEntityCacheStore((s) => s.invoices);
-  const setCachedInvoices = useEntityCacheStore((s) => s.setInvoices);
   const { selectedProperty, availableProperties } = usePropertyContext();
-
   const activePropertyId = selectedProperty?.propertyId ?? null;
-
-  const hasMatchingCache = cachedInvoices && cachedInvoices.workspaceId === activeWorkspaceId;
-
-  const [invoices, setInvoices] = useState<InvoiceDTO[]>(() => {
-    if (initialInvoices && initialInvoices.length > 0) return initialInvoices;
-    return hasMatchingCache ? cachedInvoices.data : [];
+  const { toast } = useToast();
+  const {
+    data: invoices = [],
+    isLoading: loading,
+    isRefreshing,
+    lastRefreshedAt,
+    mutate: refreshInvoices,
+    setData: setInvoices,
+  } = usePersistentEntityQuery<InvoiceDTO[]>({
+    entity: 'invoices',
+    initialData: initialInvoices,
+    freshnessTier: 'normal',
+    fetcher: async () => {
+      const res = await fetchInvoicesAction({
+        limit: 150,
+      });
+      return (res.items || []) as InvoiceDTO[];
+    },
   });
-  const [loading, setLoading] = useState(() => !initialInvoices && !hasMatchingCache);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(() => new Date());
-  const isInitialMount = React.useRef(true);
+
+  const loadInvoices = useCallback(async (_isManualRefresh = false) => {
+    await refreshInvoices();
+  }, [refreshInvoices]);
+
   const [statusFilter, setStatusFilter] = useState('all');
   const [includeIndependent, setIncludeIndependent] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
@@ -146,45 +155,6 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
     if (statusFilter === 'all') return scopedInvoices;
     return scopedInvoices.filter((inv) => inv.status === statusFilter);
   }, [scopedInvoices, statusFilter]);
-
-  const loadInvoices = async (isManualRefresh = false) => {
-    if (isManualRefresh) {
-      setIsRefreshing(true);
-    } else if (!hasMatchingCache) {
-      setLoading(true);
-    }
-    try {
-      const res = await fetchInvoicesAction({
-        limit: 150,
-      });
-      setInvoices(res.items);
-      setCachedInvoices(res.items, activeWorkspaceId);
-      setLastRefreshedAt(new Date());
-    } catch (err: any) {
-      toast({
-        title: isManualRefresh ? 'Unable to refresh invoices' : 'Error loading invoices',
-        description: isManualRefresh ? 'Please try again.' : err.message,
-        variant: 'destructive',
-      });
-    } finally {
-      if (isManualRefresh) {
-        setIsRefreshing(false);
-      } else {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      if (initialInvoices && initialInvoices.length > 0) {
-        setCachedInvoices(initialInvoices, activeWorkspaceId);
-        return;
-      }
-    }
-    loadInvoices();
-  }, [activeWorkspaceId]);
 
   // KPIs strictly reflecting current property context and filters
   const stats = useMemo(() => {
@@ -813,6 +783,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
         ) : viewMode === 'table' ? (
           <ListPageGrid>
             <AdminDataGrid
+              gridId="invoices-grid"
               rowData={displayedInvoices}
               columnDefs={agGridColumns}
               loading={loading}

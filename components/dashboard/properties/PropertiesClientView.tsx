@@ -40,6 +40,7 @@ import { usePropertyContext } from '@/components/property/PropertyContext';
 import { useEntityCacheStore } from '@/lib/stores/useEntityCacheStore';
 import { useWorkspaceStore } from '@/lib/stores/useWorkspaceStore';
 import { useGridExpandedPreference } from '@/lib/hooks/useGridExpandedPreference';
+import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
 
 export interface PropertiesClientViewProps {
   initialProperties?: Record<string, unknown>[];
@@ -51,17 +52,28 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
   const { error: showError } = useToast();
   const { availableProperties, refreshProperties } = usePropertyContext();
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
-  const cachedProperties = useEntityCacheStore((s) => s.properties);
-  const setCachedProperties = useEntityCacheStore((s) => s.setProperties);
 
-  const hasMatchingCache = cachedProperties && cachedProperties.workspaceId === activeWorkspaceId;
+  const {
+    data: persistentProperties,
+    setData: setPersistentProperties,
+    isLoading,
+    isRefreshing,
+    lastRefreshedAt,
+    refresh: refreshPropertiesData,
+  } = usePersistentEntityQuery<Record<string, unknown>[]>({
+    entity: 'properties',
+    workspaceId: activeWorkspaceId,
+    initialData: initialProperties && initialProperties.length > 0 ? initialProperties : null,
+    freshnessTier: 'normal',
+    fetcher: fetchDashboardProperties,
+    onError: (err) => {
+      showError('Load failed', err?.message || 'Could not load properties.');
+    },
+  });
 
-  const [rows, setRows] = useState<Record<string, unknown>[]>(() => {
-    if (initialProperties && initialProperties.length > 0) {
-      return initialProperties;
-    }
-    if (hasMatchingCache && cachedProperties.data.length > 0) {
-      return cachedProperties.data;
+  const rows = useMemo(() => {
+    if (persistentProperties && persistentProperties.length > 0) {
+      return persistentProperties;
     }
     if (availableProperties && availableProperties.length > 0) {
       return availableProperties.map((p) => ({
@@ -72,15 +84,9 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
         status: p.status || 'active',
       }));
     }
-    return [];
-  });
+    return persistentProperties || [];
+  }, [persistentProperties, availableProperties]);
 
-  const [isLoading, setIsLoading] = useState(
-    () => !initialProperties && !hasMatchingCache && (!availableProperties || availableProperties.length === 0)
-  );
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(() => new Date());
-  const isInitialMount = useRef(true);
   const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -103,56 +109,9 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
     }
   };
 
-  const hasDataRef = useRef(Boolean(initialProperties && initialProperties.length > 0));
-  const prevWorkspaceIdRef = useRef<string | null>(activeWorkspaceId ?? null);
-
-  const loadData = useCallback(async (isManualRefresh = false) => {
-    if (isManualRefresh) {
-      setIsRefreshing(true);
-    } else if (!hasDataRef.current) {
-      setIsLoading(true);
-    }
-    try {
-      const data = await fetchDashboardProperties();
-      setRows(data);
-      hasDataRef.current = data.length > 0;
-      setCachedProperties(data, activeWorkspaceId);
-      setLastRefreshedAt(new Date());
-    } catch {
-      showError(
-        isManualRefresh ? 'Refresh failed' : 'Load failed',
-        isManualRefresh ? 'Unable to refresh properties. Please try again.' : 'Could not load properties.'
-      );
-    } finally {
-      if (isManualRefresh) {
-        setIsRefreshing(false);
-      } else {
-        setIsLoading(false);
-      }
-    }
-  }, [activeWorkspaceId, setCachedProperties, showError]);
-
-  useEffect(() => {
-    // Initial mount: if server provided data, cache it and skip duplicate fetch
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      prevWorkspaceIdRef.current = activeWorkspaceId ?? null;
-      if (initialProperties && initialProperties.length > 0) {
-        setCachedProperties(initialProperties, activeWorkspaceId);
-        hasDataRef.current = true;
-        return;
-      }
-      // Only fetch if no initial server data was provided
-      loadData();
-      return;
-    }
-
-    // After mount: only refetch if the active workspace genuinely changed
-    if (activeWorkspaceId && activeWorkspaceId !== prevWorkspaceIdRef.current) {
-      prevWorkspaceIdRef.current = activeWorkspaceId;
-      loadData();
-    }
-  }, [activeWorkspaceId, initialProperties, loadData, setCachedProperties]);
+  const loadData = useCallback(async () => {
+    await refreshPropertiesData();
+  }, [refreshPropertiesData]);
 
   // Escape key exits table expanded mode
   useEffect(() => {
@@ -351,10 +310,11 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
               >
                 <div className="flex-1 flex flex-col min-h-0 h-full">
                   <AdminDataGrid
+                    gridId="properties-grid"
                     rowData={filteredRows}
                     columnDefs={columns}
                     loading={isLoading}
-                    onRefresh={() => loadData(true)}
+                    onRefresh={() => loadData()}
                     isRefreshing={isRefreshing}
                     lastRefreshedAt={lastRefreshedAt}
                     labelSingular="property"
@@ -446,7 +406,7 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
           ) : (
             /* CARD GRID VIEW MODE */
             <HoverCardGrid className="overflow-y-auto flex-1 p-1">
-              {filteredRows.map((p) => {
+              {filteredRows.map((p: any) => {
                 const address = String(p.address_line_1 || p.address || p.name || '—');
                 const location = `${p.suburb || p.city || ''}${p.state ? `, ${p.state}` : ''}`.trim() || '—';
                 const rent = p.rent_amount ? `$${Number(p.rent_amount).toLocaleString()}` : '—';

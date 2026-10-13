@@ -51,6 +51,7 @@ import { AccountantReportModal } from '@/components/reports/AccountantReportModa
 import { formatCurrency } from '@/lib/format/currency';
 import { formatAuDisplayDate } from '@/lib/format/australian-time';
 import { cn } from '@/lib/utils';
+import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
 
 interface ExpenseListProps {
   initialExpenses?: ExpenseDTO[];
@@ -66,12 +67,29 @@ export function ExpenseList({ initialExpenses, initialCategories }: ExpenseListP
   const isInitialMount = React.useRef(true);
 
   // Data State
-  const [expenses, setExpenses] = useState<ExpenseDTO[]>(initialExpenses || []);
+  const {
+    data: expenses = [],
+    isLoading,
+    isRefreshing,
+    lastRefreshedAt,
+    mutate: refreshExpenses,
+    setData: setExpenses,
+  } = usePersistentEntityQuery<ExpenseDTO[]>({
+    entity: 'expenses',
+    initialData: initialExpenses,
+    freshnessTier: 'normal',
+    fetcher: async ({ propertyId }) => {
+      const res = await fetchExpensesAction({
+        property_id: propertyId || undefined,
+      });
+      if (!res.success) {
+        throw new Error(res.error || 'Failed to load expenses');
+      }
+      return (res.data || []) as ExpenseDTO[];
+    },
+  });
   const [categories, setCategories] = useState<CategoryDTO[]>(initialCategories || []);
   const [properties, setProperties] = useState<any[]>(availableProperties || []);
-  const [isLoading, setIsLoading] = useState(!initialExpenses);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(() => new Date());
 
   // View & Filter States
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
@@ -97,50 +115,9 @@ export function ExpenseList({ initialExpenses, initialCategories }: ExpenseListP
     }
   }, [availableProperties]);
 
-  // Load Expenses Data from Transactions
-  const loadExpenses = useCallback(async (isManualRefresh = false) => {
-    if (isManualRefresh) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
-    try {
-      const filterParams: ExpenseFilterParams = {
-        property_id: activePropertyId || undefined,
-      };
-
-      const res = await fetchExpensesAction(filterParams);
-      if (res.success && res.data) {
-        setExpenses(res.data);
-      } else {
-        setExpenses([]);
-      }
-      setLastRefreshedAt(new Date());
-    } catch (err: any) {
-      console.error('Failed to load expenses:', err);
-      toast({
-        title: isManualRefresh ? 'Unable to refresh expenses' : 'Error Loading Expenses',
-        description: isManualRefresh ? 'Please try again.' : (err.message || 'Could not fetch expense records.'),
-        variant: 'destructive',
-      });
-    } finally {
-      if (isManualRefresh) {
-        setIsRefreshing(false);
-      } else {
-        setIsLoading(false);
-      }
-    }
-  }, [activePropertyId, toast]);
-
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      if (initialExpenses && (!activePropertyId || activePropertyId === '')) {
-        return;
-      }
-    }
-    loadExpenses();
-  }, [loadExpenses, activePropertyId, initialExpenses]);
+  const loadExpenses = useCallback(async (_isManualRefresh = false) => {
+    await refreshExpenses();
+  }, [refreshExpenses]);
 
   // Quick Filter Options
   const filterOptions = useMemo<QuickFilterOption[]>(
@@ -700,7 +677,7 @@ export function ExpenseList({ initialExpenses, initialCategories }: ExpenseListP
           </div>
 
           {/* Pattern Pie Chart & Spring Tracker Card Grid */}
-          {showAnalytics && (
+          {/* {showAnalytics && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
               <div className="lg:col-span-6 flex">
                 <ExpenseCategoryPieChart
@@ -724,7 +701,7 @@ export function ExpenseList({ initialExpenses, initialCategories }: ExpenseListP
                 />
               </div>
             </div>
-          )}
+          )} */}
         </div>
       }
     >
@@ -752,6 +729,7 @@ export function ExpenseList({ initialExpenses, initialCategories }: ExpenseListP
           /* AG-Grid Table View */
           <ListPageGrid>
             <AdminDataGrid<ExpenseDTO>
+              gridId="expenses-grid"
               rowData={filteredExpenses}
               columnDefs={columnDefs}
               loading={isLoading}

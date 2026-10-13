@@ -37,6 +37,7 @@ import { HoverCardGrid, HoverEffectCardItem } from '@/components/ui/card-hover-e
 import { cn } from '@/lib/utils';
 import { useEntityCacheStore } from '@/lib/stores/useEntityCacheStore';
 import { useWorkspaceStore } from '@/lib/stores/useWorkspaceStore';
+import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
 
 import { TenantOverviewBanner } from './TenantOverviewBanner';
 import { LeaseOverviewDonut } from './LeaseOverviewDonut';
@@ -111,28 +112,39 @@ export function TenantDirectoryPage({
   const router = useRouter();
   const { error: showError, success: showSuccess } = useToast();
   const { selectedProperty, availableProperties } = usePropertyContext();
-  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
-  const cachedTenants = useEntityCacheStore((s) => s.tenants);
-  const setCachedTenants = useEntityCacheStore((s) => s.setTenants);
-  const cachedProperties = useEntityCacheStore((s) => s.properties);
-  const setCachedProperties = useEntityCacheStore((s) => s.setProperties);
-
   const activePropertyId = selectedProperty?.propertyId ?? null;
-  const hasMatchingCache =
-    cachedTenants &&
-    cachedTenants.workspaceId === activeWorkspaceId &&
-    cachedTenants.propertyId === activePropertyId;
 
-  const [tenants, setTenants] = useState<TenantRecord[]>(() => {
-    if (initialTenants && initialTenants.length > 0) return initialTenants;
-    return hasMatchingCache ? (cachedTenants.data as TenantRecord[]) : [];
+  const {
+    data: tenants = [],
+    isLoading,
+    isRefreshing,
+    lastRefreshedAt,
+    mutate: refreshTenants,
+    setData: setTenants,
+  } = usePersistentEntityQuery<TenantRecord[]>({
+    entity: 'tenants',
+    initialData: initialTenants,
+    freshnessTier: 'normal',
+    fetcher: async ({ propertyId }) => {
+      const result = await fetchAllWorkspaceTenants(propertyId);
+      return result as unknown as TenantRecord[];
+    },
   });
 
-  const [properties, setProperties] = useState<PropertyOption[]>(() => {
-    if (initialProperties && initialProperties.length > 0) return initialProperties;
-    if (cachedProperties && cachedProperties.workspaceId === activeWorkspaceId) {
-      return cachedProperties.data as PropertyOption[];
-    }
+  const {
+    data: propertiesData = [],
+  } = usePersistentEntityQuery<PropertyOption[]>({
+    entity: 'properties',
+    initialData: initialProperties,
+    freshnessTier: 'stable',
+    fetcher: async () => {
+      const result = await fetchDashboardProperties();
+      return result as unknown as PropertyOption[];
+    },
+  });
+
+  const properties = useMemo<PropertyOption[]>(() => {
+    if (propertiesData && propertiesData.length > 0) return propertiesData;
     if (availableProperties && availableProperties.length > 0) {
       return availableProperties.map((p) => ({
         id: p.propertyId,
@@ -142,12 +154,7 @@ export function TenantDirectoryPage({
       }));
     }
     return [];
-  });
-
-  const [isLoading, setIsLoading] = useState(() => !initialTenants && !hasMatchingCache);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(() => new Date());
-  const isInitialMount = useRef(true);
+  }, [propertiesData, availableProperties]);
 
   const [statusFilter, setStatusFilter] = useState<
     'All' | 'Active Resident' | 'Inactive / Past Resident' | 'Prospect / Applicant' | 'Archived'
@@ -158,6 +165,10 @@ export function TenantDirectoryPage({
   // Selected property for Lease Overview filtering
   const [overviewPropertyId, setOverviewPropertyId] = useState<string | null>(activePropertyId);
 
+  useEffect(() => {
+    setOverviewPropertyId(activePropertyId);
+  }, [activePropertyId]);
+
   // Tenancy Setup Wizard state
   const [isSetupWizardOpen, setIsSetupWizardOpen] = useState(false);
   const [selectedPropertyForSetup, setSelectedPropertyForSetup] = useState<PropertyOption | null>(null);
@@ -167,76 +178,12 @@ export function TenantDirectoryPage({
   const [selectedTenantForEdit, setSelectedTenantForEdit] = useState<TenantRecord | null>(null);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
 
-  const hasDataRef = useRef(Boolean(initialTenants && initialTenants.length > 0));
-  const prevWorkspaceIdRef = useRef<string | null>(activeWorkspaceId ?? null);
-  const prevPropertyIdRef = useRef<string | null>(activePropertyId ?? null);
-
   const loadData = useCallback(
-    async (isManualRefresh = false, overridePropId?: string | null) => {
-      if (isManualRefresh) {
-        setIsRefreshing(true);
-      } else if (!hasDataRef.current) {
-        setIsLoading(true);
-      }
-      try {
-        const propIdToUse = overridePropId !== undefined ? overridePropId : activePropertyId;
-        const [tenantsData, propertiesData] = await Promise.all([
-          fetchAllWorkspaceTenants(propIdToUse),
-          fetchDashboardProperties(),
-        ]);
-        setTenants(tenantsData as unknown as TenantRecord[]);
-        setProperties(propertiesData as unknown as PropertyOption[]);
-        hasDataRef.current = tenantsData.length > 0;
-        setCachedTenants(tenantsData, activeWorkspaceId, propIdToUse);
-        setCachedProperties(propertiesData, activeWorkspaceId);
-        setLastRefreshedAt(new Date());
-      } catch (err: any) {
-        console.error('Error loading tenants directory:', err);
-        showError(
-          isManualRefresh ? 'Refresh failed' : 'Failed to load tenants',
-          isManualRefresh
-            ? 'Unable to refresh tenants. Please try again.'
-            : err.message || 'Could not fetch tenant directory.'
-        );
-      } finally {
-        if (isManualRefresh) {
-          setIsRefreshing(false);
-        } else {
-          setIsLoading(false);
-        }
-      }
+    async (_isManualRefresh = false) => {
+      await refreshTenants();
     },
-    [activePropertyId, activeWorkspaceId, setCachedProperties, setCachedTenants, showError]
+    [refreshTenants]
   );
-
-  useEffect(() => {
-    // Initial mount: if server provided data, cache it and skip duplicate fetch
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      prevWorkspaceIdRef.current = activeWorkspaceId ?? null;
-      prevPropertyIdRef.current = activePropertyId ?? null;
-      if (initialTenants && initialTenants.length > 0) {
-        setCachedTenants(initialTenants, activeWorkspaceId, activePropertyId);
-        if (initialProperties && initialProperties.length > 0) {
-          setCachedProperties(initialProperties, activeWorkspaceId);
-        }
-        hasDataRef.current = true;
-        return;
-      }
-      loadData();
-      return;
-    }
-
-    // After mount: only refetch if the active property or workspace genuinely changed
-    const propChanged = activePropertyId !== prevPropertyIdRef.current;
-    const wsChanged = activeWorkspaceId !== prevWorkspaceIdRef.current;
-
-    if (propChanged || wsChanged) {
-      prevPropertyIdRef.current = activePropertyId;
-      prevWorkspaceIdRef.current = activeWorkspaceId;
-      loadData(false, activePropertyId);
-    }
-  }, [activePropertyId, activeWorkspaceId, initialProperties, initialTenants, loadData, setCachedProperties, setCachedTenants]);
 
   // Escape key exits table expanded mode
   useEffect(() => {
@@ -449,6 +396,7 @@ export function TenantDirectoryPage({
               >
                 <div className="flex-1 flex flex-col min-h-0 h-full">
                   <AdminDataGrid
+                    gridId="tenants-grid"
                     rowData={filteredRows}
                     columnDefs={columns}
                     loading={isLoading}
@@ -458,7 +406,7 @@ export function TenantDirectoryPage({
                     lastRefreshedAt={lastRefreshedAt}
                     labelSingular="tenant"
                     labelPlural="tenants"
-                    onRowClick={(row: any) => handleEditTenant(row)}
+                    onRowClick={(row: any) => router.push(`/dashboard/people/${row.id}`)}
                     getRowId={(params: any) => String(params.data.id)}
                     enableColumnChooser
                     enableExport
@@ -583,7 +531,7 @@ export function TenantDirectoryPage({
                 return (
                   <HoverEffectCardItem
                     key={String(t.id)}
-                    onClick={() => handleEditTenant(t)}
+                    onClick={() => router.push(`/dashboard/people/${t.id}`)}
                     className="cursor-pointer group/card"
                   >
                     <div className="flex items-start justify-between gap-3">

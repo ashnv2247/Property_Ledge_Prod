@@ -98,8 +98,18 @@ export function PropertyDrawer({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  const prevOpenPropertyIdRef = React.useRef<string | null>(null);
+
   useEffect(() => {
     if (isOpen) {
+      const currentTargetId = isCreate ? 'new' : (propertyId || property?.id || 'unknown');
+      // Only initialize form fields if opening drawer fresh or switching to a different property.
+      // This preserves any unsaved edits if a background server refresh arrives while the user is editing.
+      if (prevOpenPropertyIdRef.current === currentTargetId) {
+        return;
+      }
+      prevOpenPropertyIdRef.current = currentTargetId;
+
       if (property && !isCreate) {
         setName(property.name || '');
         setAddressLine1(property.address_line_1 || property.address || '');
@@ -140,8 +150,10 @@ export function PropertyDrawer({
         setGstEnabled(false);
       }
       setFormErrors({});
+    } else {
+      prevOpenPropertyIdRef.current = null;
     }
-  }, [isOpen, property, isCreate]);
+  }, [isOpen, property, propertyId, isCreate]);
 
   const handleSave = async () => {
     const errors: Record<string, string> = {};

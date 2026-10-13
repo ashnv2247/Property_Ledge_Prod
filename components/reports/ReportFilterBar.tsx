@@ -116,10 +116,11 @@ export function ReportFilterBar({
         {/* 1. Financial Year Selector */}
         <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#07111F] border border-slate-200 dark:border-slate-800 rounded-xl px-3 h-10 focus-within:ring-2 focus-within:ring-[#008F83]/20 focus-within:border-[#008F83]">
           <Calendar className="w-4 h-4 text-[#008F83] dark:text-[#32D5C4] shrink-0" />
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wider">FY:</span>
           <select
             value={filters.financialYear ? String(filters.financialYear) : isCustomDates ? 'custom' : String(currentFY)}
             onChange={handleFYChange}
-            aria-label="Filter by Financial Year"
+            aria-label="Filter by Australian Financial Year"
             className="bg-transparent text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer pr-1"
           >
             {availableFYs.map((opt) => (

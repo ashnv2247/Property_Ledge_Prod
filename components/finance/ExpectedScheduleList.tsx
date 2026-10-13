@@ -38,6 +38,7 @@ import { LinkTransactionModal } from './LinkTransactionModal';
 import { MultiAllocationModal } from './MultiAllocationModal';
 import { EditScheduleModal } from './EditScheduleModal';
 import { cn } from '@/lib/utils';
+import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
 
 interface ExpectedScheduleListProps {
   initialSchedules?: ExpectedPaymentScheduleDTO[];
@@ -102,12 +103,35 @@ export function ExpectedScheduleList({ initialSchedules }: ExpectedScheduleListP
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
 
   const activePropertyId = selectedProperty?.propertyId ?? null;
-  const isInitialMount = React.useRef(true);
 
-  const [schedules, setSchedules] = useState<ExpectedPaymentScheduleDTO[]>(initialSchedules || []);
-  const [isLoading, setIsLoading] = useState(!initialSchedules);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(() => new Date());
+  const {
+    data: schedules = [],
+    isLoading,
+    isRefreshing,
+    lastRefreshedAt,
+    mutate: refreshSchedules,
+    setData: setSchedules,
+  } = usePersistentEntityQuery<ExpectedPaymentScheduleDTO[]>({
+    entity: 'schedules',
+    initialData: initialSchedules,
+    freshnessTier: 'normal',
+    fetcher: async ({ workspaceId, propertyId }) => {
+      const res = await fetchExpectedSchedulesAction({
+        workspace_id: workspaceId || undefined,
+        property_id: propertyId || undefined,
+        status: 'all',
+        schedule_type: 'all',
+      });
+      if (!res.success) {
+        throw new Error(res.error || 'Failed to load schedules');
+      }
+      return (res.data || []) as ExpectedPaymentScheduleDTO[];
+    },
+  });
+
+  const loadData = useCallback(async (_isManualRefresh = false) => {
+    await refreshSchedules();
+  }, [refreshSchedules]);
 
   // View & Filter States
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
@@ -137,54 +161,6 @@ export function ExpectedScheduleList({ initialSchedules }: ExpectedScheduleListP
     ],
     []
   );
-
-  const loadData = useCallback(async (isManualRefresh = false) => {
-    if (isManualRefresh) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
-    try {
-      const res = await fetchExpectedSchedulesAction({
-        workspace_id: activeWorkspaceId || undefined,
-        property_id: activePropertyId || undefined,
-        status: 'all',
-        schedule_type: 'all',
-      });
-      if (res.success && res.data) {
-        setSchedules(res.data);
-      } else {
-        toast({
-          title: isManualRefresh ? 'Unable to refresh schedules' : 'Error',
-          description: isManualRefresh ? 'Please try again.' : (res.error || 'Failed to load schedules'),
-          variant: 'destructive',
-        });
-      }
-      setLastRefreshedAt(new Date());
-    } catch (err: any) {
-      toast({
-        title: isManualRefresh ? 'Unable to refresh schedules' : 'Error',
-        description: isManualRefresh ? 'Please try again.' : (err?.message || 'Failed to load schedules'),
-        variant: 'destructive',
-      });
-    } finally {
-      if (isManualRefresh) {
-        setIsRefreshing(false);
-      } else {
-        setIsLoading(false);
-      }
-    }
-  }, [activeWorkspaceId, activePropertyId, toast]);
-
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      if (initialSchedules && (!activePropertyId || activePropertyId === '')) {
-        return;
-      }
-    }
-    loadData();
-  }, [loadData, activePropertyId, initialSchedules]);
 
   // Derived filter options
   const tenantOptions = useMemo(() => {
@@ -757,6 +733,7 @@ export function ExpectedScheduleList({ initialSchedules }: ExpectedScheduleListP
       {viewMode === 'table' ? (
         <ListPageGrid>
           <AdminDataGrid
+            gridId="expected-schedules-grid"
             rowData={filteredSchedules}
             columnDefs={columnDefs as any}
             loading={isLoading}
@@ -768,10 +745,7 @@ export function ExpectedScheduleList({ initialSchedules }: ExpectedScheduleListP
             enableSelection={true}
             bulkActions={bulkActions}
             onDeleteSelected={handleBulkDeleteSchedules}
-            onRowClick={(row) => {
-              setSelectedEntry(row);
-              setIsEditOpen(true);
-            }}
+            onRowClick={undefined}
             getRowId={(p) => p.data.id}
             enableColumnChooser
             enableExport

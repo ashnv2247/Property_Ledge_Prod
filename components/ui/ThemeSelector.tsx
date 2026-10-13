@@ -35,7 +35,8 @@ export function ThemeSelector({
 
     const syncTheme = () => {
       const stored = localStorage.getItem("propertyledge_theme") as ThemeMode;
-      if (stored) setThemeModeState(stored);
+      const attr = (document.documentElement.getAttribute("data-theme-mode") as ThemeMode) || "dark";
+      setThemeModeState(stored || attr);
     };
 
     window.addEventListener("theme-change", syncTheme);

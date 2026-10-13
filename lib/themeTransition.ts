@@ -20,12 +20,14 @@ export function isThemeTransitionActive(): boolean {
   return isTransitioning;
 }
 
-export function applyThemeMode(mode: ThemeMode) {
+export function applyThemeMode(mode: ThemeMode, persist: boolean = true) {
   if (typeof document === "undefined") return;
 
   // Set the data attribute on html element
   document.documentElement.setAttribute("data-theme-mode", mode);
-  localStorage.setItem("propertyledge_theme", mode);
+  if (persist) {
+    localStorage.setItem("propertyledge_theme", mode);
+  }
 
   // Determine if main content is dark (dark or full-dark)
   const isMainDark = mode === "dark" || mode === "full-dark";

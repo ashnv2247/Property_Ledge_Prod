@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
   X,
@@ -178,10 +178,17 @@ export function CreateInvoiceModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
+  const prevModalInvoiceIdRef = useRef<string | null>(null);
 
   // Load properties & leases on open
   useEffect(() => {
     if (isOpen) {
+      const currentInvoiceId = invoiceToEdit?.id || '__new__';
+      if (prevModalInvoiceIdRef.current === currentInvoiceId) {
+        return; // Guard active edits from being wiped by background refreshes
+      }
+      prevModalInvoiceIdRef.current = currentInvoiceId;
+
       setStep(isEditMode ? 2 : 0);
       setError(null);
       setActionSuccessMessage(null);
@@ -271,6 +278,8 @@ export function CreateInvoiceModal({
         setItems([{ description: 'Professional Property Management Services', quantity: 1, unitPrice: 450, taxRate: 10, discount: 0 }]);
         setSelectedTemplate(getPredefinedTemplateById(initialTemplateId || 'template_classic'));
       }
+    } else {
+      prevModalInvoiceIdRef.current = null;
     }
   }, [isOpen, invoiceToEdit, initialTemplateId, initialPropertyId]);
 

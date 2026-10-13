@@ -29,6 +29,9 @@ const AgGridReact = dynamic(
 ) as unknown as typeof import('ag-grid-react').AgGridReact;
 import { useCollapsibleWorkspaceOptional, useCollapsibleWorkspaceSnapshot } from '@/components/workspace/useCollapsibleDataWorkspace';
 import { useGridExpandedPreference } from '@/lib/hooks/useGridExpandedPreference';
+import { useGridStateStore, buildGridStateKey } from '@/lib/stores/useGridStateStore';
+import { useWorkspaceStore } from '@/lib/stores/useWorkspaceStore';
+import { usePropertyContextOptional } from '@/components/property/PropertyContext';
 import { cn } from '@/lib/utils';
 import type { AdminDataGridToolbarProps } from './AdminDataGridToolbar';
 
@@ -43,6 +46,7 @@ import { CodeCell } from './cells/CodeCell';
 import { ActionsCell } from './cells/ActionsCell';
 
 export interface AdminDataGridProps<TData = any> {
+  gridId?: string;
   rowData: TData[];
   columnDefs: ColDef[];
   loading?: boolean;
@@ -87,6 +91,7 @@ export interface AdminDataGridProps<TData = any> {
 }
 
 export function AdminDataGrid<TData = any>({
+  gridId,
   rowData,
   columnDefs,
   loading = false,
@@ -139,6 +144,18 @@ export function AdminDataGrid<TData = any>({
   const [isDeleting, setIsDeleting] = useState(false);
   const gridContainerRef = useRef<HTMLDivElement>(null);
   const viewportScrollRef = useRef(onViewportScroll);
+
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const propertyCtx = usePropertyContextOptional();
+  const activePropertyId = propertyCtx?.selectedProperty?.propertyId ?? null;
+
+  const rawGridId = gridId || exportFilename || labelSingular || 'admin-grid';
+  const effectiveGridStateKey = useMemo(
+    () => buildGridStateKey(rawGridId, activeWorkspaceId, activePropertyId),
+    [rawGridId, activeWorkspaceId, activePropertyId]
+  );
+  const saveGridState = useGridStateStore((s) => s.saveGridState);
+  const getGridState = useGridStateStore((s) => s.getGridState);
 
   const isExpanded = propIsExpanded !== undefined ? propIsExpanded : globalExpanded;
 
@@ -194,8 +211,9 @@ export function AdminDataGrid<TData = any>({
 
   const onBodyScroll = useCallback((event: BodyScrollEvent) => {
     if (event.direction !== 'vertical') return;
+    saveGridState(effectiveGridStateKey, { scrollTop: event.top });
     viewportScrollRef.current?.({ scrollTop: event.top, direction: 'vertical' });
-  }, []);
+  }, [effectiveGridStateKey, saveGridState]);
 
   // Register cell renderers mapping
   const components = useMemo(
@@ -226,6 +244,7 @@ export function AdminDataGrid<TData = any>({
   const handleSearchChange = useCallback(
     (query: string) => {
       setSearchValue(query);
+      saveGridState(effectiveGridStateKey, { quickFilter: query });
       if (searchDebounceRef.current) {
         clearTimeout(searchDebounceRef.current);
       }
@@ -236,7 +255,7 @@ export function AdminDataGrid<TData = any>({
         }
       }, 150);
     },
-    [gridApi, isServerSide]
+    [gridApi, isServerSide, effectiveGridStateKey, saveGridState]
   );
 
   // Clear all filters
@@ -245,12 +264,13 @@ export function AdminDataGrid<TData = any>({
       clearTimeout(searchDebounceRef.current);
     }
     setSearchValue('');
+    saveGridState(effectiveGridStateKey, { filterModel: null, quickFilter: '' });
     if (gridApi) {
       gridApi.setFilterModel(null);
       gridApi.setGridOption('quickFilterText', '');
       setIsFiltered(false);
     }
-  }, [gridApi]);
+  }, [gridApi, effectiveGridStateKey, saveGridState]);
 
   const syncPaginationFromGrid = useCallback(
     (api: GridApi) => {
@@ -263,22 +283,87 @@ export function AdminDataGrid<TData = any>({
     [isServerSide]
   );
 
-
   const onGridReady = useCallback(
     (params: GridReadyEvent) => {
       setGridApi(params.api);
+
+      // Restore saved grid configuration
+      const saved = getGridState(effectiveGridStateKey);
+      if (saved) {
+        if (saved.columnState && Array.isArray(saved.columnState) && saved.columnState.length > 0) {
+          try {
+            params.api.applyColumnState({ state: saved.columnState, applyOrder: true });
+          } catch {}
+        }
+        if (saved.filterModel) {
+          try {
+            params.api.setFilterModel(saved.filterModel);
+            setIsFiltered(true);
+          } catch {}
+        }
+        if (saved.quickFilter) {
+          setSearchValue(saved.quickFilter);
+          try {
+            params.api.setGridOption('quickFilterText', saved.quickFilter);
+            setIsFiltered(true);
+          } catch {}
+        }
+        if (saved.page && !isServerSide && saved.page > 1) {
+          setClientPage(saved.page);
+          try {
+            params.api.paginationGoToPage(saved.page - 1);
+          } catch {}
+        }
+        if (saved.pageSize && !isServerSide) {
+          setClientPageSize(saved.pageSize);
+          try {
+            params.api.setGridOption('paginationPageSize', saved.pageSize);
+          } catch {}
+        }
+        if (saved.scrollTop && gridContainerRef.current) {
+          requestAnimationFrame(() => {
+            const viewportEl = gridContainerRef.current?.querySelector('.ag-body-viewport');
+            if (viewportEl) {
+              viewportEl.scrollTop = saved.scrollTop!;
+            }
+          });
+        }
+      }
+
       requestAnimationFrame(() => {
         syncPaginationFromGrid(params.api);
       });
     },
-    [syncPaginationFromGrid]
+    [effectiveGridStateKey, getGridState, isServerSide, syncPaginationFromGrid]
   );
+
+  const onColumnChanged = useCallback(() => {
+    if (gridApi) {
+      try {
+        const colState = gridApi.getColumnState();
+        saveGridState(effectiveGridStateKey, { columnState: colState });
+      } catch {}
+    }
+  }, [gridApi, effectiveGridStateKey, saveGridState]);
+
+  const onSortChanged = useCallback(() => {
+    if (gridApi) {
+      try {
+        const colState = gridApi.getColumnState();
+        saveGridState(effectiveGridStateKey, { columnState: colState });
+      } catch {}
+    }
+  }, [gridApi, effectiveGridStateKey, saveGridState]);
 
   const onPaginationChanged = useCallback(() => {
     if (gridApi && !isServerSide) {
       syncPaginationFromGrid(gridApi);
+      saveGridState(effectiveGridStateKey, {
+        page: gridApi.paginationGetCurrentPage() + 1,
+        pageSize: gridApi.paginationGetPageSize(),
+      });
     }
-  }, [gridApi, isServerSide, syncPaginationFromGrid]);
+  }, [gridApi, isServerSide, syncPaginationFromGrid, effectiveGridStateKey, saveGridState]);
 
   const onSelectionChanged = useCallback(
     (event: SelectionChangedEvent) => {
@@ -294,9 +379,13 @@ export function AdminDataGrid<TData = any>({
     (event: FilterChangedEvent) => {
       if (gridApi) {
         setIsFiltered(Boolean(searchValue || gridApi.isAnyFilterPresent()));
+        try {
+          const fm = gridApi.getFilterModel();
+          saveGridState(effectiveGridStateKey, { filterModel: fm });
+        } catch {}
       }
     },
-    [gridApi, searchValue]
+    [gridApi, searchValue, effectiveGridStateKey, saveGridState]
   );
 
   const handleClearSelection = useCallback(() => {
@@ -338,7 +427,6 @@ export function AdminDataGrid<TData = any>({
     };
   }, [gridApi, isServerSide, syncPaginationFromGrid]);
 
-
   // Client-side pagination calculations
   const effectiveTotalItems = isServerSide ? totalItems || 0 : rowData?.length || 0;
   const effectivePageSize = isServerSide ? defaultPageSize : clientPageSize;
@@ -353,12 +441,13 @@ export function AdminDataGrid<TData = any>({
         onPageChange(page);
       } else {
         setClientPage(page);
+        saveGridState(effectiveGridStateKey, { page });
         if (gridApi) {
           gridApi.paginationGoToPage(page - 1);
         }
       }
     },
-    [isServerSide, onPageChange, gridApi]
+    [isServerSide, onPageChange, gridApi, effectiveGridStateKey, saveGridState]
   );
 
   const handlePageSizeChange = useCallback(
@@ -368,13 +457,14 @@ export function AdminDataGrid<TData = any>({
       } else {
         setClientPageSize(size);
         setClientPage(1);
+        saveGridState(effectiveGridStateKey, { pageSize: size, page: 1 });
         if (gridApi) {
           gridApi.setGridOption('paginationPageSize', size);
           gridApi.paginationGoToPage(0);
         }
       }
     },
-    [isServerSide, onPageSizeChange, gridApi]
+    [isServerSide, onPageSizeChange, gridApi, effectiveGridStateKey, saveGridState]
   );
 
   // Prepare column definitions with explicit selection column
@@ -459,6 +549,14 @@ export function AdminDataGrid<TData = any>({
     [enableSelection]
   );
 
+  const effectiveGetRowId = useMemo(() => {
+    if (getRowId) return getRowId;
+    return (params: { data: TData }) => {
+      const d = params.data as any;
+      return String(d?.id || d?._id || d?.uuid || d?.key || '');
+    };
+  }, [getRowId]);
+
   return (
     <div
       className={cn(
@@ -509,6 +607,11 @@ export function AdminDataGrid<TData = any>({
               onPaginationChanged={onPaginationChanged}
               onSelectionChanged={onSelectionChanged}
               onFilterChanged={onFilterChanged}
+              onSortChanged={onSortChanged}
+              onColumnResized={onColumnChanged}
+              onColumnMoved={onColumnChanged}
+              onColumnVisible={onColumnChanged}
+              onColumnPinned={onColumnChanged}
               onBodyScroll={onBodyScroll}
               onCellClicked={(params) => {
                 const colId = params.column?.getColId();
@@ -517,7 +620,7 @@ export function AdminDataGrid<TData = any>({
                   onRowClick(params.data);
                 }
               }}
-              getRowId={getRowId}
+              getRowId={effectiveGetRowId}
               rowSelection={rowSelectionConfig}
             />
           </div>

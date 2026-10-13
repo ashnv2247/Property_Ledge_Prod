@@ -34,6 +34,7 @@ import { HoverCardGrid, HoverEffectCardItem } from '@/components/ui/card-hover-e
 import { DiceBearIcon } from '@/components/ui/avatar';
 import { usePropertyContext } from '@/components/property/PropertyContext';
 import { useWorkspaceStore } from '@/lib/stores/useWorkspaceStore';
+import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
 import {
   TransactionDTO,
   CategoryDTO,
@@ -73,17 +74,41 @@ export function FinancialList({ initialData }: FinancialListProps = {}) {
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
 
   const activePropertyId = selectedProperty?.propertyId ?? null;
-  const isInitialMount = React.useRef(true);
 
-  // Data State
-  const [transactions, setTransactions] = useState<TransactionDTO[]>(initialData?.transactions || []);
-  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntryDTO[]>(initialData?.ledgerEntries || []);
-  const [summary, setSummary] = useState<FinancialSummaryDTO | null>(initialData?.summary || null);
-  const [categories, setCategories] = useState<CategoryDTO[]>(initialData?.categories || []);
+  const fetcher = useCallback(async () => {
+    return await fetchFinancialPageDataAction({
+      property_id: activePropertyId || undefined,
+    });
+  }, [activePropertyId]);
+
+  const {
+    data: pageData,
+    setData: setPageData,
+    isLoading,
+    isRefreshing,
+    lastRefreshedAt,
+    refresh: refreshFinancialData,
+  } = usePersistentEntityQuery<FinancialPageData>({
+    entity: 'finance',
+    workspaceId: activeWorkspaceId,
+    propertyId: activePropertyId,
+    initialData: initialData ?? null,
+    freshnessTier: 'live',
+    fetcher,
+    onError: (err) => {
+      toast({
+        title: 'Error Loading Transactions',
+        description: err?.message || 'Could not fetch transaction records.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const transactions = useMemo(() => pageData?.transactions || [], [pageData?.transactions]);
+  const ledgerEntries = useMemo(() => pageData?.ledgerEntries || [], [pageData?.ledgerEntries]);
+  const summary = pageData?.summary || null;
+  const categories = pageData?.categories || initialData?.categories || [];
   const [properties, setProperties] = useState<any[]>(availableProperties || []);
-  const [isLoading, setIsLoading] = useState(!initialData);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(() => new Date());
 
   // View & Filter States
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
@@ -112,73 +137,9 @@ export function FinancialList({ initialData }: FinancialListProps = {}) {
     }
   }, [availableProperties]);
 
-  const hasDataRef = useRef(Boolean(initialData && (initialData.transactions?.length || initialData.ledgerEntries?.length)));
-  const prevPropertyIdRef = useRef<string | null>(activePropertyId ?? null);
-  const prevWorkspaceIdRef = useRef<string | null>(activeWorkspaceId ?? null);
-
-  // Load Transactions & Overview Data in a single consolidated pass
-  const loadData = useCallback(async (isManualRefresh = false, overridePropId?: string | null) => {
-    if (isManualRefresh) {
-      setIsRefreshing(true);
-    } else if (!hasDataRef.current) {
-      setIsLoading(true);
-    }
-    try {
-      const propIdToUse = overridePropId !== undefined ? overridePropId : activePropertyId;
-      const filterParams = {
-        property_id: propIdToUse || undefined,
-      };
-
-      const pageData = await fetchFinancialPageDataAction(filterParams);
-
-      setTransactions(pageData.transactions || []);
-      setLedgerEntries(pageData.ledgerEntries || []);
-      setSummary(pageData.summary || null);
-      if (pageData.categories?.length > 0) {
-        setCategories(pageData.categories);
-      }
-      hasDataRef.current = true;
-      setLastRefreshedAt(new Date());
-    } catch (err: any) {
-      console.error('Failed to load transaction data:', err);
-      toast({
-        title: isManualRefresh ? 'Unable to refresh transactions' : 'Error Loading Transactions',
-        description: isManualRefresh ? 'Please try again.' : (err.message || 'Could not fetch transaction records.'),
-        variant: 'destructive',
-      });
-    } finally {
-      if (isManualRefresh) {
-        setIsRefreshing(false);
-      } else {
-        setIsLoading(false);
-      }
-    }
-  }, [activePropertyId, toast]);
-
-  useEffect(() => {
-    // Initial mount: if server provided data, skip duplicate fetch
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      prevPropertyIdRef.current = activePropertyId ?? null;
-      prevWorkspaceIdRef.current = activeWorkspaceId ?? null;
-      if (initialData) {
-        hasDataRef.current = true;
-        return;
-      }
-      loadData();
-      return;
-    }
-
-    // After mount: only refetch if the active property or workspace genuinely changed
-    const propChanged = activePropertyId !== prevPropertyIdRef.current;
-    const wsChanged = activeWorkspaceId !== prevWorkspaceIdRef.current;
-
-    if (propChanged || wsChanged) {
-      prevPropertyIdRef.current = activePropertyId;
-      prevWorkspaceIdRef.current = activeWorkspaceId;
-      loadData(false, activePropertyId);
-    }
-  }, [loadData, activePropertyId, activeWorkspaceId, initialData]);
+  const loadData = useCallback(async () => {
+    await refreshFinancialData();
+  }, [refreshFinancialData]);
 
   // Filter options for QuickFilterBar (modelled after tenant directory)
   const filterOptions = useMemo<QuickFilterOption[]>(
@@ -1022,10 +983,11 @@ export function FinancialList({ initialData }: FinancialListProps = {}) {
           /* Standard Transactions AG-Grid Table */
           <ListPageGrid>
             <AdminDataGrid
+              gridId="finance-transactions-grid"
               rowData={filteredTransactionsWithBalance}
               columnDefs={transactionColumns}
               loading={isLoading}
-              onRefresh={() => loadData(true)}
+              onRefresh={() => loadData()}
               isRefreshing={isRefreshing}
               lastRefreshedAt={lastRefreshedAt}
               labelSingular="transaction"

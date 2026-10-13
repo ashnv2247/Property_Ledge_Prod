@@ -175,8 +175,8 @@ export function CompactKpiCard({ label, value, hint, trend, href, icon: Icon, ac
   const inner = (
     <div
       className={cn(
-        'group relative rounded-xl border border-admin-border bg-admin-surface p-4 sm:p-5 transition-all duration-200 w-full h-full min-h-[118px] flex flex-col justify-between shadow-xs hover:shadow-md hover:border-admin-primary/40',
-        href && 'cursor-pointer',
+        'group relative rounded-xl border border-admin-border bg-admin-surface p-4 sm:p-5 transition-all duration-200 w-full h-full min-h-[118px] flex flex-col justify-between shadow-xs',
+        href && 'cursor-pointer hover:shadow-md hover:border-admin-primary/40',
         className
       )}
     >

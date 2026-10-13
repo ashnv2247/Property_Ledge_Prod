@@ -89,19 +89,24 @@ const HIERARCHICAL_NAV: NavItemConfig[] = [
     ],
   },
   {
+    id: 'documents',
+    label: 'Documents',
+    href: '/dashboard/documents',
+    icon: FolderSimple,
+  },
+  {
     id: 'tasks',
     label: 'Operations',
     icon: ClipboardText,
     children: [
-      { id: 'activity', label: 'Activities', href: '/dashboard/activity' },
-      { id: 'documents', label: 'Documents', href: '/dashboard/documents' },
+      { id: 'tasks', label: 'My Tasks', href: '/dashboard/tasks' },
+      { id: 'activity', label: 'Audit Activity', href: '/dashboard/activity' },
       { id: 'automations', label: 'Automations', href: '/dashboard/automations' },
-      { id: 'tasks', label: 'Tasks', href: '/dashboard/tasks' },
     ],
   },
   {
     id: 'reports',
-    label: 'Reports',
+    label: 'Financial Reports & AFY',
     href: '/dashboard/reports',
     icon: ChartBar,
   },
@@ -208,7 +213,7 @@ function DashboardShellInner({
     if (typeof document !== 'undefined') {
       const stored = localStorage.getItem('propertyledge_theme');
       if (!stored) {
-        applyThemeMode('light'); // 'light' is PropertyLedge's Mixed theme (dark sidebar + light workspace)
+        applyThemeMode('light', false); // 'light' is PropertyLedge's Mixed theme (dark sidebar + light workspace)
       }
     }
   }, []);

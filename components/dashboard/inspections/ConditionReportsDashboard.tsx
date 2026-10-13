@@ -43,6 +43,7 @@ import {
   deleteConditionReportAction,
 } from '@/app/actions/condition-reports';
 import { cn } from '@/lib/utils';
+import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
 import { PageLayout, PageContent } from '@/components/workspace';
 import { Button } from '@/components/admin/ui';
 
@@ -63,8 +64,25 @@ export function ConditionReportsDashboard({
   propertyFilterId,
 }: ConditionReportsDashboardProps) {
   const router = useRouter();
-  const [reports, setReports] = useState<ConditionReport[]>(initialReports);
-  const [isLoading, setIsLoading] = useState(initialReports.length === 0);
+
+  const {
+    data: reports = [],
+    isLoading,
+    isRefreshing,
+    lastRefreshedAt,
+    mutate: refreshReports,
+    setData: setReports,
+  } = usePersistentEntityQuery<ConditionReport[]>({
+    entity: 'condition_reports',
+    initialData: initialReports && initialReports.length > 0 ? initialReports : undefined,
+    freshnessTier: 'normal',
+    fetcher: async ({ propertyId }) => {
+      const res = await fetchConditionReportsAction(propertyFilterId || propertyId || undefined);
+      if (!res.success) throw new Error(res.error || 'Failed to load reports');
+      return (res.data || []) as ConditionReport[];
+    },
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Draft' | 'Completed'>('All');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -118,17 +136,11 @@ export function ConditionReportsDashboard({
 
   // Initial load
   useEffect(() => {
-    loadReports();
     loadModalData();
   }, [propertyFilterId]);
 
   const loadReports = async () => {
-    setIsLoading(true);
-    const res = await fetchConditionReportsAction(propertyFilterId);
-    if (res.success && res.data) {
-      setReports(res.data);
-    }
-    setIsLoading(false);
+    await refreshReports();
   };
 
   const loadModalData = async () => {
@@ -517,7 +529,16 @@ export function ConditionReportsDashboard({
                   )}
                 </div>
 
-                <div className="flex items-center shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  {isRefreshing && (
+                    <div
+                      data-testid="reports-refreshing-badge"
+                      className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-500 font-medium bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse"
+                    >
+                      <div className="w-3 h-3 border-2 border-[#008F83] border-t-transparent rounded-full animate-spin" />
+                      <span>Updating...</span>
+                    </div>
+                  )}
                   <select
                     value={sortOrder}
                     onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}

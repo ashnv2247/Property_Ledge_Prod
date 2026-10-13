@@ -217,12 +217,23 @@ export function AdminDataGridToolbar({
               </div>
             )}
 
-            {loading && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#008F83]/10 border border-[#008F83]/20 text-[#008F83] text-xs font-semibold shrink-0 animate-fade-in">
+            {isRefreshing ? (
+              <div
+                data-testid="grid-refreshing-badge"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#008F83]/10 dark:bg-[#008F83]/20 border border-[#008F83]/30 text-[#008F83] dark:text-[#32D5C4] text-xs font-semibold shrink-0 animate-fade-in"
+              >
+                <div className="w-3 h-3 border-2 border-[#008F83] dark:border-[#32D5C4] border-t-transparent rounded-full animate-spin shrink-0" />
+                <span>Refreshing...</span>
+              </div>
+            ) : loading ? (
+              <div
+                data-testid="grid-loading-badge"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#008F83]/10 border border-[#008F83]/20 text-[#008F83] text-xs font-semibold shrink-0 animate-fade-in"
+              >
                 <div className="w-3.5 h-3.5 border-2 border-[#008F83] border-t-transparent rounded-full animate-spin shrink-0" />
                 <span>Loading...</span>
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* Right: Dropdown Filters, Columns & Export (Modelled after reference mockup) */}

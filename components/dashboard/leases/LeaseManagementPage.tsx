@@ -31,6 +31,7 @@ import { usePropertyContext } from '@/components/property/PropertyContext';
 import { useEntityCacheStore } from '@/lib/stores/useEntityCacheStore';
 import { useWorkspaceStore } from '@/lib/stores/useWorkspaceStore';
 import { useGridExpandedPreference } from '@/lib/hooks/useGridExpandedPreference';
+import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
 import {
   fetchAllWorkspaceLeases,
   fetchDashboardProperties,
@@ -121,27 +122,48 @@ export function LeaseManagementPage({ initialLeases, initialProperties }: LeaseM
   const { success: showSuccess, error: showError } = useToast();
   const { selectedProperty, availableProperties } = usePropertyContext();
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
-  const cachedLeases = useEntityCacheStore((s) => s.leases);
-  const setCachedLeases = useEntityCacheStore((s) => s.setLeases);
-  const cachedProperties = useEntityCacheStore((s) => s.properties);
-  const setCachedProperties = useEntityCacheStore((s) => s.setProperties);
 
   const activePropertyId = selectedProperty?.propertyId ?? null;
-  const hasMatchingCache =
-    cachedLeases &&
-    cachedLeases.workspaceId === activeWorkspaceId &&
-    cachedLeases.propertyId === activePropertyId;
 
-  const [leases, setLeases] = useState<LeaseRecord[]>(() => {
-    if (initialLeases && initialLeases.length > 0) return initialLeases;
-    return hasMatchingCache ? (cachedLeases.data as LeaseRecord[]) : [];
+  const fetcher = useCallback(async () => {
+    const [leasesData, propertiesData] = await Promise.all([
+      fetchAllWorkspaceLeases(activePropertyId),
+      fetchDashboardProperties(),
+    ]);
+    return {
+      leases: leasesData as unknown as LeaseRecord[],
+      properties: propertiesData,
+    };
+  }, [activePropertyId]);
+
+  const {
+    data: leaseBundle,
+    setData: setLeaseBundle,
+    isLoading,
+    isRefreshing,
+    lastRefreshedAt,
+    refresh: refreshLeaseData,
+  } = usePersistentEntityQuery<{ leases: LeaseRecord[]; properties: any[] }>({
+    entity: 'leases',
+    workspaceId: activeWorkspaceId,
+    propertyId: activePropertyId,
+    initialData:
+      initialLeases && initialLeases.length > 0
+        ? {
+            leases: initialLeases,
+            properties: initialProperties || [],
+          }
+        : null,
+    freshnessTier: 'normal',
+    fetcher,
+    onError: (err) => {
+      showError('Failed to load leases', err?.message || 'Could not fetch lease agreements.');
+    },
   });
 
-  const [properties, setProperties] = useState<any[]>(() => {
-    if (initialProperties && initialProperties.length > 0) return initialProperties;
-    if (cachedProperties && cachedProperties.workspaceId === activeWorkspaceId) {
-      return cachedProperties.data;
-    }
+  const leases = useMemo(() => leaseBundle?.leases || [], [leaseBundle?.leases]);
+  const properties = useMemo(() => {
+    if (leaseBundle?.properties && leaseBundle.properties.length > 0) return leaseBundle.properties;
     if (availableProperties && availableProperties.length > 0) {
       return availableProperties.map((p) => ({
         id: p.propertyId,
@@ -151,12 +173,7 @@ export function LeaseManagementPage({ initialLeases, initialProperties }: LeaseM
       }));
     }
     return [];
-  });
-
-  const [isLoading, setIsLoading] = useState(() => !initialLeases && !hasMatchingCache);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(() => new Date());
-  const isInitialMount = useRef(true);
+  }, [leaseBundle?.properties, availableProperties]);
 
   // Status Filter Tabs: All, Active, Pending, Expired, Renewed
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Pending' | 'Expired' | 'Renewed'>('All');
@@ -187,76 +204,9 @@ export function LeaseManagementPage({ initialLeases, initialProperties }: LeaseM
   const [deletingPropertyId, setDeletingPropertyId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const hasDataRef = useRef(Boolean(initialLeases && initialLeases.length > 0));
-  const prevWorkspaceIdRef = useRef<string | null>(activeWorkspaceId ?? null);
-  const prevPropertyIdRef = useRef<string | null>(activePropertyId ?? null);
-
-  const loadData = useCallback(
-    async (isManualRefresh = false, overridePropId?: string | null) => {
-      if (isManualRefresh) {
-        setIsRefreshing(true);
-      } else if (!hasDataRef.current) {
-        setIsLoading(true);
-      }
-      try {
-        const propIdToUse = overridePropId !== undefined ? overridePropId : activePropertyId;
-        const [leasesData, propertiesData] = await Promise.all([
-          fetchAllWorkspaceLeases(propIdToUse),
-          fetchDashboardProperties(),
-        ]);
-        setLeases(leasesData as unknown as LeaseRecord[]);
-        setProperties(propertiesData);
-        hasDataRef.current = leasesData.length > 0;
-        setCachedLeases(leasesData, activeWorkspaceId, propIdToUse);
-        setCachedProperties(propertiesData, activeWorkspaceId);
-        setLastRefreshedAt(new Date());
-      } catch (err: any) {
-        console.error('Error loading leases directory:', err);
-        showError(
-          isManualRefresh ? 'Refresh failed' : 'Failed to load leases',
-          isManualRefresh
-            ? 'Unable to refresh leases. Please try again.'
-            : err.message || 'Could not fetch lease agreements.'
-        );
-      } finally {
-        if (isManualRefresh) {
-          setIsRefreshing(false);
-        } else {
-          setIsLoading(false);
-        }
-      }
-    },
-    [activePropertyId, activeWorkspaceId, setCachedLeases, setCachedProperties, showError]
-  );
-
-  useEffect(() => {
-    // Initial mount: if server provided data, cache it and skip duplicate fetch
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      prevWorkspaceIdRef.current = activeWorkspaceId ?? null;
-      prevPropertyIdRef.current = activePropertyId ?? null;
-      if (initialLeases && initialLeases.length > 0) {
-        setCachedLeases(initialLeases, activeWorkspaceId, activePropertyId);
-        if (initialProperties && initialProperties.length > 0) {
-          setCachedProperties(initialProperties, activeWorkspaceId);
-        }
-        hasDataRef.current = true;
-        return;
-      }
-      loadData();
-      return;
-    }
-
-    // After mount: only refetch if the active property or workspace genuinely changed
-    const propChanged = activePropertyId !== prevPropertyIdRef.current;
-    const wsChanged = activeWorkspaceId !== prevWorkspaceIdRef.current;
-
-    if (propChanged || wsChanged) {
-      prevPropertyIdRef.current = activePropertyId;
-      prevWorkspaceIdRef.current = activeWorkspaceId;
-      loadData(false, activePropertyId);
-    }
-  }, [activePropertyId, activeWorkspaceId, initialProperties, initialLeases, loadData, setCachedLeases, setCachedProperties]);
+  const loadData = useCallback(async (_isManualRefresh = false) => {
+    await refreshLeaseData();
+  }, [refreshLeaseData]);
 
   // Escape key exits table expanded mode
   useEffect(() => {
@@ -398,11 +348,11 @@ export function LeaseManagementPage({ initialLeases, initialProperties }: LeaseM
     () =>
       getLeaseTableColumns({
         onEditLease: handleEditLease,
-        onViewLease: handleEditLease,
+        onViewLease: (lease) => router.push(`/dashboard/leases/${lease.id}`),
         onRenewLease: handleRenewLease,
         onConvertToPeriodic: handleConvertToPeriodicLease,
       }),
-    []
+    [router]
   );
 
   const statusTabs: Array<{ key: 'All' | 'Active' | 'Pending' | 'Expired' | 'Renewed'; label: string; count: number }> = [
@@ -529,16 +479,17 @@ export function LeaseManagementPage({ initialLeases, initialProperties }: LeaseM
               >
                 <div className="flex-1 flex flex-col min-h-0 h-full">
                   <AdminDataGrid
+                    gridId="leases-grid"
                     rowData={filteredRows}
                     columnDefs={columns}
                     loading={isLoading}
                     rowHeight={68}
-                    onRefresh={() => loadData(true)}
+                    onRefresh={() => loadData()}
                     isRefreshing={isRefreshing}
                     lastRefreshedAt={lastRefreshedAt}
                     labelSingular="lease"
                     labelPlural="leases"
-                    onRowClick={(row: any) => handleEditLease(row)}
+                    onRowClick={(row: any) => router.push(`/dashboard/leases/${row.id}`)}
                     getRowId={(params: any) => String(params.data.id)}
                     enableColumnChooser
                     enableExport
@@ -630,7 +581,11 @@ export function LeaseManagementPage({ initialLeases, initialProperties }: LeaseM
                   : 'No tenant assigned';
 
                 return (
-                  <HoverEffectCardItem key={lease.id} className="group/card">
+                  <HoverEffectCardItem
+                    key={lease.id}
+                    onClick={() => router.push(`/dashboard/leases/${lease.id}`)}
+                    className="group/card cursor-pointer"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200/60 dark:border-purple-500/20">

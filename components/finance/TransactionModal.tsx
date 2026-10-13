@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -130,9 +130,17 @@ export function TransactionModal({
     };
   }, [isOpen]);
 
+  const prevModalTxIdRef = useRef<string | null>(null);
+
   // Populate on Edit / Open
   useEffect(() => {
     if (isOpen) {
+      const currentTxId = transactionToEdit?.id || '__new__';
+      if (prevModalTxIdRef.current === currentTxId) {
+        return; // Guard active form edits from being wiped by background refreshes
+      }
+      prevModalTxIdRef.current = currentTxId;
+
       if (transactionToEdit) {
         setTransactionType(transactionToEdit.transaction_type);
         setAmount(String(transactionToEdit.amount));
@@ -189,6 +197,8 @@ export function TransactionModal({
         setSelectedReceiptFile(null);
       }
       setFormErrors({});
+    } else {
+      prevModalTxIdRef.current = null;
     }
   }, [transactionToEdit, defaultType, defaultPropertyId, isOpen]);
 

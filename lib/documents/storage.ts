@@ -97,18 +97,15 @@ export async function uploadDocumentToBlob({
   const fileSize = file.size;
 
   if (!token) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[DOCUMENTS_STORAGE] CRITICAL: BLOB_READ_WRITE_TOKEN is missing in production environment.');
+      throw new Error('Document storage service is not configured. Please ensure BLOB_READ_WRITE_TOKEN is set in environment variables.');
+    }
+
     console.warn(
-      '[DOCUMENTS_STORAGE] BLOB_READ_WRITE_TOKEN is not configured. Running in local fallback mode.'
+      '[DOCUMENTS_STORAGE] BLOB_READ_WRITE_TOKEN is not configured. Real persistent document storage requires BLOB_READ_WRITE_TOKEN.'
     );
-    const mockUrl = `https://mock-blob.vercel-storage.com/${blobPath}`;
-    return {
-      url: mockUrl,
-      blobPath,
-      fileName: sanitizedName,
-      fileSize,
-      mimeType: effectiveMime,
-      uploadedAt: new Date().toISOString(),
-    };
+    throw new Error('Vercel Blob storage is not configured. Please set BLOB_READ_WRITE_TOKEN to upload documents.');
   }
 
   try {

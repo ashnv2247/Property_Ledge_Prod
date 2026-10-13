@@ -244,3 +244,8 @@ export function usePropertyContext() {
   }
   return context;
 }
+
+export function usePropertyContextOptional() {
+  return useContext(PropertyContext);
+}
+
