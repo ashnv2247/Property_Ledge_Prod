@@ -37,6 +37,7 @@ import { GstReportTab } from '@/components/reports/GstReportTab';
 import { TaxClassificationTab } from '@/components/reports/TaxClassificationTab';
 import { PropertyPerformanceTab } from '@/components/reports/PropertyPerformanceTab';
 import { TransactionDetailTab } from '@/components/reports/TransactionDetailTab';
+import { FinancialReportsNavTabs } from '@/components/finance/reports-nav/FinancialReportsNavTabs';
 import { cn } from '@/lib/utils';
 
 interface ReportsHubViewProps {
@@ -154,6 +155,9 @@ export function ReportsHubView({
           <span className="text-slate-400">/</span>
           <span className="text-slate-800 dark:text-slate-200">Reports</span>
         </div>
+
+        {/* Section Switcher Tabs: Financial Reports | Financial Years | Accountant Reports */}
+        <FinancialReportsNavTabs activeSection="reports" />
 
         {/* Page Header Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-1">

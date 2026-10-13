@@ -14,9 +14,11 @@ import {
   ChevronRight,
   Receipt,
   FileText,
+  ChevronDown,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/admin/ui';
 import { Button } from '@/components/admin/ui/Button';
+import { useCollapsibleWidget } from '@/lib/stores/useWidgetPreferencesStore';
 import { usePropertyContext } from '@/components/property/PropertyContext';
 import { useAppContext } from '@/components/context/AppContextProvider';
 import { formatCurrency } from '@/lib/format/currency';
@@ -91,6 +93,9 @@ export function OwnerDashboard({
   const latestRequestIdRef = useRef(0);
   const isInitialMount = useRef(true);
   const [leaseWizardOpen, setLeaseWizardOpen] = useState(false);
+
+  const { isCollapsed: isAttentionCollapsed, toggle: toggleAttention } = useCollapsibleWidget('dashboard-needs-attention');
+  const { isCollapsed: isMilestonesCollapsed, toggle: toggleMilestones } = useCollapsibleWidget('dashboard-upcoming-milestones');
 
   const showSetup = setupProgress && !setupProgress.allComplete;
 
@@ -313,48 +318,71 @@ export function OwnerDashboard({
                         Needs attention
                       </h3>
                     </div>
-                    {attentionItems.length > 0 && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                        {attentionItems.length} pending
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {attentionItems.length > 0 && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                          {attentionItems.length} pending
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        data-testid="collapse-btn-dashboard-needs-attention"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleAttention();
+                        }}
+                        aria-expanded={!isAttentionCollapsed}
+                        aria-label={isAttentionCollapsed ? 'Expand Needs Attention' : 'Collapse Needs Attention'}
+                        title={isAttentionCollapsed ? 'Expand Needs Attention' : 'Collapse Needs Attention'}
+                        className="p-1 rounded-lg border border-slate-200/80 dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all cursor-pointer focus:outline-hidden"
+                      >
+                        <ChevronDown
+                          className={cn(
+                            'w-3.5 h-3.5 transition-transform duration-200',
+                            isAttentionCollapsed ? '-rotate-90 text-slate-400' : 'rotate-0 text-slate-600 dark:text-slate-300'
+                          )}
+                        />
+                      </button>
+                    </div>
                   </div>
 
-                  {attentionItems.length === 0 ? (
-                    <div className="py-6 text-center space-y-1.5">
-                      <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
-                        <CheckCircle2 className="w-4 h-4" />
+                  <div style={{ display: isAttentionCollapsed ? 'none' : 'block' }}>
+                    {attentionItems.length === 0 ? (
+                      <div className="py-6 text-center space-y-1.5">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </div>
+                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">All caught up</p>
+                        <p className="text-[11px] text-slate-400 dark:text-[#7F8B99]">No overdue invoices, open maintenance, or expiring items.</p>
                       </div>
-                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">All caught up</p>
-                      <p className="text-[11px] text-slate-400 dark:text-[#7F8B99]">No overdue invoices, open maintenance, or expiring items.</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-slate-100 dark:divide-white/[0.04] mt-1">
-                      {attentionItems.map((item) => (
-                        <div key={item.id} className="py-3 flex items-center justify-between gap-3 group">
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-[#008F83] dark:group-hover:text-[#32D5C4] transition-colors truncate">
-                              {item.label}
-                            </p>
-                            {item.sublabel && (
-                              <p className="text-[11px] text-slate-400 dark:text-[#7F8B99] truncate mt-0.5">
-                                {item.sublabel}
+                    ) : (
+                      <div className="divide-y divide-slate-100 dark:divide-white/[0.04] mt-1">
+                        {attentionItems.map((item) => (
+                          <div key={item.id} className="py-3 flex items-center justify-between gap-3 group">
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-[#008F83] dark:group-hover:text-[#32D5C4] transition-colors truncate">
+                                {item.label}
                               </p>
+                              {item.sublabel && (
+                                <p className="text-[11px] text-slate-400 dark:text-[#7F8B99] truncate mt-0.5">
+                                  {item.sublabel}
+                                </p>
+                              )}
+                            </div>
+                            {item.href && (
+                              <Link
+                                href={item.href}
+                                className="text-xs font-semibold text-[#008F83] dark:text-[#32D5C4] hover:underline shrink-0 inline-flex items-center gap-1"
+                              >
+                                <span>Resolve</span>
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </Link>
                             )}
                           </div>
-                          {item.href && (
-                            <Link
-                              href={item.href}
-                              className="text-xs font-semibold text-[#008F83] dark:text-[#32D5C4] hover:underline shrink-0 inline-flex items-center gap-1"
-                            >
-                              <span>Resolve</span>
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </Link>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Upcoming Milestones (5 cols) */}
@@ -367,34 +395,57 @@ export function OwnerDashboard({
                           Upcoming milestones
                         </h3>
                       </div>
-                      <span className="text-[11px] font-semibold text-slate-400 dark:text-[#7F8B99]">
-                        {upcomingItems.length} items
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-semibold text-slate-400 dark:text-[#7F8B99]">
+                          {upcomingItems.length} items
+                        </span>
+                        <button
+                          type="button"
+                          data-testid="collapse-btn-dashboard-upcoming-milestones"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleMilestones();
+                          }}
+                          aria-expanded={!isMilestonesCollapsed}
+                          aria-label={isMilestonesCollapsed ? 'Expand Upcoming Milestones' : 'Collapse Upcoming Milestones'}
+                          title={isMilestonesCollapsed ? 'Expand Upcoming Milestones' : 'Collapse Upcoming Milestones'}
+                          className="p-1 rounded-lg border border-slate-200/80 dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all cursor-pointer focus:outline-hidden"
+                        >
+                          <ChevronDown
+                            className={cn(
+                              'w-3.5 h-3.5 transition-transform duration-200',
+                              isMilestonesCollapsed ? '-rotate-90 text-slate-400' : 'rotate-0 text-slate-600 dark:text-slate-300'
+                            )}
+                          />
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="divide-y divide-slate-100 dark:divide-white/[0.04] mt-1">
-                      {upcomingItems.slice(0, 4).map((item) => (
-                        <div key={item.id} className="py-2.5 flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                              {item.label}
-                            </p>
-                            {item.sublabel && (
-                              <p className="text-[10.5px] text-slate-400 dark:text-[#7F8B99] truncate">
-                                {item.sublabel}
+                    <div style={{ display: isMilestonesCollapsed ? 'none' : 'block' }}>
+                      <div className="divide-y divide-slate-100 dark:divide-white/[0.04] mt-1">
+                        {upcomingItems.slice(0, 4).map((item) => (
+                          <div key={item.id} className="py-2.5 flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                                {item.label}
                               </p>
+                              {item.sublabel && (
+                                <p className="text-[10.5px] text-slate-400 dark:text-[#7F8B99] truncate">
+                                  {item.sublabel}
+                                </p>
+                              )}
+                            </div>
+                            {item.href && (
+                              <Link
+                                href={item.href}
+                                className="text-[11px] font-semibold text-[#008F83] dark:text-[#32D5C4] hover:underline shrink-0"
+                              >
+                                View →
+                              </Link>
                             )}
                           </div>
-                          {item.href && (
-                            <Link
-                              href={item.href}
-                              className="text-[11px] font-semibold text-[#008F83] dark:text-[#32D5C4] hover:underline shrink-0"
-                            >
-                              View →
-                            </Link>
-                          )}
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}

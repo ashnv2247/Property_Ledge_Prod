@@ -89,12 +89,6 @@ const HIERARCHICAL_NAV: NavItemConfig[] = [
     ],
   },
   {
-    id: 'documents',
-    label: 'Documents',
-    href: '/dashboard/documents',
-    icon: FolderSimple,
-  },
-  {
     id: 'tasks',
     label: 'Operations',
     icon: ClipboardText,
@@ -106,9 +100,19 @@ const HIERARCHICAL_NAV: NavItemConfig[] = [
   },
   {
     id: 'reports',
-    label: 'Financial Reports & AFY',
-    href: '/dashboard/reports',
+    label: 'Reports',
     icon: ChartBar,
+    children: [
+      { id: 'reports', label: 'Financial Report', href: '/dashboard/reports', exact: true },
+      { id: 'financial-years', label: 'Financial Years', href: '/dashboard/financial-years' },
+      { id: 'accountant-reports', label: 'Accountant Report', href: '/dashboard/accountant-reports' },
+    ],
+  },
+  {
+    id: 'documents',
+    label: 'Documents',
+    href: '/dashboard/documents',
+    icon: FolderSimple,
   },
 ];
 

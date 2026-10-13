@@ -15,6 +15,7 @@ import {
   FinancialYearRange,
 } from '@/lib/finance/financial-year';
 import { formatCurrencyReport } from '@/lib/pdf/report-engine';
+import { parseAccountantReviewFromNotes } from '@/lib/finance/accountant-review-service';
 
 /**
  * Resolves date range for the accountant report based on filters (FY, BAS quarter, or custom dates).
@@ -248,6 +249,7 @@ export async function getAccountantExpenseReportData(
 
     const hasEvidence = attachments.length > 0;
     const isReconciled = tx.status === 'completed' || tx.status === 'paid';
+    const { review, userNotes } = parseAccountantReviewFromNotes(tx.notes);
 
     return {
       id: tx.id,
@@ -278,6 +280,11 @@ export async function getAccountantExpenseReportData(
       attachments,
       hasEvidence,
       notes: tx.notes || null,
+      reviewStatus: review.status,
+      accountantNotes: review.notes,
+      reviewedBy: review.reviewedBy,
+      reviewedAt: review.reviewedAt,
+      userNotes,
     };
   });
 
@@ -351,6 +358,11 @@ export async function getAccountantExpenseReportData(
   const reconciledCount = normalizedExpenses.filter((e) => e.isReconciled).length;
   const unreconciledCount = totalExpenseCount - reconciledCount;
 
+  const verifiedCount = normalizedExpenses.filter((e) => e.reviewStatus === 'verified').length;
+  const needsReviewCount = normalizedExpenses.filter((e) => e.reviewStatus === 'needs_review').length;
+  const disputedCount = normalizedExpenses.filter((e) => e.reviewStatus === 'disputed').length;
+  const unreviewedCount = totalExpenseCount - (verifiedCount + needsReviewCount + disputedCount);
+
   const isFullyReconciled = reconciliationErrors.length === 0;
 
   const summary: AccountantReportSummary = {
@@ -363,6 +375,10 @@ export async function getAccountantExpenseReportData(
     missingEvidenceCount,
     reconciledCount,
     unreconciledCount,
+    verifiedCount,
+    needsReviewCount,
+    disputedCount,
+    unreviewedCount,
     isFullyReconciled,
     reconciliationErrors,
   };
@@ -382,5 +398,6 @@ export async function getAccountantExpenseReportData(
     },
     summary,
     categories,
+    expenses: normalizedExpenses,
   };
 }

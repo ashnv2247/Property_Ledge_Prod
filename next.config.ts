@@ -43,6 +43,14 @@ const nextConfig: NextConfig = {
       { source: '/expenses/:path*', destination: '/dashboard/expenses/:path*', permanent: false },
       { source: '/settings', destination: '/dashboard/settings', permanent: false },
       { source: '/team', destination: '/dashboard/team', permanent: false },
+      { source: '/finance/financial-years', destination: '/dashboard/financial-years', permanent: false },
+      { source: '/finance/financial-years/:path*', destination: '/dashboard/financial-years/:path*', permanent: false },
+      { source: '/finance/accountant-reports', destination: '/dashboard/accountant-reports', permanent: false },
+      { source: '/finance/accountant-reports/:path*', destination: '/dashboard/accountant-reports/:path*', permanent: false },
+      { source: '/dashboard/finance/financial-years', destination: '/dashboard/financial-years', permanent: false },
+      { source: '/dashboard/finance/financial-years/:path*', destination: '/dashboard/financial-years/:path*', permanent: false },
+      { source: '/dashboard/finance/accountant-reports', destination: '/dashboard/accountant-reports', permanent: false },
+      { source: '/dashboard/finance/accountant-reports/:path*', destination: '/dashboard/accountant-reports/:path*', permanent: false },
     ];
   },
 };

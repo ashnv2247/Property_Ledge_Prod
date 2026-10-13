@@ -7,9 +7,11 @@ import {
   TrendingDown,
   ArrowUpRight,
   Minus,
+  ChevronDown,
 } from 'lucide-react';
 import { formatCurrencyNoDecimals } from '@/lib/format/currency';
 import type { MonthlyBreakdownItem } from '@/lib/dashboard/queries';
+import { useCollapsibleWidget } from '@/lib/stores/useWidgetPreferencesStore';
 import { cn } from '@/lib/utils';
 
 type TimeRange = '3M' | '6M' | '12M' | 'FY';
@@ -37,6 +39,9 @@ export function CashFlowAnalytics({
   const [timeRange, setTimeRange] = useState<TimeRange>('6M');
   const [chartMode, setChartMode] = useState<ChartMode>('bars');
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+  const { isCollapsed: isChartCollapsed, toggle: toggleChart } = useCollapsibleWidget('dashboard-cashflow-chart');
+  const { isCollapsed: isSummaryCollapsed, toggle: toggleSummary } = useCollapsibleWidget('dashboard-cashflow-summary');
 
   // Filter breakdown data based on time range
   const filteredData = useMemo(() => {
@@ -138,11 +143,33 @@ export function CashFlowAnalytics({
                   </button>
                 ))}
               </div>
+
+              {/* Collapse / Expand Toggle */}
+              <button
+                type="button"
+                data-testid="collapse-btn-dashboard-cashflow-chart"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleChart();
+                }}
+                aria-expanded={!isChartCollapsed}
+                aria-label={isChartCollapsed ? 'Expand Cash Flow' : 'Collapse Cash Flow'}
+                title={isChartCollapsed ? 'Expand Cash Flow' : 'Collapse Cash Flow'}
+                className="p-1.5 rounded-xl border border-slate-200/80 dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all cursor-pointer focus:outline-hidden"
+              >
+                <ChevronDown
+                  className={cn(
+                    'w-4 h-4 transition-transform duration-200',
+                    isChartCollapsed ? '-rotate-90 text-slate-400' : 'rotate-0 text-slate-600 dark:text-slate-300'
+                  )}
+                />
+              </button>
             </div>
           </div>
 
-          {/* Active Hover / Metric Callout */}
-          <div className="h-6 flex items-center justify-between text-xs mt-1">
+          <div style={{ display: isChartCollapsed ? 'none' : 'block' }}>
+            {/* Active Hover / Metric Callout */}
+            <div className="h-6 flex items-center justify-between text-xs mt-1">
             {activeHoverItem ? (
               <div className="flex items-center gap-3">
                 <span className="font-bold text-slate-900 dark:text-white">
@@ -297,6 +324,7 @@ export function CashFlowAnalytics({
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
+        </div>
       </div>
 
       {/* RIGHT (4 COLS / ~32%): Financial Summary (Single Surface, No Card-in-Card) */}
@@ -306,97 +334,120 @@ export function CashFlowAnalytics({
             <h3 className="text-xl font-heading font-bold text-slate-900 dark:text-white tracking-tight">
               Financial summary
             </h3>
-            <span className="text-[11px] font-bold text-slate-400 dark:text-[#7F8B99]">
-              AUD
-            </span>
-          </div>
-
-          {/* Primary Net Cash Flow Metric */}
-          <div className="mt-5">
-            <p className="font-heading text-3xl sm:text-4xl font-bold tabular-nums tracking-tight text-slate-900 dark:text-white">
-              {formatCurrencyNoDecimals(netCashFlow)}
-            </p>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500 dark:text-[#7F8B99]">
-                Net cash flow
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-400 dark:text-[#7F8B99]">
+                AUD
               </span>
-              <span
-                className={cn(
-                  'inline-flex items-center gap-0.5 px-2 py-0.2 rounded-full text-[10.5px] font-bold',
-                  isNetPositive
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                )}
+              <button
+                type="button"
+                data-testid="collapse-btn-dashboard-cashflow-summary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSummary();
+                }}
+                aria-expanded={!isSummaryCollapsed}
+                aria-label={isSummaryCollapsed ? 'Expand Financial Summary' : 'Collapse Financial Summary'}
+                title={isSummaryCollapsed ? 'Expand Financial Summary' : 'Collapse Financial Summary'}
+                className="p-1.5 rounded-xl border border-slate-200/80 dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all cursor-pointer focus:outline-hidden"
               >
-                {isNetPositive ? 'Surplus' : 'Deficit'}
-              </span>
-            </div>
-          </div>
-
-          {/* Income & Expenses Breakdown */}
-          <div className="mt-7 space-y-4">
-            {/* Income */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 dark:text-[#94A3B8] font-medium">Income</span>
-                <span className="font-bold text-slate-900 dark:text-white tabular-nums">
-                  {formatCurrencyNoDecimals(totalRevenue)}
-                </span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#0E1E33] overflow-hidden">
-                <div
-                  style={{ width: `${incomeShare}%` }}
-                  className="h-full rounded-full bg-[#008F83] dark:bg-[#32D5C4] transition-all duration-500"
+                <ChevronDown
+                  className={cn(
+                    'w-4 h-4 transition-transform duration-200',
+                    isSummaryCollapsed ? '-rotate-90 text-slate-400' : 'rotate-0 text-slate-600 dark:text-slate-300'
+                  )}
                 />
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: isSummaryCollapsed ? 'none' : 'block' }}>
+            {/* Primary Net Cash Flow Metric */}
+            <div className="mt-5">
+              <p className="font-heading text-3xl sm:text-4xl font-bold tabular-nums tracking-tight text-slate-900 dark:text-white">
+                {formatCurrencyNoDecimals(netCashFlow)}
+              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500 dark:text-[#7F8B99]">
+                  Net cash flow
+                </span>
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-0.5 px-2 py-0.2 rounded-full text-[10.5px] font-bold',
+                    isNetPositive
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                  )}
+                >
+                  {isNetPositive ? 'Surplus' : 'Deficit'}
+                </span>
               </div>
             </div>
 
-            {/* Expenses */}
-            <div className="space-y-1.5">
+            {/* Income & Expenses Breakdown */}
+            <div className="mt-7 space-y-4">
+              {/* Income */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-600 dark:text-[#94A3B8] font-medium">Income</span>
+                  <span className="font-bold text-slate-900 dark:text-white tabular-nums">
+                    {formatCurrencyNoDecimals(totalRevenue)}
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#0E1E33] overflow-hidden">
+                  <div
+                    style={{ width: `${incomeShare}%` }}
+                    className="h-full rounded-full bg-[#008F83] dark:bg-[#32D5C4] transition-all duration-500"
+                  />
+                </div>
+              </div>
+
+              {/* Expenses */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-600 dark:text-[#94A3B8] font-medium">Expenses</span>
+                  <span className="font-bold text-slate-900 dark:text-white tabular-nums">
+                    {formatCurrencyNoDecimals(totalExpenses)}
+                  </span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#0E1E33] overflow-hidden">
+                  <div
+                    style={{ width: `${expenseShare}%` }}
+                    className="h-full rounded-full bg-rose-500 transition-all duration-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Collection Rate Efficiency */}
+            <div className="mt-6 pt-5 border-t border-border-subtle space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 dark:text-[#94A3B8] font-medium">Expenses</span>
+                <span className="text-slate-500 dark:text-[#7F8B99]">Collection rate</span>
                 <span className="font-bold text-slate-900 dark:text-white tabular-nums">
-                  {formatCurrencyNoDecimals(totalExpenses)}
+                  {collectionRate}%
                 </span>
               </div>
-              <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#0E1E33] overflow-hidden">
-                <div
-                  style={{ width: `${expenseShare}%` }}
-                  className="h-full rounded-full bg-rose-500 transition-all duration-500"
-                />
-              </div>
-            </div>
-          </div>
 
-          {/* Collection Rate Efficiency */}
-          <div className="mt-6 pt-5 border-t border-border-subtle space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500 dark:text-[#7F8B99]">Collection rate</span>
-              <span className="font-bold text-slate-900 dark:text-white tabular-nums">
-                {collectionRate}%
-              </span>
+              {outstandingBalance > 0 && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-amber-600 dark:text-amber-400">Outstanding invoices</span>
+                  <span className="font-bold text-amber-600 dark:text-amber-400 tabular-nums">
+                    {formatCurrencyNoDecimals(outstandingBalance)}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {outstandingBalance > 0 && (
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-amber-600 dark:text-amber-400">Outstanding invoices</span>
-                <span className="font-bold text-amber-600 dark:text-amber-400 tabular-nums">
-                  {formatCurrencyNoDecimals(outstandingBalance)}
-                </span>
-              </div>
-            )}
+            {/* Action Link */}
+            <div className="mt-6 pt-4 border-t border-border-subtle">
+              <Link
+                href="/dashboard/money"
+                className="text-xs font-semibold text-[#008F83] dark:text-[#32D5C4] hover:underline inline-flex items-center gap-1"
+              >
+                <span>View ledger</span>
+                <span>→</span>
+              </Link>
+            </div>
           </div>
-        </div>
-
-        {/* Action Link */}
-        <div className="mt-6 pt-4 border-t border-border-subtle">
-          <Link
-            href="/dashboard/money"
-            className="text-xs font-semibold text-[#008F83] dark:text-[#32D5C4] hover:underline inline-flex items-center gap-1"
-          >
-            <span>View ledger</span>
-            <span>→</span>
-          </Link>
         </div>
       </div>
     </div>

@@ -4,8 +4,11 @@ import { fetchReportDataAction, fetchReportFilterOptionsAction } from '@/app/act
 import { FinanceReportType, FinanceReportFilters } from '@/modules/finance/domain/reporting-types';
 import { getCurrentFinancialYear } from '@/lib/finance/financial-year';
 
+import FinancialYearsPage from '@/app/(app)/dashboard/financial-years/page';
+import AccountantReportsPage from '@/app/(app)/dashboard/accountant-reports/page';
+
 export const metadata = {
-  title: 'Financial Reports & Insights | PropertyLedge',
+  title: 'Reports | PropertyLedge',
   description: 'Australian Financial Year (AFY) reporting, cash flow analysis, GST/BAS tracking, rent reconciliation, and tax classification for property investors.',
 };
 
@@ -13,6 +16,7 @@ export default async function ReportsPage({
   searchParams,
 }: {
   searchParams: Promise<{
+    section?: string;
     tab?: string;
     fy?: string;
     propertyId?: string;
@@ -24,6 +28,20 @@ export default async function ReportsPage({
   }>;
 }) {
   const params = await searchParams;
+  const section = params?.section;
+
+  if (section === 'financial-years') {
+    return <FinancialYearsPage searchParams={Promise.resolve({ propertyId: params?.propertyId })} />;
+  }
+
+  if (section === 'accountant-reports') {
+    return (
+      <AccountantReportsPage
+        searchParams={Promise.resolve({ fy: params?.fy, propertyId: params?.propertyId })}
+      />
+    );
+  }
+
   const activeTab = (params?.tab || 'overview') as FinanceReportType;
   const currentFY = getCurrentFinancialYear();
 
@@ -57,7 +75,7 @@ export default async function ReportsPage({
   }
 
   return (
-    <Suspense fallback={<div className="p-8 text-center text-slate-500">Loading Financial Reports...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-slate-500">Loading Reports...</div>}>
       <ReportsHubView
         initialReportType={activeTab}
         initialFilters={initialFilters}

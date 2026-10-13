@@ -7,10 +7,12 @@ import {
   ArrowUpRight,
   ChevronRight,
   CheckCircle2,
+  ChevronDown,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { formatCurrencyNoDecimals } from '@/lib/format/currency';
 import type { UserPropertyAccess } from '@/lib/properties/queries';
+import { useCollapsibleWidget } from '@/lib/stores/useWidgetPreferencesStore';
 import { cn } from '@/lib/utils';
 
 const PortfolioPatternPieChart = dynamic(
@@ -89,6 +91,8 @@ export function PortfolioPerformanceSection({
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (occupancyRate / 100) * circumference;
 
+  const { isCollapsed: isPropsCollapsed, toggle: toggleProps } = useCollapsibleWidget('dashboard-portfolio-performance');
+
   return (
     <div className={cn('grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-stretch', className)}>
       {/* LEFT (8 COLS / ~68%): Editorial Property Performance List */}
@@ -104,17 +108,39 @@ export function PortfolioPerformanceSection({
               </p>
             </div>
 
-            <Link
-              href="/dashboard/properties"
-              className="text-xs font-semibold text-[#008F83] dark:text-[#32D5C4] hover:underline inline-flex items-center gap-1"
-            >
-              <span>View all</span>
-              <span>→</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/dashboard/properties"
+                className="text-xs font-semibold text-[#008F83] dark:text-[#32D5C4] hover:underline inline-flex items-center gap-1"
+              >
+                <span>View all</span>
+                <span>→</span>
+              </Link>
+              <button
+                type="button"
+                data-testid="collapse-btn-dashboard-portfolio-performance"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleProps();
+                }}
+                aria-expanded={!isPropsCollapsed}
+                aria-label={isPropsCollapsed ? 'Expand Properties' : 'Collapse Properties'}
+                title={isPropsCollapsed ? 'Expand Properties' : 'Collapse Properties'}
+                className="p-1.5 rounded-xl border border-slate-200/80 dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all cursor-pointer focus:outline-hidden"
+              >
+                <ChevronDown
+                  className={cn(
+                    'w-4 h-4 transition-transform duration-200',
+                    isPropsCollapsed ? '-rotate-90 text-slate-400' : 'rotate-0 text-slate-600 dark:text-slate-300'
+                  )}
+                />
+              </button>
+            </div>
           </div>
 
-          {/* Editorial Property Rows */}
-          <div className="mt-3 divide-y divide-slate-100 dark:divide-white/[0.04]">
+          <div style={{ display: isPropsCollapsed ? 'none' : 'block' }}>
+            {/* Editorial Property Rows */}
+            <div className="mt-3 divide-y divide-slate-100 dark:divide-white/[0.04]">
             {displayProperties.slice(0, 5).map((prop) => {
               const isPositive = prop.netCashFlow >= 0;
 
@@ -212,6 +238,7 @@ export function PortfolioPerformanceSection({
           >
             All properties →
           </Link>
+        </div>
         </div>
       </div>
 

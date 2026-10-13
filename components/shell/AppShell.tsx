@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +12,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  ListCollapse,
+  UnfoldVertical,
 } from 'lucide-react';
 import { CommandMenu } from '@/components/admin/CommandMenu';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
@@ -97,6 +99,8 @@ interface TreeNavItemProps {
   isCollapsed: boolean;
   onNavigate?: () => void;
   layoutId: string;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 function TreeNavItem({
@@ -106,6 +110,8 @@ function TreeNavItem({
   homeHref,
   isCollapsed,
   onNavigate,
+  isExpanded: controlledExpanded,
+  onToggleExpand,
 }: TreeNavItemProps) {
   const Icon = item.icon;
   const hasChildren = Boolean(item.children && item.children.length > 0);
@@ -117,15 +123,20 @@ function TreeNavItem({
   );
   const isParentSelected = isDirectActive || isChildActive;
 
-  // Expanded state (defaults to open if any child is active or default open)
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  // Expanded state (supports controlled mode or local fallback)
+  const [internalExpanded, setInternalExpanded] = useState<boolean>(true);
   const [isHovered, setIsHovered] = useState(false);
+
+  const isExpanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
+  const handleToggle = onToggleExpand || (() => setInternalExpanded((prev) => !prev));
 
   useEffect(() => {
     if (isChildActive) {
-      setIsExpanded(true);
+      if (controlledExpanded === undefined) {
+        setInternalExpanded(true);
+      }
     }
-  }, [isChildActive]);
+  }, [isChildActive, controlledExpanded]);
 
   // Collapsed icon-rail mode
   if (isCollapsed) {
@@ -225,7 +236,7 @@ function TreeNavItem({
       {/* Parent Row Button */}
       <button
         type="button"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={handleToggle}
         aria-expanded={isExpanded}
         className={cn(
           'group relative flex items-center justify-between w-full px-3 py-2 min-h-[40px] rounded-xl text-[14px] font-medium transition-all duration-150 cursor-pointer select-none',
@@ -367,6 +378,53 @@ function Sidebar({
   onResetWidth,
   isResizing,
 }: SidebarProps) {
+  // Collect all expandable items with sub-tabs/children
+  const expandableItems = useMemo(() => {
+    return navSections.flatMap((s) =>
+      s.items.filter((item) => Boolean(item.children && item.children.length > 0))
+    );
+  }, [navSections]);
+
+  const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    expandableItems.forEach((item) => {
+      initial[item.label] = true;
+    });
+    return initial;
+  });
+
+  // Keep active route's parent tab expanded
+  useEffect(() => {
+    expandableItems.forEach((item) => {
+      const isChildActive = item.children?.some((child) =>
+        isNavActive(pathname, search, child.href, homeHref, child.exact)
+      );
+      if (isChildActive) {
+        setExpandedMap((prev) => ({ ...prev, [item.label]: true }));
+      }
+    });
+  }, [pathname, search, expandableItems, homeHref]);
+
+  const hasExpandableTabs = expandableItems.length > 0;
+  const areAnyExpanded = expandableItems.some((item) => expandedMap[item.label] !== false);
+  const allTabsCollapsed = !areAnyExpanded;
+
+  const handleToggleCollapseAllTabs = () => {
+    const nextValue = allTabsCollapsed; // If currently all collapsed, expand all (true); if any expanded, collapse all (false)
+    const newMap: Record<string, boolean> = {};
+    expandableItems.forEach((item) => {
+      newMap[item.label] = nextValue;
+    });
+    setExpandedMap(newMap);
+  };
+
+  const handleToggleItem = (itemLabel: string) => {
+    setExpandedMap((prev) => ({
+      ...prev,
+      [itemLabel]: prev[itemLabel] !== undefined ? !prev[itemLabel] : false,
+    }));
+  };
+
   return (
     <motion.aside
       initial={false}
@@ -403,7 +461,50 @@ function Sidebar({
             </div>
           )}
         </Link>
+
+        {/* Header Icon Button to Collapse / Expand All Tabs */}
+        {!isCollapsed && hasExpandableTabs && (
+          <button
+            type="button"
+            onClick={handleToggleCollapseAllTabs}
+            title={allTabsCollapsed ? 'Expand all navigation tabs' : 'Collapse all navigation tabs'}
+            aria-label={allTabsCollapsed ? 'Expand all navigation tabs' : 'Collapse all navigation tabs'}
+            className="p-1.5 rounded-lg text-[#7F8B99] hover:text-white hover:bg-[#0E1E33] transition-colors ml-1 shrink-0 cursor-pointer"
+          >
+            {allTabsCollapsed ? (
+              <UnfoldVertical className="w-4 h-4 text-[#32D5C4]" />
+            ) : (
+              <ListCollapse className="w-4 h-4" />
+            )}
+          </button>
+        )}
       </div>
+
+      {/* Navigation Section Subheader with Collapse All Action */}
+      {!isCollapsed && hasExpandableTabs && (
+        <div className="flex items-center justify-between px-3 pt-1 pb-1 mb-1 text-[10.5px] font-bold text-[#7F8B99] uppercase tracking-[0.10em]">
+          <span>Menu</span>
+          <button
+            type="button"
+            onClick={handleToggleCollapseAllTabs}
+            title={allTabsCollapsed ? 'Expand all tabs' : 'Collapse all tabs'}
+            aria-label={allTabsCollapsed ? 'Expand all tabs' : 'Collapse all tabs'}
+            className="flex items-center gap-1 normal-case tracking-normal text-[11px] font-medium text-[#7F8B99] hover:text-white hover:bg-[#0E1E33] px-1.5 py-0.5 rounded-md transition-colors cursor-pointer"
+          >
+            {allTabsCollapsed ? (
+              <>
+                <UnfoldVertical className="w-3.5 h-3.5 text-[#32D5C4]" />
+                <span className="text-[10px]">Expand all</span>
+              </>
+            ) : (
+              <>
+                <ListCollapse className="w-3.5 h-3.5" />
+                <span className="text-[10px]">Collapse all</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* 2. Scrollable Hierarchical Tree Navigation List */}
       <nav className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-1 py-1">
@@ -424,6 +525,8 @@ function Sidebar({
                 isCollapsed={isCollapsed}
                 onNavigate={onNavigate}
                 layoutId={activeNavLayoutId}
+                isExpanded={item.children ? (expandedMap[item.label] ?? true) : undefined}
+                onToggleExpand={item.children ? () => handleToggleItem(item.label) : undefined}
               />
             ))}
           </div>
@@ -571,6 +674,51 @@ function MobileDrawer({
   onLogout,
   activeNavLayoutId,
 }: MobileDrawerProps) {
+  const expandableItems = useMemo(() => {
+    return navSections.flatMap((s) =>
+      s.items.filter((item) => Boolean(item.children && item.children.length > 0))
+    );
+  }, [navSections]);
+
+  const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    expandableItems.forEach((item) => {
+      initial[item.label] = true;
+    });
+    return initial;
+  });
+
+  useEffect(() => {
+    expandableItems.forEach((item) => {
+      const isChildActive = item.children?.some((child) =>
+        isNavActive(pathname, search, child.href, homeHref, child.exact)
+      );
+      if (isChildActive) {
+        setExpandedMap((prev) => ({ ...prev, [item.label]: true }));
+      }
+    });
+  }, [pathname, search, expandableItems, homeHref]);
+
+  const hasExpandableTabs = expandableItems.length > 0;
+  const areAnyExpanded = expandableItems.some((item) => expandedMap[item.label] !== false);
+  const allTabsCollapsed = !areAnyExpanded;
+
+  const handleToggleCollapseAllTabs = () => {
+    const nextValue = allTabsCollapsed;
+    const newMap: Record<string, boolean> = {};
+    expandableItems.forEach((item) => {
+      newMap[item.label] = nextValue;
+    });
+    setExpandedMap(newMap);
+  };
+
+  const handleToggleItem = (itemLabel: string) => {
+    setExpandedMap((prev) => ({
+      ...prev,
+      [itemLabel]: prev[itemLabel] !== undefined ? !prev[itemLabel] : false,
+    }));
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -599,15 +747,32 @@ function MobileDrawer({
               />
               <span className="font-heading font-bold text-base tracking-tight text-white truncate">PropertyLedge</span>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-[#7F8B99] hover:text-white hover:bg-[#0E1E33] transition-colors"
-              aria-label="Close menu"
-            >
-              <X className="w-5 h-5" />
-            </motion.button>
+            <div className="flex items-center gap-1">
+              {hasExpandableTabs && (
+                <button
+                  type="button"
+                  onClick={handleToggleCollapseAllTabs}
+                  title={allTabsCollapsed ? 'Expand all tabs' : 'Collapse all tabs'}
+                  aria-label={allTabsCollapsed ? 'Expand all tabs' : 'Collapse all tabs'}
+                  className="p-1.5 rounded-lg text-[#7F8B99] hover:text-white hover:bg-[#0E1E33] transition-colors cursor-pointer"
+                >
+                  {allTabsCollapsed ? (
+                    <UnfoldVertical className="w-5 h-5 text-[#32D5C4]" />
+                  ) : (
+                    <ListCollapse className="w-5 h-5" />
+                  )}
+                </button>
+              )}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-[#7F8B99] hover:text-white hover:bg-[#0E1E33] transition-colors"
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </motion.button>
+            </div>
           </div>
 
           <nav className="space-y-1 overflow-y-auto max-h-[calc(100vh-220px)] no-scrollbar">
@@ -628,6 +793,8 @@ function MobileDrawer({
                     isCollapsed={false}
                     onNavigate={onClose}
                     layoutId={activeNavLayoutId}
+                    isExpanded={item.children ? (expandedMap[item.label] ?? true) : undefined}
+                    onToggleExpand={item.children ? () => handleToggleItem(item.label) : undefined}
                   />
                 ))}
               </div>

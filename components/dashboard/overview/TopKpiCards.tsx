@@ -13,9 +13,11 @@ import {
   Plus,
   ChevronRight,
   Eye,
+  ChevronDown,
 } from 'lucide-react';
 import { formatCurrencyNoDecimals, formatCompactCurrency } from '@/lib/format/currency';
 import type { MonthlyBreakdownItem } from '@/lib/dashboard/queries';
+import { useCollapsibleWidget } from '@/lib/stores/useWidgetPreferencesStore';
 import { cn } from '@/lib/utils';
 
 interface TopKpiCardsProps {
@@ -54,6 +56,8 @@ export function TopKpiCards({
         : formatCurrencyNoDecimals(portfolioValue)
       : '$0';
 
+  const { isCollapsed: isKpiCollapsed, toggle: toggleKpi } = useCollapsibleWidget('dashboard-top-kpis');
+
   return (
     <div className={cn('grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-stretch', className)}>
       {/* 1. HERO CARD (7 Cols on Desktop): Dominant Portfolio Value Hero */}
@@ -61,21 +65,21 @@ export function TopKpiCards({
         {/* Subtle Ambient Background Gradient in Dark / Mixed mode */}
         <div className="absolute -top-24 -right-24 w-72 h-72 bg-[#008F83]/5 dark:bg-[#32D5C4]/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div>
-          {/* Top Row: Label & Status Pill */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500 dark:text-[#7F8B99]">
-                {selectedProperty ? 'Asset valuation' : 'Portfolio value'}
-              </span>
-              <span className="text-slate-300 dark:text-[#1E293B]">·</span>
-              <span className="text-[11px] font-medium text-slate-400 dark:text-[#7F8B99]">
-                {selectedProperty
-                  ? 'Active asset'
-                  : `${totalPropertiesCount} ${totalPropertiesCount === 1 ? 'property' : 'properties'}`}
-              </span>
-            </div>
+        {/* Top Row: Label & Status Pill */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500 dark:text-[#7F8B99]">
+              {selectedProperty ? 'Asset valuation' : 'Portfolio value'}
+            </span>
+            <span className="text-slate-300 dark:text-[#1E293B]">·</span>
+            <span className="text-[11px] font-medium text-slate-400 dark:text-[#7F8B99]">
+              {selectedProperty
+                ? 'Active asset'
+                : `${totalPropertiesCount} ${totalPropertiesCount === 1 ? 'property' : 'properties'}`}
+            </span>
+          </div>
 
+          <div className="flex items-center gap-2">
             <Link
               href="/dashboard/properties"
               className="inline-flex items-center gap-1 text-xs font-medium text-[#008F83] dark:text-[#32D5C4] hover:underline"
@@ -83,8 +87,29 @@ export function TopKpiCards({
               <span>Manage assets</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
+            <button
+              type="button"
+              data-testid="collapse-btn-dashboard-top-kpis"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleKpi();
+              }}
+              aria-expanded={!isKpiCollapsed}
+              aria-label={isKpiCollapsed ? 'Expand Portfolio Value KPI' : 'Collapse Portfolio Value KPI'}
+              title={isKpiCollapsed ? 'Expand Portfolio Value KPI' : 'Collapse Portfolio Value KPI'}
+              className="p-1 rounded-lg border border-slate-200/80 dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all cursor-pointer focus:outline-hidden"
+            >
+              <ChevronDown
+                className={cn(
+                  'w-3.5 h-3.5 transition-transform duration-200',
+                  isKpiCollapsed ? '-rotate-90 text-slate-400' : 'rotate-0 text-slate-600 dark:text-slate-300'
+                )}
+              />
+            </button>
           </div>
+        </div>
 
+        <div style={{ display: isKpiCollapsed ? 'none' : 'block' }}>
           {/* Huge Dominant Value Number */}
           <div className="mt-4 flex items-baseline gap-3">
             <h2 className="font-heading text-4xl sm:text-5xl font-bold tabular-nums tracking-tight text-slate-900 dark:text-white">
@@ -115,30 +140,30 @@ export function TopKpiCards({
               {incomeTrend !== null ? 'vs previous period' : 'Verified asset equity'}
             </span>
           </div>
-        </div>
 
-        {/* Quick Action Pills in Footer */}
-        <div className="mt-6 pt-5 border-t border-border-subtle flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard/properties"
-              className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0E1E33] border border-slate-200/70 dark:border-white/[0.06] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
-            >
-              <Building2 className="w-3.5 h-3.5 text-[#008F83] dark:text-[#32D5C4]" />
-              <span>Properties</span>
-            </Link>
-            <Link
-              href="/dashboard/money"
-              className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0E1E33] border border-slate-200/70 dark:border-white/[0.06] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
-            >
-              <DollarSign className="w-3.5 h-3.5 text-[#008F83] dark:text-[#32D5C4]" />
-              <span>Ledger</span>
-            </Link>
+          {/* Quick Action Pills in Footer */}
+          <div className="mt-6 pt-5 border-t border-border-subtle flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Link
+                href="/dashboard/properties"
+                className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0E1E33] border border-slate-200/70 dark:border-white/[0.06] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+              >
+                <Building2 className="w-3.5 h-3.5 text-[#008F83] dark:text-[#32D5C4]" />
+                <span>Properties</span>
+              </Link>
+              <Link
+                href="/dashboard/money"
+                className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0E1E33] border border-slate-200/70 dark:border-white/[0.06] text-slate-700 dark:text-[#94A3B8] hover:text-slate-900 dark:hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+              >
+                <DollarSign className="w-3.5 h-3.5 text-[#008F83] dark:text-[#32D5C4]" />
+                <span>Ledger</span>
+              </Link>
+            </div>
+
+            <span className="text-[11.5px] text-slate-400 dark:text-[#7F8B99]">
+              Real-time capital balance
+            </span>
           </div>
-
-          <span className="text-[11.5px] text-slate-400 dark:text-[#7F8B99]">
-            Real-time capital balance
-          </span>
         </div>
       </div>
 
@@ -169,37 +194,39 @@ export function TopKpiCards({
             )}
           </div>
 
-          <div className="mt-2.5 flex items-end justify-between gap-3">
-            <div>
-              <p className="font-heading text-2xl lg:text-[28px] font-bold tabular-nums tracking-tight text-slate-900 dark:text-white">
-                {formatCurrencyNoDecimals(totalIncome)}
-              </p>
-              <p className="text-[11px] text-slate-400 dark:text-[#7F8B99] mt-0.5">
-                Verified collections
-              </p>
-            </div>
-
-            {/* Integrated Sparkline Micro-Bars */}
-            {last6Months.length > 0 && (
-              <div className="flex items-end gap-1 h-7 pb-0.5 shrink-0" title="Last 6 months trajectory">
-                {last6Months.map((m, idx) => {
-                  const heightPercent = m.income > 0 ? Math.max(15, Math.round((m.income / maxIncomeIn6M) * 100)) : 10;
-                  const isLast = idx === last6Months.length - 1;
-                  return (
-                    <div
-                      key={m.isoMonth}
-                      className={cn(
-                        'w-1.5 rounded-full transition-all',
-                        isLast
-                          ? 'bg-[#008F83] dark:bg-[#32D5C4]'
-                          : 'bg-[#008F83]/25 dark:bg-[#32D5C4]/25'
-                      )}
-                      style={{ height: `${heightPercent}%` }}
-                    />
-                  );
-                })}
+          <div style={{ display: isKpiCollapsed ? 'none' : 'block' }}>
+            <div className="mt-2.5 flex items-end justify-between gap-3">
+              <div>
+                <p className="font-heading text-2xl lg:text-[28px] font-bold tabular-nums tracking-tight text-slate-900 dark:text-white">
+                  {formatCurrencyNoDecimals(totalIncome)}
+                </p>
+                <p className="text-[11px] text-slate-400 dark:text-[#7F8B99] mt-0.5">
+                  Verified collections
+                </p>
               </div>
-            )}
+
+              {/* Integrated Sparkline Micro-Bars */}
+              {last6Months.length > 0 && (
+                <div className="flex items-end gap-1 h-7 pb-0.5 shrink-0" title="Last 6 months trajectory">
+                  {last6Months.map((m, idx) => {
+                    const heightPercent = m.income > 0 ? Math.max(15, Math.round((m.income / maxIncomeIn6M) * 100)) : 10;
+                    const isLast = idx === last6Months.length - 1;
+                    return (
+                      <div
+                        key={m.isoMonth}
+                        className={cn(
+                          'w-1.5 rounded-full transition-all',
+                          isLast
+                            ? 'bg-[#008F83] dark:bg-[#32D5C4]'
+                            : 'bg-[#008F83]/25 dark:bg-[#32D5C4]/25'
+                        )}
+                        style={{ height: `${heightPercent}%` }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -228,37 +255,39 @@ export function TopKpiCards({
             )}
           </div>
 
-          <div className="mt-2.5 flex items-end justify-between gap-3">
-            <div>
-              <p className="font-heading text-2xl lg:text-[28px] font-bold tabular-nums tracking-tight text-slate-900 dark:text-white">
-                {formatCurrencyNoDecimals(totalExpenses)}
-              </p>
-              <p className="text-[11px] text-slate-400 dark:text-[#7F8B99] mt-0.5">
-                Operating outflows
-              </p>
-            </div>
-
-            {/* Integrated Sparkline Micro-Bars */}
-            {last6Months.length > 0 && (
-              <div className="flex items-end gap-1 h-7 pb-0.5 shrink-0" title="Last 6 months trajectory">
-                {last6Months.map((m, idx) => {
-                  const heightPercent = m.expenses > 0 ? Math.max(15, Math.round((m.expenses / maxExpenseIn6M) * 100)) : 10;
-                  const isLast = idx === last6Months.length - 1;
-                  return (
-                    <div
-                      key={m.isoMonth}
-                      className={cn(
-                        'w-1.5 rounded-full transition-all',
-                        isLast
-                          ? 'bg-rose-500 dark:bg-rose-400'
-                          : 'bg-rose-500/25 dark:bg-rose-400/25'
-                      )}
-                      style={{ height: `${heightPercent}%` }}
-                    />
-                  );
-                })}
+          <div style={{ display: isKpiCollapsed ? 'none' : 'block' }}>
+            <div className="mt-2.5 flex items-end justify-between gap-3">
+              <div>
+                <p className="font-heading text-2xl lg:text-[28px] font-bold tabular-nums tracking-tight text-slate-900 dark:text-white">
+                  {formatCurrencyNoDecimals(totalExpenses)}
+                </p>
+                <p className="text-[11px] text-slate-400 dark:text-[#7F8B99] mt-0.5">
+                  Operating outflows
+                </p>
               </div>
-            )}
+
+              {/* Integrated Sparkline Micro-Bars */}
+              {last6Months.length > 0 && (
+                <div className="flex items-end gap-1 h-7 pb-0.5 shrink-0" title="Last 6 months trajectory">
+                  {last6Months.map((m, idx) => {
+                    const heightPercent = m.expenses > 0 ? Math.max(15, Math.round((m.expenses / maxExpenseIn6M) * 100)) : 10;
+                    const isLast = idx === last6Months.length - 1;
+                    return (
+                      <div
+                        key={m.isoMonth}
+                        className={cn(
+                          'w-1.5 rounded-full transition-all',
+                          isLast
+                            ? 'bg-rose-500 dark:bg-rose-400'
+                            : 'bg-rose-500/25 dark:bg-rose-400/25'
+                        )}
+                        style={{ height: `${heightPercent}%` }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

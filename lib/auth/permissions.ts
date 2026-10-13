@@ -29,7 +29,9 @@ export type NavItemId =
   | 'team'
   | 'settings'
   | 'automations'
-  | 'bas';
+  | 'bas'
+  | 'financial-years'
+  | 'accountant-reports';
 
 /** Permission keys required to see each nav item (any one of the listed permissions). */
 export const NAV_PERMISSIONS: Partial<Record<NavItemId, string[]>> = {
@@ -37,9 +39,11 @@ export const NAV_PERMISSIONS: Partial<Record<NavItemId, string[]>> = {
   portfolio: ['property.view'],
   people: ['tenant.view'],
   leases: ['lease.view'],
-  money: ['invoice.view', 'payment.view', 'expense.view'],
-  finances: ['invoice.view', 'payment.view', 'expense.view'],
-  bas: ['invoice.view', 'payment.view', 'expense.view'],
+  money: ['invoice.view', 'payment.view', 'expense.view', 'financial.view'],
+  finances: ['invoice.view', 'payment.view', 'expense.view', 'financial.view'],
+  bas: ['invoice.view', 'payment.view', 'expense.view', 'financial.view'],
+  'financial-years': ['invoice.view', 'payment.view', 'expense.view', 'financial.view'],
+  'accountant-reports': ['invoice.view', 'payment.view', 'expense.view', 'insights.view', 'financial.view'],
   invoices: ['invoice.view'],
   payments: ['payment.view'],
   expenses: ['expense.view'],
@@ -74,6 +78,8 @@ const NAV_ACCESS: Record<NavItemId, Persona[]> = {
   money: ['owner', 'admin', 'manager', 'agent'],
   finances: ['owner', 'admin', 'manager', 'agent'],
   bas: ['owner', 'admin', 'manager', 'agent'],
+  'financial-years': ['owner', 'admin', 'manager', 'agent'],
+  'accountant-reports': ['owner', 'admin', 'manager', 'agent'],
   invoices: ['owner', 'admin', 'manager', 'agent'],
   payments: ['owner', 'admin', 'manager', 'agent'],
   expenses: ['owner', 'admin', 'manager', 'agent'],

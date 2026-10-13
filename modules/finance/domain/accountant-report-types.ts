@@ -46,6 +46,11 @@ export interface AccountantExpenseItem {
   attachments: AccountantExpenseAttachment[];
   hasEvidence: boolean;
   notes: string | null;
+  reviewStatus?: 'unreviewed' | 'verified' | 'needs_review' | 'disputed';
+  accountantNotes?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  userNotes?: string | null;
 }
 
 export interface AccountantCategorySummary {
@@ -73,6 +78,10 @@ export interface AccountantReportSummary {
   unreconciledCount: number;
   isFullyReconciled: boolean;
   reconciliationErrors: string[];
+  verifiedCount?: number;
+  needsReviewCount?: number;
+  disputedCount?: number;
+  unreviewedCount?: number;
 }
 
 export interface AccountantExpenseReportData {
@@ -90,6 +99,7 @@ export interface AccountantExpenseReportData {
   };
   summary: AccountantReportSummary;
   categories: AccountantCategorySummary[];
+  expenses?: AccountantExpenseItem[];
 }
 
 export const accountantReportFilterSchema = z.object({
@@ -100,4 +110,8 @@ export const accountantReportFilterSchema = z.object({
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   categoryIds: z.array(z.string()).optional(),
+  reviewStatus: z.enum(['all', 'verified', 'needs_review', 'disputed', 'unreviewed']).optional(),
+  evidenceStatus: z.enum(['all', 'with_evidence', 'missing_evidence']).optional(),
+  reconciliationStatus: z.enum(['all', 'reconciled', 'unreconciled']).optional(),
+  searchQuery: z.string().optional(),
 });
