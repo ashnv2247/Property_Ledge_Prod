@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   TrendingDown,
   Plus,
@@ -91,13 +92,62 @@ export function ExpenseList({ initialExpenses, initialCategories }: ExpenseListP
   const [categories, setCategories] = useState<CategoryDTO[]>(initialCategories || []);
   const [properties, setProperties] = useState<any[]>(availableProperties || []);
 
-  // View & Filter States
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  // View & Filter States (URL Synced for State Preservation across Navigation)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [viewMode, setViewModeState] = useState<'table' | 'grid'>(
+    (searchParams?.get('view') as 'table' | 'grid') || 'table'
+  );
   const [showAnalytics, setShowAnalytics] = useState(true);
-  const [quickFilter, setQuickFilter] = useState<string>('all');
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('All');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [quickFilter, setQuickFilterState] = useState<string>(
+    searchParams?.get('q') || 'all'
+  );
+  const [selectedCategoryFilter, setSelectedCategoryFilterState] = useState<string>(
+    searchParams?.get('category') || 'All'
+  );
+  const [startDate, setStartDateState] = useState<string>(
+    searchParams?.get('startDate') || ''
+  );
+  const [endDate, setEndDateState] = useState<string>(
+    searchParams?.get('endDate') || ''
+  );
+
+  const updateUrlParam = useCallback((key: string, value: string, defaultValue: string = '') => {
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    if (!value || value === defaultValue) {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
+    const qStr = params.toString();
+    router.replace(qStr ? `?${qStr}` : window.location.pathname, { scroll: false });
+  }, [router, searchParams]);
+
+  const setViewMode = useCallback((mode: 'table' | 'grid') => {
+    setViewModeState(mode);
+    updateUrlParam('view', mode, 'table');
+  }, [updateUrlParam]);
+
+  const setQuickFilter = useCallback((val: string) => {
+    setQuickFilterState(val);
+    updateUrlParam('q', val, 'all');
+  }, [updateUrlParam]);
+
+  const setSelectedCategoryFilter = useCallback((cat: string) => {
+    setSelectedCategoryFilterState(cat);
+    updateUrlParam('category', cat, 'All');
+  }, [updateUrlParam]);
+
+  const setStartDate = useCallback((date: string) => {
+    setStartDateState(date);
+    updateUrlParam('startDate', date, '');
+  }, [updateUrlParam]);
+
+  const setEndDate = useCallback((date: string) => {
+    setEndDateState(date);
+    updateUrlParam('endDate', date, '');
+  }, [updateUrlParam]);
 
   // Modals & Dialogs
   const [isCreateOpen, setIsCreateOpen] = useState(false);

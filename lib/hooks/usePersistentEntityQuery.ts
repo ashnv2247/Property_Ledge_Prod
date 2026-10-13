@@ -52,13 +52,24 @@ export function usePersistentEntityQuery<T>({
   onError,
 }: UsePersistentEntityQueryOptions<T>): UsePersistentEntityQueryResult<T> {
   const storeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const effectiveWorkspaceId = workspaceId || storeWorkspaceId;
   const propertyContext = usePropertyContextOptional();
-  const effectiveWorkspaceId =
-    workspaceId !== undefined ? (workspaceId ?? null) : (storeWorkspaceId ?? null);
+  const WORKSPACE_WIDE_ENTITIES = new Set([
+    'properties',
+    'categories',
+    'tax_classifications',
+    'automations',
+    'invoices',
+    'financial-years-overview',
+  ]);
+
+  const isWorkspaceWide = WORKSPACE_WIDE_ENTITIES.has(entity);
   const effectivePropertyId =
     propertyId !== undefined
       ? (propertyId ?? null)
-      : (propertyContext?.selectedProperty?.propertyId ?? null);
+      : isWorkspaceWide
+        ? 'all'
+        : (propertyContext?.selectedProperty?.propertyId ?? null);
 
   const cacheKey = buildCacheKey(entity, effectiveWorkspaceId, effectivePropertyId, extraKey);
 

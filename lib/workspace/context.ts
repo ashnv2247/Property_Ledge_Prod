@@ -90,6 +90,12 @@ export const resolveWorkspaceContextById = cache(async function resolveWorkspace
   wsId: string,
   userId: string
 ): Promise<WorkspaceContext | null> {
+  const cacheKey = `workspace:${wsId}:user:${userId}:context`;
+  const cached = serverCache.get<WorkspaceContext>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const supabase = await createClient();
   const { data: ws } = await supabase
     .from('workspaces')
@@ -140,7 +146,7 @@ export const resolveWorkspaceContextById = cache(async function resolveWorkspace
     resolveWorkspaceBilling(wsId, (ws as { owner_id: string }).owner_id),
   ]);
 
-  return {
+  const result: WorkspaceContext = {
     workspaceId: wsId,
     workspaceName: (ws as { name: string }).name,
     roleId,
@@ -150,6 +156,9 @@ export const resolveWorkspaceContextById = cache(async function resolveWorkspace
     billingAccountId: billing.billingAccountId,
     isOwner,
   };
+
+  serverCache.set(cacheKey, result, 60_000); // 60s TTL
+  return result;
 });
 
 export const resolveWorkspaceContext = cache(async function resolveWorkspaceContext(

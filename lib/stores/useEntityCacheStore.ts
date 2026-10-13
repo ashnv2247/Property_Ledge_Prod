@@ -15,8 +15,8 @@ export interface CachedData<T> {
 export type FreshnessTier = 'live' | 'normal' | 'stable';
 
 export const FRESHNESS_THRESHOLDS: Record<FreshnessTier, number> = {
-  live: 5000,       // 5 seconds for near-live dashboard stats/transactions
-  normal: 30000,    // 30 seconds for properties, leases, tenants
+  live: 5000,       // 5 seconds for real-time dashboard activity
+  normal: 60000,    // 60 seconds for properties, leases, tenants, invoices
   stable: 300000,   // 5 minutes for settings, roles, metadata
 };
 

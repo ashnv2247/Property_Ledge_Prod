@@ -5,6 +5,7 @@ import {
   getInitialsBgColor,
   getDiceBearUrl,
   CURATED_AVATAR_SEEDS,
+  DICEBEAR_STYLE,
 } from '@/components/ui/avatar/avatar-utils';
 
 test.describe('DiceBear Avatar Utilities', () => {
@@ -35,7 +36,7 @@ test.describe('DiceBear Avatar Utilities', () => {
 
   test('builds valid DiceBear SVG URLs with stable seeds', () => {
     const url = getDiceBearUrl('tenant-uuid-abc');
-    expect(url).toContain('api.dicebear.com/9.x/shapes/svg');
+    expect(url).toContain(`api.dicebear.com/9.x/${DICEBEAR_STYLE}/svg`);
     expect(url).toContain('seed=tenant-uuid-abc');
     expect(url).toContain('backgroundColor=');
   });

@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getPropertyStats, getUserProperties } from '@/lib/properties/queries';
+import { serverCache } from '@/lib/cache/server-cache';
+import { getActiveWorkspaceId } from '@/lib/auth/authorization';
 
 export async function getDashboardOverview(propertyId: string) {
   const supabase = await createClient();
@@ -73,9 +75,16 @@ export async function getPropertiesForUser(userId: string) {
   return getUserProperties(userId);
 }
 
-export async function getPropertiesList() {
+export async function getPropertiesList(workspaceId?: string | null) {
+  const wsId = workspaceId ?? (await getActiveWorkspaceId().catch(() => null));
+  const cacheKey = `workspace:${wsId || 'all'}:dashboard_properties`;
+  const cached = serverCache.get<Record<string, unknown>[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('properties')
     .select(`
       *,
@@ -84,16 +93,27 @@ export async function getPropertiesList() {
     `)
     .order('created_at', { ascending: false });
 
+  if (wsId) {
+    query = query.eq('workspace_id', wsId);
+  }
+
+  const { data, error } = await query;
+
   if (error) {
     console.error('Error fetching properties:', error);
     return [];
   }
 
-  return (data || []).map((prop: Record<string, unknown>) => ({
+  const result = (data || []).map((prop: Record<string, unknown>) => ({
     ...prop,
     workspace: (prop.workspace as { name: string }) || { name: 'Unknown' },
     tenants_count: (prop.tenants as { count: number }[])?.[0]?.count || 0,
   }));
+
+  if (wsId) {
+    serverCache.set(cacheKey, result, 60_000);
+  }
+  return result;
 }
 
 export async function getPropertyDetail(propertyId: string) {
@@ -136,6 +156,13 @@ export async function getTenants(propertyId: string) {
 }
 
 export async function getAllWorkspaceTenants(workspaceId?: string | null) {
+  const wsId = workspaceId ?? (await getActiveWorkspaceId().catch(() => null));
+  if (wsId) {
+    const cacheKey = `workspace:${wsId}:all_tenants`;
+    const cached = serverCache.get<any[]>(cacheKey);
+    if (cached) return cached;
+  }
+
   const supabase = await createClient();
   let query = supabase
     .from('tenants')
@@ -150,8 +177,8 @@ export async function getAllWorkspaceTenants(workspaceId?: string | null) {
     `)
     .order('created_at', { ascending: false });
 
-  if (workspaceId) {
-    query = query.eq('properties.workspace_id', workspaceId);
+  if (wsId) {
+    query = query.eq('properties.workspace_id', wsId);
   }
 
   const { data, error } = await query;
@@ -160,7 +187,12 @@ export async function getAllWorkspaceTenants(workspaceId?: string | null) {
     console.error('Error fetching all workspace tenants:', error);
     return [];
   }
-  return data || [];
+
+  const result = data || [];
+  if (wsId) {
+    serverCache.set(`workspace:${wsId}:all_tenants`, result, 60_000);
+  }
+  return result;
 }
 
 export async function getLeases(propertyId: string) {
@@ -186,6 +218,13 @@ export async function getLeases(propertyId: string) {
 }
 
 export async function getAllWorkspaceLeases(workspaceId?: string | null) {
+  const wsId = workspaceId ?? (await getActiveWorkspaceId().catch(() => null));
+  if (wsId) {
+    const cacheKey = `workspace:${wsId}:all_leases`;
+    const cached = serverCache.get<any[]>(cacheKey);
+    if (cached) return cached;
+  }
+
   const supabase = await createClient();
   try {
     let query = supabase
@@ -200,8 +239,8 @@ export async function getAllWorkspaceLeases(workspaceId?: string | null) {
       `)
       .order('created_at', { ascending: false });
 
-    if (workspaceId) {
-      query = query.eq('properties.workspace_id', workspaceId);
+    if (wsId) {
+      query = query.eq('properties.workspace_id', wsId);
     }
 
     const { data, error } = await query;
@@ -224,10 +263,14 @@ export async function getAllWorkspaceLeases(workspaceId?: string | null) {
         console.error('Error fetching all workspace leases fallback:', outerError);
         return [];
       }
-      return outerData || [];
+      const fallbackResult = outerData || [];
+      if (wsId) serverCache.set(`workspace:${wsId}:all_leases`, fallbackResult, 60_000);
+      return fallbackResult;
     }
 
-    return data || [];
+    const result = data || [];
+    if (wsId) serverCache.set(`workspace:${wsId}:all_leases`, result, 60_000);
+    return result;
   } catch (err) {
     console.error('Exception in getAllWorkspaceLeases:', err);
     return [];

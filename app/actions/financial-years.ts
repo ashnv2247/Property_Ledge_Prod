@@ -3,6 +3,7 @@
 import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import { createClient } from '@/lib/supabase/server';
+import { serverCache } from '@/lib/cache/server-cache';
 import {
   getCurrentFinancialYearNumber,
   parseFinancialYear,
@@ -119,6 +120,15 @@ export async function fetchFinancialYearsOverviewAction(propertyId?: string): Pr
 }> {
   try {
     const { context } = await getAuthContext();
+    const cacheKey = `workspace:${context.workspaceId}:fy_overview:${propertyId || 'all'}`;
+    const cached = serverCache.get<FinancialYearsOverviewData>(cacheKey);
+    if (cached) {
+      return {
+        success: true,
+        data: cached,
+      };
+    }
+
     const supabase = await createClient();
     const currentFY = getCurrentFinancialYearNumber();
 
@@ -132,12 +142,21 @@ export async function fetchFinancialYearsOverviewAction(propertyId?: string): Pr
     if (propErr) throw propErr;
     const properties = propertiesData || [];
 
-    // 2. Fetch completed transactions for this workspace (filtered by property if specified)
+    // 2. Generate canonical available financial years (5 years back, 1 year forward)
+    const availableFys = getFinancialYears({ countBack: 5, countForward: 1 });
+    const minDate = availableFys[0]?.range?.start;
+    const maxDate = availableFys[availableFys.length - 1]?.range?.end;
+
+    // 3. Fetch completed transactions for this workspace within FY range (filtered by property if specified)
     let txQuery = supabase
       .from('transactions')
       .select('id, amount, transaction_type, transaction_date, status, property_id, gst_inclusive, gst_amount')
       .eq('workspace_id', context.workspaceId)
       .eq('status', 'completed');
+
+    if (minDate && maxDate) {
+      txQuery = txQuery.gte('transaction_date', minDate).lte('transaction_date', maxDate);
+    }
 
     if (propertyId && propertyId !== 'all') {
       txQuery = txQuery.eq('property_id', propertyId);
@@ -146,9 +165,6 @@ export async function fetchFinancialYearsOverviewAction(propertyId?: string): Pr
     const { data: transactionsData, error: txErr } = await txQuery;
     if (txErr) throw txErr;
     const transactions = (transactionsData || []) as any[];
-
-    // 3. Generate canonical available financial years (5 years back, 1 year forward)
-    const availableFys = getFinancialYears({ countBack: 5, countForward: 1 });
 
     let totalHistoricalIncome = 0;
     let totalHistoricalExpenses = 0;
@@ -203,20 +219,24 @@ export async function fetchFinancialYearsOverviewAction(propertyId?: string): Pr
       };
     });
 
+    const overviewData: FinancialYearsOverviewData = {
+      currentFinancialYear: currentFY,
+      financialYears: fySummaries,
+      portfolioStats: {
+        totalHistoricalIncome: Math.round(totalHistoricalIncome * 100) / 100,
+        totalHistoricalExpenses: Math.round(totalHistoricalExpenses * 100) / 100,
+        totalHistoricalNet: Math.round((totalHistoricalIncome - totalHistoricalExpenses) * 100) / 100,
+        totalTransactionsCount,
+        activePropertiesCount: properties.length,
+      },
+      properties,
+    };
+
+    serverCache.set(cacheKey, overviewData, 30_000); // 30s TTL
+
     return {
       success: true,
-      data: {
-        currentFinancialYear: currentFY,
-        financialYears: fySummaries,
-        portfolioStats: {
-          totalHistoricalIncome: Math.round(totalHistoricalIncome * 100) / 100,
-          totalHistoricalExpenses: Math.round(totalHistoricalExpenses * 100) / 100,
-          totalHistoricalNet: Math.round((totalHistoricalIncome - totalHistoricalExpenses) * 100) / 100,
-          totalTransactionsCount,
-          activePropertiesCount: properties.length,
-        },
-        properties,
-      },
+      data: overviewData,
     };
   } catch (err: any) {
     console.error('[FINANCIAL_YEARS_OVERVIEW_ERROR]', err);

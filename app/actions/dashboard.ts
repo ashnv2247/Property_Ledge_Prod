@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireAuthenticatedUser, requirePropertyAccess } from '@/lib/dashboard/authorization';
 import { getActiveWorkspaceId } from '@/lib/auth/authorization';
+import { serverCache } from '@/lib/cache/server-cache';
 import * as queries from '@/lib/dashboard/queries';
 import * as service from '@/lib/dashboard/service';
 import { createServerServices } from '@/composition/services';
@@ -219,18 +220,29 @@ export async function fetchNeedsAttention(propertyId?: string | null) {
 // Property CRUD
 export async function handleCreateProperty(input: Tables['properties']['Insert']) {
   const data = await service.createProperty(input);
+  if (input.workspace_id) {
+    serverCache.invalidateWorkspace(input.workspace_id);
+  }
   revalidateDashboard('/dashboard/properties', '/dashboard');
   return { success: true, data };
 }
 
 export async function handleUpdateProperty(propertyId: string, input: Tables['properties']['Update']) {
   const data = await service.updateProperty(propertyId, input);
+  const workspaceId = await getActiveWorkspaceId().catch(() => null);
+  if (workspaceId) {
+    serverCache.invalidateWorkspace(workspaceId);
+  }
   revalidateDashboard('/dashboard/properties', `/dashboard/properties/${propertyId}`);
   return { success: true, data };
 }
 
 export async function handleDeleteProperty(propertyId: string) {
   await service.archiveProperty(propertyId);
+  const workspaceId = await getActiveWorkspaceId().catch(() => null);
+  if (workspaceId) {
+    serverCache.invalidateWorkspace(workspaceId);
+  }
   revalidateDashboard('/dashboard/properties', '/dashboard');
   return { success: true };
 }
@@ -277,6 +289,8 @@ export async function fetchAllWorkspaceLeases(propertyId?: string | null) {
 // Tenancy Setup (Atomic Tenant + Lease + Bond creation)
 export async function handleSetupTenancy(propertyId: string, input: service.TenancySetupInput) {
   const data = await service.setupTenancyWithLease(propertyId, input);
+  const workspaceId = await getActiveWorkspaceId().catch(() => null);
+  if (workspaceId) serverCache.invalidateWorkspace(workspaceId);
   revalidateDashboard('/dashboard/tenants', '/dashboard/people', '/dashboard/leases', `/dashboard/properties/${propertyId}`);
   return { success: true, data };
 }
@@ -284,18 +298,24 @@ export async function handleSetupTenancy(propertyId: string, input: service.Tena
 // Tenant CRUD
 export async function handleCreateTenant(propertyId: string, input: Omit<Tables['tenants']['Insert'], 'property_id'>) {
   const data = await service.createTenant(propertyId, input);
+  const workspaceId = await getActiveWorkspaceId().catch(() => null);
+  if (workspaceId) serverCache.invalidateWorkspace(workspaceId);
   revalidateDashboard('/dashboard/tenants', '/dashboard/people', `/dashboard/properties/${propertyId}`);
   return { success: true, data };
 }
 
 export async function handleUpdateTenant(propertyId: string, tenantId: string, input: Tables['tenants']['Update']) {
   const data = await service.updateTenant(propertyId, tenantId, input);
+  const workspaceId = await getActiveWorkspaceId().catch(() => null);
+  if (workspaceId) serverCache.invalidateWorkspace(workspaceId);
   revalidateDashboard('/dashboard/tenants', '/dashboard/people', `/dashboard/properties/${propertyId}`);
   return { success: true, data };
 }
 
 export async function handleDeleteTenant(propertyId: string, tenantId: string) {
   await service.deleteTenant(propertyId, tenantId);
+  const workspaceId = await getActiveWorkspaceId().catch(() => null);
+  if (workspaceId) serverCache.invalidateWorkspace(workspaceId);
   revalidateDashboard('/dashboard/tenants', '/dashboard/people', `/dashboard/properties/${propertyId}`);
   return { success: true };
 }
@@ -307,6 +327,8 @@ export async function handleCreateLease(
   tenantIds?: string[]
 ) {
   const data = await service.createLease(propertyId, input, tenantIds);
+  const workspaceId = await getActiveWorkspaceId().catch(() => null);
+  if (workspaceId) serverCache.invalidateWorkspace(workspaceId);
   revalidateDashboard('/dashboard/leases', `/dashboard/properties/${propertyId}`);
   return { success: true, data };
 }
@@ -318,24 +340,32 @@ export async function handleUpdateLease(
   tenantAssignments?: service.LeaseTenantAssignmentInput[] | string[]
 ) {
   const data = await service.updateLease(propertyId, leaseId, input, tenantAssignments);
+  const workspaceId = await getActiveWorkspaceId().catch(() => null);
+  if (workspaceId) serverCache.invalidateWorkspace(workspaceId);
   revalidateDashboard('/dashboard/leases', `/dashboard/properties/${propertyId}`, `/dashboard/leases/${leaseId}`);
   return { success: true, data };
 }
 
 export async function handleConvertToPeriodic(propertyId: string, leaseId: string) {
   const data = await service.convertToPeriodic(propertyId, leaseId);
+  const workspaceId = await getActiveWorkspaceId().catch(() => null);
+  if (workspaceId) serverCache.invalidateWorkspace(workspaceId);
   revalidateDashboard('/dashboard/leases', `/dashboard/properties/${propertyId}`);
   return { success: true, data };
 }
 
 export async function handleUpdateLeaseStatus(propertyId: string, leaseId: string, status: string) {
   const data = await service.updateLeaseStatus(propertyId, leaseId, status);
+  const workspaceId = await getActiveWorkspaceId().catch(() => null);
+  if (workspaceId) serverCache.invalidateWorkspace(workspaceId);
   revalidateDashboard('/dashboard/leases', `/dashboard/properties/${propertyId}`);
   return { success: true, data };
 }
 
 export async function handleDeleteLease(propertyId: string, leaseId: string) {
   await service.deleteLease(propertyId, leaseId);
+  const workspaceId = await getActiveWorkspaceId().catch(() => null);
+  if (workspaceId) serverCache.invalidateWorkspace(workspaceId);
   revalidateDashboard('/dashboard/leases', `/dashboard/properties/${propertyId}`);
   return { success: true };
 }

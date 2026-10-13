@@ -90,9 +90,48 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
   const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Draft' | 'Archived'>('All');
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const rawStatus = searchParams.get('status');
+  const initialStatus: 'All' | 'Active' | 'Draft' | 'Archived' =
+    rawStatus && ['active', 'draft', 'archived', 'all'].includes(rawStatus.toLowerCase())
+      ? (rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase() as any)
+      : 'All';
+
+  const rawView = searchParams.get('view');
+  const initialViewMode: 'table' | 'grid' = rawView === 'grid' ? 'grid' : 'table';
+
+  const [statusFilter, setStatusFilterState] = useState<'All' | 'Active' | 'Draft' | 'Archived'>(initialStatus);
+  const [viewMode, setViewModeState] = useState<'table' | 'grid'>(initialViewMode);
   const [isTableExpanded, setIsTableExpanded] = useGridExpandedPreference(false);
+
+  const setStatusFilter = useCallback(
+    (newStatus: 'All' | 'Active' | 'Draft' | 'Archived') => {
+      setStatusFilterState(newStatus);
+      const params = new URLSearchParams(searchParams.toString());
+      if (newStatus === 'All') {
+        params.delete('status');
+      } else {
+        params.set('status', newStatus.toLowerCase());
+      }
+      const q = params.toString();
+      router.replace(q ? `/dashboard/properties?${q}` : '/dashboard/properties', { scroll: false });
+    },
+    [router, searchParams]
+  );
+
+  const setViewMode = useCallback(
+    (newMode: 'table' | 'grid') => {
+      setViewModeState(newMode);
+      const params = new URLSearchParams(searchParams.toString());
+      if (newMode === 'table') {
+        params.delete('view');
+      } else {
+        params.set('view', 'grid');
+      }
+      const q = params.toString();
+      router.replace(q ? `/dashboard/properties?${q}` : '/dashboard/properties', { scroll: false });
+    },
+    [router, searchParams]
+  );
 
   const isNewQueryParam = searchParams.get('new') === 'true' || searchParams.get('action') === 'new';
 
