@@ -40,8 +40,8 @@ export function TenantOverviewBanner({
         {/* LEFT: Tenant Lifestyle Image with Translucent Floating Pill Card */}
         <div className="relative w-full lg:w-[260px] xl:w-[280px] h-48 sm:h-52 lg:h-[195px] xl:h-[205px] rounded-[18px] overflow-hidden shrink-0 group border border-white/20 shadow-md">
           <Image
-            src="/images/tenant_banner_visual.jpg"
-            alt="Tenants & Residents Community Visual"
+            src="/images/tenant_banner_visual.jpg?v=2"
+            alt="Australian Residents & Tenants Community"
             fill
             sizes="(max-width: 768px) 100vw, 280px"
             className="object-cover transition-transform duration-700 group-hover:scale-105"
