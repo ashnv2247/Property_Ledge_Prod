@@ -44,13 +44,26 @@ export interface GetFinancialYearsOptions {
  * - 2026 -> 2026
  * - 26 -> 2026
  */
-export function parseFinancialYear(fy: string | number): number {
+export function parseFinancialYear(fy?: string | number | null): number {
+  if (fy === null || fy === undefined) {
+    return getCurrentFinancialYearNumber();
+  }
+
   if (typeof fy === 'number') {
+    if (isNaN(fy)) return getCurrentFinancialYearNumber();
     if (fy < 100) return 2000 + fy;
     return fy;
   }
 
+  if (typeof fy !== 'string') {
+    return getCurrentFinancialYearNumber();
+  }
+
   const clean = fy.trim().toUpperCase();
+  if (!clean || clean === 'NAN' || clean.includes('NAN')) {
+    return getCurrentFinancialYearNumber();
+  }
+
   if (clean.startsWith('FY')) {
     const numPart = parseInt(clean.substring(2).trim(), 10);
     if (!isNaN(numPart)) {

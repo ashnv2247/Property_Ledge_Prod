@@ -59,14 +59,7 @@ const REPORT_TABS: Array<{
   description: string;
 }> = [
   { id: 'overview', label: 'Financial Overview', icon: BarChart3, description: 'Executive summary & portfolio KPIs' },
-  { id: 'income', label: 'Income', icon: TrendingUp, description: 'Received rent & other inflows' },
-  { id: 'expenses', label: 'Expenses', icon: TrendingDown, description: 'Deductible & capital outflows' },
-  { id: 'cashflow', label: 'Cash Flow', icon: Wallet, description: 'Monthly & quarterly liquidity trajectory' },
-  { id: 'rent-reconciliation', label: 'Rent Reconciliation', icon: CheckCircle2, description: 'Scheduled vs collected rent' },
-  { id: 'gst', label: 'GST & BAS', icon: Receipt, description: 'Quarterly business activity statement' },
-  { id: 'tax-classification', label: 'Tax Classification', icon: Scale, description: 'ATO deductible & capital works' },
-  { id: 'property-performance', label: 'Property Ranking', icon: Building2, description: 'Comparative yields & net profits' },
-  { id: 'transactions', label: 'Transaction Details', icon: FileSpreadsheet, description: 'Searchable line items' },
+  { id: 'cashflow', label: 'Monthly Cash Flow', icon: Wallet, description: 'Monthly statement & dual-column cash breakdown' },
 ];
 
 export function ReportsHubView({
@@ -262,31 +255,30 @@ export function ReportsHubView({
           isRefreshing={isLoading}
         />
 
-        {activeTab !== 'overview' && (
-          <div>
-            <nav className="flex space-x-1.5 overflow-x-auto pb-1 scrollbar-none" aria-label="Reports Navigation">
-              {REPORT_TABS.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => handleTabSelect(tab.id)}
-                    className={cn(
-                      'flex items-center gap-2 py-2 px-3.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer min-h-[38px]',
-                      isActive
-                        ? 'bg-[#008F83] text-white shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
-                    )}
-                  >
-                    <Icon className={cn('w-4 h-4', isActive ? 'text-white' : 'text-slate-400')} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-        )}
+        {/* Reports Navigation Tabs */}
+        <div>
+          <nav className="flex space-x-1.5 overflow-x-auto pb-1 scrollbar-none" aria-label="Reports Navigation">
+            {REPORT_TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabSelect(tab.id)}
+                  className={cn(
+                    'flex items-center gap-2 py-2 px-3.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer min-h-[38px]',
+                    isActive
+                      ? 'bg-[#008F83] text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
+                  )}
+                >
+                  <Icon className={cn('w-4 h-4', isActive ? 'text-white' : 'text-slate-400')} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
         {/* Active Tab Content Area */}
         <div className="mt-6">

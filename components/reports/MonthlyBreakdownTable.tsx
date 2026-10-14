@@ -59,7 +59,7 @@ export function MonthlyBreakdownTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
-            {monthlyTrends.map((m) => {
+            {(monthlyTrends || []).map((m) => {
               const isMonthProfitable = m.net >= 0;
               const hasActivity = m.income > 0 || m.expenses > 0;
 

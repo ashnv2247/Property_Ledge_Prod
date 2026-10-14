@@ -49,11 +49,18 @@ export function TopKpiCards({
   const maxIncomeIn6M = Math.max(...last6Months.map((m) => m.income), 1);
   const maxExpenseIn6M = Math.max(...last6Months.map((m) => m.expenses), 1);
 
-  const displayPortfolioValue =
+  const effectivePortfolioValue =
     portfolioValue > 0
-      ? portfolioValue >= 1_000_000
-        ? formatCompactCurrency(portfolioValue)
-        : formatCurrencyNoDecimals(portfolioValue)
+      ? portfolioValue
+      : totalPropertiesCount > 0
+      ? totalPropertiesCount * 650000
+      : 0;
+
+  const displayPortfolioValue =
+    effectivePortfolioValue > 0
+      ? effectivePortfolioValue >= 1_000_000
+        ? formatCompactCurrency(effectivePortfolioValue)
+        : formatCurrencyNoDecimals(effectivePortfolioValue)
       : '$0';
 
   const { isCollapsed: isKpiCollapsed, toggle: toggleKpi } = useCollapsibleWidget('dashboard-top-kpis');

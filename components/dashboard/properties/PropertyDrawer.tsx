@@ -31,6 +31,7 @@ export interface PropertyDrawerProps {
     car_spaces?: number | null;
     parking_spaces?: number | null;
     rent_amount?: number | null;
+    purchase_price?: number | null;
     payment_frequency?: string | null;
     status?: string | null;
     description?: string | null;
@@ -59,6 +60,7 @@ export function PropertyDrawer({
   const [bathrooms, setBathrooms] = useState('2');
   const [carSpaces, setCarSpaces] = useState('1');
   const [rentAmount, setRentAmount] = useState('650');
+  const [purchasePrice, setPurchasePrice] = useState('650000');
   const [paymentFrequency, setPaymentFrequency] = useState('Weekly');
   const [status, setStatus] = useState('active');
   const [description, setDescription] = useState('');
@@ -128,6 +130,7 @@ export function PropertyDrawer({
             : ''
         );
         setRentAmount(property.rent_amount !== undefined && property.rent_amount !== null ? String(property.rent_amount) : '');
+        setPurchasePrice(property.purchase_price !== undefined && property.purchase_price !== null ? String(property.purchase_price) : '');
         setPaymentFrequency(property.payment_frequency || 'Weekly');
         setStatus(property.status || 'active');
         setDescription(property.description || '');
@@ -144,6 +147,7 @@ export function PropertyDrawer({
         setBathrooms('');
         setCarSpaces('');
         setRentAmount('');
+        setPurchasePrice('650000');
         setPaymentFrequency('Weekly');
         setStatus('active');
         setDescription('');
@@ -181,6 +185,7 @@ export function PropertyDrawer({
         bathrooms: bathrooms !== '' ? Number(bathrooms) : 0,
         parking_spaces: carSpaces !== '' ? Number(carSpaces) : 0,
         rent_amount: rentAmount !== '' ? Number(rentAmount) : 0,
+        purchase_price: purchasePrice !== '' ? Number(purchasePrice) : null,
         payment_frequency: paymentFrequency,
         status: status as any,
         description: description.trim() || null,
@@ -474,8 +479,8 @@ export function PropertyDrawer({
             />
           </div>
 
-          {/* Advertised Rent */}
-          <div>
+          {/* Advertised Rent & Valuation */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Advertised Rent ($)"
               type="number"
@@ -483,6 +488,16 @@ export function PropertyDrawer({
               value={rentAmount}
               onChange={(e) => setRentAmount(e.target.value)}
               placeholder="e.g. 650"
+              leftIcon={<span className="text-xs font-bold">$</span>}
+              className="bg-white dark:bg-slate-800"
+            />
+            <Input
+              label="Valuation / Purchase Price ($)"
+              type="number"
+              min="0"
+              value={purchasePrice}
+              onChange={(e) => setPurchasePrice(e.target.value)}
+              placeholder="e.g. 650,000"
               leftIcon={<span className="text-xs font-bold">$</span>}
               className="bg-white dark:bg-slate-800"
             />

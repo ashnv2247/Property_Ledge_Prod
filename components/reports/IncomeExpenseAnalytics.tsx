@@ -31,17 +31,19 @@ interface IncomeExpenseAnalyticsProps {
 }
 
 export function IncomeExpenseAnalytics({
-  monthlyTrends,
-  totalIncome,
-  totalExpenses,
-  netResult,
+  monthlyTrends = [],
+  totalIncome = 0,
+  totalExpenses = 0,
+  netResult = 0,
   gstCollected = 0,
   gstPaid = 0,
   netGstPayable = 0,
   className,
 }: IncomeExpenseAnalyticsProps) {
+  const safeTrends = monthlyTrends || [];
+
   // Check if there is any financial activity in the period
-  const hasActivity = totalIncome > 0 || totalExpenses > 0 || monthlyTrends.some((m) => m.income > 0 || m.expenses > 0);
+  const hasActivity = totalIncome > 0 || totalExpenses > 0 || safeTrends.some((m) => (m?.income || 0) > 0 || (m?.expenses || 0) > 0);
 
   // Profit Margin Calculation (safe against division by 0)
   const profitMargin = useMemo(() => {
@@ -104,7 +106,7 @@ export function IncomeExpenseAnalytics({
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
-                  data={monthlyTrends}
+                  data={safeTrends}
                   margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
                 >
                   <CartesianGrid

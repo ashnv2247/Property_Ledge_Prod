@@ -46,7 +46,7 @@ export default async function ReportsPage({
   const currentFY = getCurrentFinancialYear();
 
   const initialFilters: FinanceReportFilters = {
-    financialYear: params?.fy ? parseInt(params.fy, 10) : currentFY,
+    financialYear: params?.fy || currentFY,
     propertyId: params?.propertyId || undefined,
     categoryId: params?.categoryId || undefined,
     taxClassificationId: params?.taxClassificationId || undefined,

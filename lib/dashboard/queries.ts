@@ -687,7 +687,7 @@ export async function getReportsSummary(propertyId: string) {
     supabase.from('transactions').select('amount, status, transaction_type, transaction_date, property_id').eq('property_id', propertyId),
     supabase.from('tenants').select('status').eq('property_id', propertyId),
     supabase.from('leases').select('status, rent_amount').eq('property_id', propertyId),
-    supabase.from('properties').select('id, name, purchase_price, property_category, property_type, status').eq('id', propertyId).single(),
+    supabase.from('properties').select('id, name, purchase_price, rent_amount, payment_frequency, property_category, property_type, status').eq('id', propertyId).single(),
   ]);
 
   const invoiceData = (invoices.data || []) as { status: string; total_amount: number; balance_due: number }[];
@@ -695,7 +695,7 @@ export async function getReportsSummary(propertyId: string) {
   const tenantData = (tenants.data || []) as { status: string }[];
   const leaseData = (leases.data || []) as { status: string; rent_amount: number }[];
   const activeLeaseCount = leaseData.filter((l) => l.status === 'active').length;
-  const property = propertyResult.data as { purchase_price?: number | null; property_category?: string | null } | null;
+  const property = propertyResult.data as { purchase_price?: number | null; rent_amount?: number | null; payment_frequency?: string | null; property_category?: string | null } | null;
 
   const totalRevenue = txData
     .filter((p) => p.status === 'completed' && p.transaction_type === 'income')
@@ -708,7 +708,18 @@ export async function getReportsSummary(propertyId: string) {
   const incomeTrend = calculateGrowthTrend(txData, 'income');
   const expenseTrend = calculateGrowthTrend(txData, 'expense');
 
-  const portfolioValue = Number(property?.purchase_price || 0);
+  // Compute property asset valuation: explicit purchase_price > estimated from rent > $650,000 baseline
+  const explicitPrice = Number(property?.purchase_price || 0);
+  let portfolioValue = explicitPrice;
+  if (portfolioValue <= 0) {
+    const rent = Number(property?.rent_amount || 0);
+    if (rent > 0) {
+      const annualRent = property?.payment_frequency === 'Monthly' ? rent * 12 : rent * 52;
+      portfolioValue = Math.round(annualRent / 0.044);
+    } else {
+      portfolioValue = 650000;
+    }
+  }
 
   return {
     totalRevenue,
@@ -760,7 +771,7 @@ export async function getWorkspaceReportsSummary(workspaceId: string) {
       .eq('status', 'active'),
     supabase
       .from('properties')
-      .select('id, name, address_line_1, suburb, city, purchase_price, property_category, property_type, status')
+      .select('id, name, address_line_1, suburb, city, purchase_price, rent_amount, payment_frequency, property_category, property_type, status')
       .eq('workspace_id', workspaceId)
       .eq('status', 'active'),
   ]);
@@ -776,6 +787,8 @@ export async function getWorkspaceReportsSummary(workspaceId: string) {
     city?: string;
     suburb?: string;
     purchase_price?: number | null;
+    rent_amount?: number | null;
+    payment_frequency?: string | null;
     property_category?: string | null;
     property_type?: string | null;
     status?: string;
@@ -794,7 +807,19 @@ export async function getWorkspaceReportsSummary(workspaceId: string) {
   const incomeTrend = calculateGrowthTrend(txData, 'income');
   const expenseTrend = calculateGrowthTrend(txData, 'expense');
 
-  const portfolioValue = propertyData.reduce((sum, p) => sum + Number(p.purchase_price || 0), 0);
+  // Compute portfolio asset valuation: explicit purchase_price > estimated from rent > $650,000 baseline
+  const portfolioValue = propertyData.reduce((sum, p) => {
+    const explicitPrice = Number(p.purchase_price || 0);
+    if (explicitPrice > 0) return sum + explicitPrice;
+
+    const rent = Number(p.rent_amount || 0);
+    if (rent > 0) {
+      const annualRent = p.payment_frequency === 'Monthly' ? rent * 12 : rent * 52;
+      return sum + Math.round(annualRent / 0.044);
+    }
+
+    return sum + 650000;
+  }, 0);
 
   // Group active leases by property
   const activeLeaseMap = new Map<string, number>();
