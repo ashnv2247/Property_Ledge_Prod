@@ -73,32 +73,39 @@ export function usePersistentEntityQuery<T>({
 
   const cacheKey = buildCacheKey(entity, effectiveWorkspaceId, effectivePropertyId, extraKey);
 
-  // Synchronously read existing cache
-  const readCurrentCache = (): CachedData<T> | undefined => {
+  // Reactive subscription to this specific cache entry from the entity cache store
+  const cachedEntry = useEntityCacheStore((s) => s.cacheMap[cacheKey] as CachedData<T> | undefined);
+
+  // Synchronously read existing cache helper
+  const readCurrentCache = useCallback((): CachedData<T> | undefined => {
     return useEntityCacheStore.getState().cacheMap[cacheKey] as CachedData<T> | undefined;
-  };
+  }, [cacheKey]);
 
   // Determine initial usable data
-  const initialEntry = readCurrentCache();
   const fallbackEmpty = (Array.isArray(initialData) ? [] : null) as unknown as T;
-  const initialUsable: T = (initialEntry?.data ?? initialData ?? fallbackEmpty) as T;
+  const initialUsable: T = (cachedEntry?.data ?? initialData ?? fallbackEmpty) as T;
 
-  // If server provided initialData but store doesn't have it yet, hydrate store
-  if (!initialEntry && initialData) {
-    useEntityCacheStore
-      .getState()
-      .setKeyedData(cacheKey, initialData, effectiveWorkspaceId, effectivePropertyId);
-  }
+  // If server provided initialData but store doesn't have it yet, hydrate store once
+  useEffect(() => {
+    if (!useEntityCacheStore.getState().cacheMap[cacheKey] && initialData) {
+      useEntityCacheStore
+        .getState()
+        .setKeyedData(cacheKey, initialData, effectiveWorkspaceId, effectivePropertyId);
+    }
+  }, [cacheKey, initialData, effectiveWorkspaceId, effectivePropertyId]);
 
   const [data, setData] = useState<T>(() => initialUsable);
   const [isLoading, setIsLoading] = useState<boolean>(() => !initialUsable && enabled);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(() => {
-    if (initialEntry?.fetchedAt) return new Date(initialEntry.fetchedAt);
+    if (cachedEntry?.fetchedAt) return new Date(cachedEntry.fetchedAt);
     if (initialData) return new Date();
     return null;
   });
-  const [error, setError] = useState<string | null>(() => initialEntry?.error ?? null);
+  const [error, setError] = useState<string | null>(() => cachedEntry?.error ?? null);
+
+  const dataRef = useRef<T>(data);
+  dataRef.current = data;
 
   const latestRequestIdRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
@@ -116,6 +123,23 @@ export function usePersistentEntityQuery<T>({
     };
   }, []);
 
+  // Reactively sync state whenever this specific cache entry changes in the store
+  useEffect(() => {
+    if (!cachedEntry) return;
+
+    if (cachedEntry.data !== undefined) {
+      setData(cachedEntry.data);
+      setIsLoading(false);
+    }
+    if (cachedEntry.isRefreshing !== undefined) {
+      setIsRefreshing(cachedEntry.isRefreshing);
+    }
+    if (cachedEntry.fetchedAt) {
+      setLastRefreshedAt(new Date(cachedEntry.fetchedAt));
+    }
+    setError(cachedEntry.error ?? null);
+  }, [cachedEntry]);
+
   const executeFetch = useCallback(
     async (isManual = false) => {
       if (!enabled) return;
@@ -123,7 +147,7 @@ export function usePersistentEntityQuery<T>({
 
       const requestId = ++latestRequestIdRef.current;
       const currentEntry = readCurrentCache();
-      const hasCurrentUsable = Boolean(currentEntry?.data ?? data);
+      const hasCurrentUsable = Boolean(currentEntry?.data ?? dataRef.current);
       const threshold = FRESHNESS_THRESHOLDS[freshnessTier];
 
       // Stale-While-Revalidate: If data is already fresh and this is not a manual refresh, do not refetch
@@ -187,7 +211,7 @@ export function usePersistentEntityQuery<T>({
         useEntityCacheStore.getState().setKeyedRefreshing(cacheKey, false);
       }
     },
-    [cacheKey, enabled, freshnessTier, effectiveWorkspaceId, effectivePropertyId, data]
+    [cacheKey, enabled, freshnessTier, effectiveWorkspaceId, effectivePropertyId, readCurrentCache]
   );
 
   // Trigger revalidation on mount or when cacheKey / enabled changes
@@ -203,7 +227,7 @@ export function usePersistentEntityQuery<T>({
     }
 
     executeFetch(false);
-  }, [cacheKey, enabled]);
+  }, [cacheKey, enabled, executeFetch, readCurrentCache, initialData]);
 
   const refresh = useCallback(async () => {
     await executeFetch(true);

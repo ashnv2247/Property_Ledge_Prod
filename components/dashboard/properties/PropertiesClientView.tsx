@@ -22,9 +22,17 @@ import {
 } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import { Button, useToast } from '@/components/admin/ui';
-import { PropertyDrawer } from '@/components/dashboard/properties/PropertyDrawer';
-import { PropertyCreationWizard } from '@/components/dashboard/properties/PropertyCreationWizard';
+
+const PropertyDrawer = dynamic(
+  () => import('@/components/dashboard/properties/PropertyDrawer').then((mod) => mod.PropertyDrawer),
+  { ssr: false }
+);
+const PropertyCreationWizard = dynamic(
+  () => import('@/components/dashboard/properties/PropertyCreationWizard').then((mod) => mod.PropertyCreationWizard),
+  { ssr: false }
+);
 import { PortfolioOverviewBanner } from '@/components/dashboard/properties/PortfolioOverviewBanner';
 import { PropertiesCategoryDonut } from '@/components/dashboard/properties/PropertiesCategoryDonut';
 import { getPropertiesTableColumns } from '@/components/dashboard/properties/propertyTableColumns';

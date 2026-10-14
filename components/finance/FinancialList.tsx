@@ -53,12 +53,23 @@ import {
   FinancialPageData,
 } from '@/app/actions/finance';
 import { getDropdownOptions, prewarmOptionsCache } from '@/lib/cache/optionsCache';
+import dynamic from 'next/dynamic';
 import { TransactionModal } from './TransactionModal';
 import { TransactionDetailModal } from './TransactionDetailModal';
 import { TransactionTypeSelectModal } from './TransactionTypeSelectModal';
-import { LedgerReportModal } from './LedgerReportModal';
-import { MultiAllocationModal } from './MultiAllocationModal';
-import { BulkExpenseUploadModal } from './BulkExpenseUploadModal';
+
+const LedgerReportModal = dynamic(
+  () => import('./LedgerReportModal').then((mod) => mod.LedgerReportModal),
+  { ssr: false }
+);
+const MultiAllocationModal = dynamic(
+  () => import('./MultiAllocationModal').then((mod) => mod.MultiAllocationModal),
+  { ssr: false }
+);
+const BulkExpenseUploadModal = dynamic(
+  () => import('./BulkExpenseUploadModal').then((mod) => mod.BulkExpenseUploadModal),
+  { ssr: false }
+);
 import { isIncome, isExpense } from '@/modules/finance/domain/calculations';
 import { cn } from '@/lib/utils';
 

@@ -750,8 +750,56 @@ export async function getCashFlowReport(filters: FinanceReportFilters): Promise<
     quarterMap[qKey].net = quarterMap[qKey].inflow - quarterMap[qKey].outflow;
   }
 
+  // Category breakdowns for inflows and outflows
+  const inflowCatMap = new Map<string, { id: string; name: string; amount: number }>();
+  const outflowCatMap = new Map<string, { id: string; name: string; amount: number }>();
+
+  for (const tx of transactions) {
+    const amt = Number(tx.amount || 0);
+    const catId = tx.category?.id || (tx.transaction_type === 'income' ? 'cat-income' : 'cat-expense');
+    const catName = tx.category?.name || (tx.transaction_type === 'income' ? 'Rental Income' : 'Operating Outgoings');
+
+    if (tx.transaction_type === 'income') {
+      const cur = inflowCatMap.get(catId) || { id: catId, name: catName, amount: 0 };
+      cur.amount += amt;
+      inflowCatMap.set(catId, cur);
+    } else {
+      const cur = outflowCatMap.get(catId) || { id: catId, name: catName, amount: 0 };
+      cur.amount += amt;
+      outflowCatMap.set(catId, cur);
+    }
+  }
+
   const netCashFlow = totalInflow - totalOutflow;
   const operatingMargin = totalInflow > 0 ? Math.round((netCashFlow / totalInflow) * 1000) / 10 : 0;
+  const monthCount = months.length || 12;
+
+  const monthlyAverageIncome = totalInflow / monthCount;
+  const monthlyAverageExpenses = totalOutflow / monthCount;
+  const monthlyAverageNet = netCashFlow / monthCount;
+
+  const inflowCategories = Array.from(inflowCatMap.values()).map((c) => ({
+    ...c,
+    monthlyAverage: c.amount / monthCount,
+  })).sort((a, b) => b.amount - a.amount);
+
+  const outflowCategories = Array.from(outflowCatMap.values()).map((c) => ({
+    ...c,
+    monthlyAverage: c.amount / monthCount,
+  })).sort((a, b) => b.amount - a.amount);
+
+  // Property info if filtered by a single property
+  let propertyContext: { propertyName?: string; propertyAddress?: string; tenancyStatus?: string } | undefined = undefined;
+  if (filters.propertyId && transactions.length > 0) {
+    const matchedTx = transactions.find((t) => t.property && (t.property.id === filters.propertyId || t.property_id === filters.propertyId));
+    if (matchedTx?.property) {
+      propertyContext = {
+        propertyName: matchedTx.property.name || undefined,
+        propertyAddress: matchedTx.property.address_line_1 || undefined,
+        tenancyStatus: 'Active',
+      };
+    }
+  }
 
   return {
     filters,
@@ -761,9 +809,15 @@ export async function getCashFlowReport(filters: FinanceReportFilters): Promise<
       totalOutflow,
       netCashFlow,
       operatingMargin,
+      monthlyAverageIncome,
+      monthlyAverageExpenses,
+      monthlyAverageNet,
     },
     monthlyCashFlow: Array.from(monthlyMap.values()),
     quarterlyCashFlow: [quarterMap.Q1, quarterMap.Q2, quarterMap.Q3, quarterMap.Q4],
+    inflowCategories,
+    outflowCategories,
+    propertyContext,
   };
 }
 

@@ -191,6 +191,9 @@ export interface CashFlowReportDTO {
     totalOutflow: number;
     netCashFlow: number;
     operatingMargin: number; // percentage
+    monthlyAverageIncome?: number;
+    monthlyAverageExpenses?: number;
+    monthlyAverageNet?: number;
   };
   monthlyCashFlow: MonthlyFinancialSummary[];
   quarterlyCashFlow: Array<{
@@ -199,6 +202,23 @@ export interface CashFlowReportDTO {
     outflow: number;
     net: number;
   }>;
+  inflowCategories?: Array<{
+    id: string;
+    name: string;
+    amount: number;
+    monthlyAverage: number;
+  }>;
+  outflowCategories?: Array<{
+    id: string;
+    name: string;
+    amount: number;
+    monthlyAverage: number;
+  }>;
+  propertyContext?: {
+    propertyName?: string;
+    propertyAddress?: string;
+    tenancyStatus?: string;
+  };
 }
 
 // 5. Expected vs Actual Rent Reconciliation Report Contract
