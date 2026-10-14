@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -40,20 +40,42 @@ import {
   fetchFinancialYearDetailsAction,
   validateFinancialYearPeriodAction,
 } from '@/app/actions/financial-years';
+import { usePropertyContext } from '@/components/property/PropertyContext';
 import { FinancialReportsNavTabs } from '@/components/finance/reports-nav/FinancialReportsNavTabs';
 import { cn } from '@/lib/utils';
 
 interface FinancialYearsViewProps {
   initialData?: FinancialYearsOverviewData | null;
+  initialPropertyId?: string;
 }
 
-export function FinancialYearsView({ initialData }: FinancialYearsViewProps) {
+export function FinancialYearsView({ initialData, initialPropertyId }: FinancialYearsViewProps) {
   const router = useRouter();
+  const { selectedProperty, availableProperties, setSelectedProperty } = usePropertyContext();
 
   // Filters
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('all');
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(() => {
+    return initialPropertyId || selectedProperty?.propertyId || 'all';
+  });
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const isFirstMountRef = React.useRef(true);
+
+  // Sync when selectedProperty in context changes
+  useEffect(() => {
+    const nextPropId = selectedProperty?.propertyId || 'all';
+    if (isFirstMountRef.current) {
+      isFirstMountRef.current = false;
+      if (nextPropId !== 'all' && !initialPropertyId) {
+        setSelectedPropertyId(nextPropId);
+      }
+      return;
+    }
+
+    if (nextPropId !== selectedPropertyId) {
+      setSelectedPropertyId(nextPropId);
+    }
+  }, [selectedProperty?.propertyId]);
 
   // Modals
   const [activeDetailYear, setActiveDetailYear] = useState<number | null>(null);
@@ -90,12 +112,43 @@ export function FinancialYearsView({ initialData }: FinancialYearsViewProps) {
     entity: 'financial-years',
     fetcher,
     initialData,
+    propertyId: selectedPropertyId === 'all' ? null : selectedPropertyId,
     extraKey: `prop-${selectedPropertyId}`,
     freshnessTier: 'normal',
   });
 
+  const propertyOptions = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    (overviewData?.properties || []).forEach((p) => {
+      map.set(p.id, p);
+    });
+    (availableProperties || []).forEach((p) => {
+      if (!map.has(p.propertyId)) {
+        map.set(p.propertyId, { id: p.propertyId, name: p.propertyName });
+      }
+    });
+    return Array.from(map.values());
+  }, [overviewData?.properties, availableProperties]);
+
+  const handlePropertyChange = (newPropId: string) => {
+    setSelectedPropertyId(newPropId);
+    if (newPropId === 'all') {
+      setSelectedProperty(null);
+    } else {
+      const prop = availableProperties.find((p) => p.propertyId === newPropId) || {
+        propertyId: newPropId,
+        propertyName: propertyOptions.find((p) => p.id === newPropId)?.name || '',
+        role: 'owner' as any,
+        status: 'active' as any,
+        organizationId: '',
+        organizationName: '',
+      };
+      setSelectedProperty(prop);
+    }
+  };
+
   const yearsList = overviewData?.financialYears || [];
-  const properties = overviewData?.properties || [];
+  const properties = propertyOptions;
   const stats = overviewData?.portfolioStats || {
     totalHistoricalIncome: 0,
     totalHistoricalExpenses: 0,
@@ -313,7 +366,7 @@ export function FinancialYearsView({ initialData }: FinancialYearsViewProps) {
             <Building className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={selectedPropertyId}
-              onChange={(e) => setSelectedPropertyId(e.target.value)}
+              onChange={(e) => handlePropertyChange(e.target.value)}
               className="text-xs font-medium rounded-lg border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#08182A] text-slate-800 dark:text-slate-200 px-2.5 py-1.5 focus:outline-hidden focus:ring-1 focus:ring-[#008F83]"
             >
               <option value="all">All Properties (Consolidated)</option>
@@ -488,7 +541,7 @@ export function FinancialYearsView({ initialData }: FinancialYearsViewProps) {
                           </button>
 
                           <Link
-                            href={`/dashboard/accountant-reports?fy=${fy.year}`}
+                            href={selectedPropertyId !== 'all' ? `/dashboard/accountant-reports?fy=${fy.year}&propertyId=${selectedPropertyId}` : `/dashboard/accountant-reports?fy=${fy.year}`}
                             className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             title="Generate Accountant Pack for this FY"
                           >
@@ -496,7 +549,7 @@ export function FinancialYearsView({ initialData }: FinancialYearsViewProps) {
                           </Link>
 
                           <Link
-                            href={`/dashboard/bas?fy=${fy.year}`}
+                            href={selectedPropertyId !== 'all' ? `/dashboard/bas?fy=${fy.year}&propertyId=${selectedPropertyId}` : `/dashboard/bas?fy=${fy.year}`}
                             className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             title="View BAS Worksheet for this FY"
                           >
@@ -587,7 +640,7 @@ export function FinancialYearsView({ initialData }: FinancialYearsViewProps) {
               </span>
 
               <Link
-                href={`/dashboard/accountant-reports?fy=${detailData.year}`}
+                href={selectedPropertyId !== 'all' ? `/dashboard/accountant-reports?fy=${detailData.year}&propertyId=${selectedPropertyId}` : `/dashboard/accountant-reports?fy=${detailData.year}`}
                 className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#008F83] dark:text-[#32D5C4] bg-white dark:bg-[#08182A] border border-[#008F83]/30 hover:border-[#008F83] transition-colors inline-flex items-center gap-1"
               >
                 <span>Generate Accountant PDF</span>
@@ -595,7 +648,7 @@ export function FinancialYearsView({ initialData }: FinancialYearsViewProps) {
               </Link>
 
               <Link
-                href={`/dashboard/bas?fy=${detailData.year}`}
+                href={selectedPropertyId !== 'all' ? `/dashboard/bas?fy=${detailData.year}&propertyId=${selectedPropertyId}` : `/dashboard/bas?fy=${detailData.year}`}
                 className="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-[#08182A] border border-slate-200 dark:border-white/[0.1] hover:border-slate-400 transition-colors inline-flex items-center gap-1"
               >
                 <span>BAS Statement</span>
@@ -603,7 +656,7 @@ export function FinancialYearsView({ initialData }: FinancialYearsViewProps) {
               </Link>
 
               <Link
-                href={`/dashboard/money?from=${detailData.startDate}&to=${detailData.endDate}`}
+                href={selectedPropertyId !== 'all' ? `/dashboard/money?from=${detailData.startDate}&to=${detailData.endDate}&propertyId=${selectedPropertyId}` : `/dashboard/money?from=${detailData.startDate}&to=${detailData.endDate}`}
                 className="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-[#08182A] border border-slate-200 dark:border-white/[0.1] hover:border-slate-400 transition-colors inline-flex items-center gap-1"
               >
                 <span>View All Transactions</span>

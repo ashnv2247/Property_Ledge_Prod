@@ -44,6 +44,7 @@ import {
 } from '@/app/actions/condition-reports';
 import { cn } from '@/lib/utils';
 import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
+import { usePropertyContextOptional } from '@/components/property/PropertyContext';
 import { PageLayout, PageContent } from '@/components/workspace';
 import { Button } from '@/components/admin/ui';
 
@@ -64,6 +65,8 @@ export function ConditionReportsDashboard({
   propertyFilterId,
 }: ConditionReportsDashboardProps) {
   const router = useRouter();
+  const propertyContext = usePropertyContextOptional();
+  const contextPropertyId = propertyContext?.selectedProperty?.propertyId;
 
   const {
     data: reports = [],
@@ -74,6 +77,7 @@ export function ConditionReportsDashboard({
     setData: setReports,
   } = usePersistentEntityQuery<ConditionReport[]>({
     entity: 'condition_reports',
+    propertyId: propertyFilterId !== undefined ? propertyFilterId : (contextPropertyId ?? null),
     initialData: initialReports && initialReports.length > 0 ? initialReports : undefined,
     freshnessTier: 'normal',
     fetcher: async ({ propertyId }) => {
@@ -114,7 +118,7 @@ export function ConditionReportsDashboard({
   >([]);
 
   const [selectedPropertyId, setSelectedPropertyId] = useState(
-    propertyFilterId || ''
+    propertyFilterId || contextPropertyId || ''
   );
   const [selectedLeaseId, setSelectedLeaseId] = useState('');
   const [selectedBaselineReportId, setSelectedBaselineReportId] = useState('');
@@ -128,6 +132,15 @@ export function ConditionReportsDashboard({
   const [roomTemplates, setRoomTemplates] = useState<RoomTemplateConfig[]>(
     DEFAULT_ROOM_TEMPLATES
   );
+
+  // Sync selectedPropertyId when propertyFilterId or contextPropertyId updates
+  useEffect(() => {
+    if (propertyFilterId) {
+      setSelectedPropertyId(propertyFilterId);
+    } else if (contextPropertyId) {
+      setSelectedPropertyId(contextPropertyId);
+    }
+  }, [propertyFilterId, contextPropertyId]);
 
   // Delete Confirmation State
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -153,7 +166,11 @@ export function ConditionReportsDashboard({
         setInspectorName(res.inspectorName);
       }
       if (!selectedPropertyId && res.properties && res.properties.length > 0) {
-        setSelectedPropertyId(res.properties[0].id);
+        const defaultPropId =
+          contextPropertyId && res.properties.some((p) => p.id === contextPropertyId)
+            ? contextPropertyId
+            : res.properties[0].id;
+        setSelectedPropertyId(defaultPropId);
       }
     }
   };

@@ -27,7 +27,7 @@ export default async function FinancialYearsPage({
 
   return (
     <Suspense fallback={<div className="p-8 text-center text-slate-500">Loading Financial Years...</div>}>
-      <FinancialYearsView initialData={initialData} />
+      <FinancialYearsView initialData={initialData} initialPropertyId={params?.propertyId} />
     </Suspense>
   );
 }

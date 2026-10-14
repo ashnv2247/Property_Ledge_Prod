@@ -89,6 +89,18 @@ test.describe('PropertyLedge — Financial Years, Accountant Reports & Collapsib
       expect(options[0].year).toBe(currentFY + 1);
       expect(options[options.length - 1].year).toBe(currentFY - 3);
     });
+
+    test('1.6. Global date boundaries spanning multiple financial years have minDate <= maxDate', () => {
+      const availableFys = getFinancialYears({ countBack: 5, countForward: 1 });
+      const allStarts = availableFys.map((f) => f.range.start).filter(Boolean);
+      const allEnds = availableFys.map((f) => f.range.end).filter(Boolean);
+      const minDate = allStarts.reduce((min, cur) => (cur < min ? cur : min), allStarts[0]);
+      const maxDate = allEnds.reduce((max, cur) => (cur > max ? cur : max), allEnds[0]);
+
+      expect(minDate <= maxDate).toBe(true);
+      expect(minDate).toBe('2021-07-01'); // FY22 start
+      expect(maxDate).toBe('2028-06-30'); // FY28 end
+    });
   });
 
   // =========================================================================

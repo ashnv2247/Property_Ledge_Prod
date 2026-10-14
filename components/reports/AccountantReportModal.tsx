@@ -88,10 +88,8 @@ export function AccountantReportModal({
 
   // Sync initial property ID
   useEffect(() => {
-    if (initialPropertyId) {
-      setSelectedPropertyId(initialPropertyId);
-    }
-  }, [initialPropertyId]);
+    setSelectedPropertyId(initialPropertyId || 'all');
+  }, [initialPropertyId, isOpen]);
 
   // Load preview data
   const loadPreviewData = useCallback(async () => {

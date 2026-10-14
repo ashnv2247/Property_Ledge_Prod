@@ -35,7 +35,17 @@ export function FinancialOverviewTab({ data }: FinancialOverviewTabProps) {
         transactionCount={kpis.transactionCount}
       />
 
-      {/* 2. Main Analytics Section (68% / 32% Grid): Chart & Financial Snapshot */}
+      {/* 2. Monthly Financial Breakdown Table */}
+      <MonthlyBreakdownTable
+        monthlyTrends={monthlyTrends}
+        totalIncome={kpis.totalIncome}
+        totalExpenses={kpis.totalExpenses}
+        netResult={kpis.netResult}
+        totalGstCollected={kpis.gstCollected}
+        totalGstPaid={kpis.gstPaid}
+      />
+
+      {/* 3. Main Analytics Section (68% / 32% Grid): Income vs Expenses Chart & Financial Snapshot */}
       <IncomeExpenseAnalytics
         monthlyTrends={monthlyTrends}
         totalIncome={kpis.totalIncome}
@@ -44,16 +54,6 @@ export function FinancialOverviewTab({ data }: FinancialOverviewTabProps) {
         gstCollected={kpis.gstCollected}
         gstPaid={kpis.gstPaid}
         netGstPayable={kpis.netGstPayable}
-      />
-
-      {/* 3. Monthly Financial Breakdown Table */}
-      <MonthlyBreakdownTable
-        monthlyTrends={monthlyTrends}
-        totalIncome={kpis.totalIncome}
-        totalExpenses={kpis.totalExpenses}
-        netResult={kpis.netResult}
-        totalGstCollected={kpis.gstCollected}
-        totalGstPaid={kpis.gstPaid}
       />
 
       {/* 4. Category Analytics Section (Two Columns) */}

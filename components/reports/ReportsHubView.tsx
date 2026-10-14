@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useState, useEffect, useTransition, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -27,6 +27,7 @@ import { getCurrentFinancialYear } from '@/lib/finance/financial-year';
 import { ReportFilterBar } from '@/components/reports/ReportFilterBar';
 import { ExportDropdown } from '@/components/reports/ExportDropdown';
 import { AccountantReportModal } from '@/components/reports/AccountantReportModal';
+import { usePropertyContext } from '@/components/property/PropertyContext';
 
 import { FinancialOverviewTab } from '@/components/reports/FinancialOverviewTab';
 import { IncomeReportTab } from '@/components/reports/IncomeReportTab';
@@ -77,24 +78,48 @@ export function ReportsHubView({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const { selectedProperty, availableProperties, setSelectedProperty } = usePropertyContext();
 
   const [activeTab, setActiveTab] = useState<FinanceReportType>(initialReportType || 'overview');
-  const [filters, setFilters] = useState<FinanceReportFilters>({
+  const [filters, setFilters] = useState<FinanceReportFilters>(() => ({
     financialYear: initialFilters.financialYear || getCurrentFinancialYear(),
     ...initialFilters,
-  });
+    propertyId: initialFilters.propertyId ?? (selectedProperty?.propertyId || undefined),
+  }));
 
   const [reportData, setReportData] = useState<any>(initialData || null);
   const [isLoading, setIsLoading] = useState(!initialData);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isAccountantReportOpen, setIsAccountantReportOpen] = useState(false);
+  const isFirstMountRef = useRef(true);
+
+  // Merge available properties from context and filterOptions to ensure complete coverage
+  const mergedProperties = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; address_line_1?: string }>();
+    (filterOptions.properties || []).forEach((p) => {
+      map.set(p.id, p);
+    });
+    (availableProperties || []).forEach((p) => {
+      if (!map.has(p.propertyId)) {
+        map.set(p.propertyId, {
+          id: p.propertyId,
+          name: p.propertyName,
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [filterOptions.properties, availableProperties]);
 
   // Sync state with URL params
   const updateQueryParams = (newTab: FinanceReportType, newFilters: FinanceReportFilters) => {
     const params = new URLSearchParams();
     params.set('tab', newTab);
     if (newFilters.financialYear) params.set('fy', String(newFilters.financialYear));
-    if (newFilters.propertyId) params.set('propertyId', newFilters.propertyId);
+    if (newFilters.propertyId) {
+      params.set('propertyId', newFilters.propertyId);
+    } else {
+      params.delete('propertyId');
+    }
     if (newFilters.categoryId) params.set('categoryId', newFilters.categoryId);
     if (newFilters.transactionType) params.set('type', newFilters.transactionType);
     if (newFilters.taxClassificationId) params.set('taxClassificationId', newFilters.taxClassificationId);
@@ -120,6 +145,42 @@ export function ReportsHubView({
       setIsLoading(false);
     }
   };
+
+  // Synchronize when selectedProperty in context changes
+  useEffect(() => {
+    const contextPropId = selectedProperty?.propertyId || undefined;
+    const currentPropId = filters.propertyId;
+
+    if (isFirstMountRef.current) {
+      isFirstMountRef.current = false;
+      // On initial hydration: if context has a selected property but server initialData was whole-portfolio, fetch scoped
+      if (contextPropId && contextPropId !== initialFilters.propertyId) {
+        const updated = { ...filters, propertyId: contextPropId };
+        setFilters(updated);
+        updateQueryParams(activeTab, updated);
+        loadData(activeTab, updated);
+      }
+      return;
+    }
+
+    if (contextPropId !== currentPropId) {
+      const updated = { ...filters, propertyId: contextPropId };
+      setFilters(updated);
+      updateQueryParams(activeTab, updated);
+      loadData(activeTab, updated);
+    }
+  }, [selectedProperty?.propertyId]);
+
+  // Synchronize context if URL has an explicit propertyId
+  useEffect(() => {
+    const urlPropId = searchParams?.get('propertyId');
+    if (urlPropId && urlPropId !== selectedProperty?.propertyId) {
+      const prop = availableProperties.find((p) => p.propertyId === urlPropId);
+      if (prop) {
+        setSelectedProperty(prop);
+      }
+    }
+  }, [searchParams, availableProperties, selectedProperty?.propertyId, setSelectedProperty]);
 
   const handleTabSelect = (tabId: FinanceReportType) => {
     setActiveTab(tabId);
@@ -194,7 +255,7 @@ export function ReportsHubView({
         <ReportFilterBar
           filters={filters}
           onFilterChange={handleFilterChange}
-          properties={filterOptions.properties}
+          properties={mergedProperties}
           categories={filterOptions.categories}
           taxClassifications={filterOptions.taxClassifications}
           onRefresh={handleRefresh}
@@ -275,7 +336,7 @@ export function ReportsHubView({
       <AccountantReportModal
         isOpen={isAccountantReportOpen}
         onClose={() => setIsAccountantReportOpen(false)}
-        properties={filterOptions.properties}
+        properties={mergedProperties}
         categories={filterOptions.categories}
         initialPropertyId={filters.propertyId || undefined}
       />

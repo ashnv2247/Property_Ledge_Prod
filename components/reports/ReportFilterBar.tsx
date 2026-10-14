@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { FinanceReportFilters } from '@/modules/finance/domain/reporting-types';
 import { getFinancialYears, getCurrentFinancialYear } from '@/lib/finance/financial-year';
+import { usePropertyContext } from '@/components/property/PropertyContext';
 import { cn } from '@/lib/utils';
 
 interface ReportFilterBarProps {
@@ -38,6 +39,7 @@ export function ReportFilterBar({
 }: ReportFilterBarProps) {
   const currentFY = getCurrentFinancialYear();
   const availableFYs = getFinancialYears({ countBack: 4, countForward: 1 });
+  const { availableProperties, selectedProperty, setSelectedProperty } = usePropertyContext();
 
   const handleFYChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -58,10 +60,27 @@ export function ReportFilterBar({
 
   const handlePropertyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
-    onFilterChange({
-      ...filters,
-      propertyId: val === 'all' ? undefined : val,
-    });
+    if (val === 'all') {
+      setSelectedProperty(null);
+      onFilterChange({
+        ...filters,
+        propertyId: undefined,
+      });
+    } else {
+      const prop = availableProperties.find((p) => p.propertyId === val) || {
+        propertyId: val,
+        propertyName: properties.find((p) => p.id === val)?.name || '',
+        role: 'owner' as any,
+        status: 'active' as any,
+        organizationId: '',
+        organizationName: '',
+      };
+      setSelectedProperty(prop);
+      onFilterChange({
+        ...filters,
+        propertyId: val,
+      });
+    }
   };
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -96,6 +115,7 @@ export function ReportFilterBar({
   };
 
   const handleReset = () => {
+    setSelectedProperty(null);
     onFilterChange({
       financialYear: currentFY,
       propertyId: undefined,

@@ -16,6 +16,7 @@ import {
 } from '@/app/actions/bas';
 import { Button, useToast } from '@/components/admin/ui';
 import { ListPage, ListPageGrid } from '@/components/workspace';
+import { usePropertyContext } from '@/components/property/PropertyContext';
 import {
   FileSpreadsheet,
   Download,
@@ -42,14 +43,16 @@ export function BasActivityStatementView({ initialData }: BasActivityStatementVi
   const [isPending, startTransition] = useTransition();
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const { selectedProperty, availableProperties, setSelectedProperty } = usePropertyContext();
 
   // Filter State
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
-    initialData.worksheet.propertyId || null
-  );
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(() => {
+    return selectedProperty?.propertyId || initialData.worksheet.propertyId || null;
+  });
   const [selectedYear, setSelectedYear] = useState<number>(initialData.worksheet.financialYear);
   const [selectedPeriod, setSelectedPeriod] = useState<BasPeriod>(initialData.worksheet.period);
   const [showBasCodes, setShowBasCodes] = useState<boolean>(true);
+  const isFirstMountRef = React.useRef(true);
 
   // Tab State
   const [activeTab, setActiveTab] = useState<'worksheet' | 'details' | 'guidance'>('worksheet');
@@ -82,9 +85,33 @@ export function BasActivityStatementView({ initialData }: BasActivityStatementVi
     });
   };
 
+  // Sync with PropertyContext
+  React.useEffect(() => {
+    const nextPropId = selectedProperty?.propertyId || null;
+    if (isFirstMountRef.current) {
+      isFirstMountRef.current = false;
+      if (nextPropId && nextPropId !== initialData.worksheet.propertyId) {
+        setSelectedPropertyId(nextPropId);
+        handleRefresh(nextPropId, selectedYear, selectedPeriod);
+      }
+      return;
+    }
+
+    if (nextPropId !== selectedPropertyId) {
+      setSelectedPropertyId(nextPropId);
+      handleRefresh(nextPropId, selectedYear, selectedPeriod);
+    }
+  }, [selectedProperty?.propertyId]);
+
   const handlePropertyChange = (newPropId: string) => {
     const val = newPropId === 'all' ? null : newPropId;
     setSelectedPropertyId(val);
+    if (!val) {
+      setSelectedProperty(null);
+    } else {
+      const prop = availableProperties.find((p) => p.propertyId === val);
+      if (prop) setSelectedProperty(prop);
+    }
     handleRefresh(val, selectedYear, selectedPeriod);
   };
 

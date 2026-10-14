@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { BarChart3, Calendar, FileSpreadsheet } from 'lucide-react';
+import { usePropertyContextOptional } from '@/components/property/PropertyContext';
 import { cn } from '@/lib/utils';
 
 export type FinancialReportsSection = 'reports' | 'financial-years' | 'accountant-reports';
@@ -22,6 +23,15 @@ export function FinancialReportsNavTabs({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentSectionParam = searchParams.get('section') as FinancialReportsSection | null;
+  const propertyContext = usePropertyContextOptional();
+
+  const currentPropertyId = searchParams.get('propertyId') || propertyContext?.selectedProperty?.propertyId;
+
+  const buildHref = (base: string) => {
+    if (!currentPropertyId) return base;
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}propertyId=${encodeURIComponent(currentPropertyId)}`;
+  };
 
   // Resolve active section from props, query param, or pathname
   let activeSection: FinancialReportsSection = propActiveSection || 'reports';
@@ -47,7 +57,7 @@ export function FinancialReportsNavTabs({
       id: 'reports',
       label: 'Reports',
       badge: 'Insights & Trends',
-      href: useQueryParam ? '/dashboard/reports?section=reports' : '/dashboard/reports',
+      href: buildHref(useQueryParam ? '/dashboard/reports?section=reports' : '/dashboard/reports'),
       icon: BarChart3,
       description: 'Cash flow, rental yields, expense classifications & analytics',
     },
@@ -55,7 +65,7 @@ export function FinancialReportsNavTabs({
       id: 'financial-years',
       label: 'Financial Years',
       badge: 'Statutory AFY',
-      href: useQueryParam ? '/dashboard/reports?section=financial-years' : '/dashboard/financial-years',
+      href: buildHref(useQueryParam ? '/dashboard/reports?section=financial-years' : '/dashboard/financial-years'),
       icon: Calendar,
       description: 'July–June periods, status tracking & period reconciliation',
     },
@@ -63,7 +73,7 @@ export function FinancialReportsNavTabs({
       id: 'accountant-reports',
       label: 'Accountant Reports',
       badge: 'BAS & Tax Packs',
-      href: useQueryParam ? '/dashboard/reports?section=accountant-reports' : '/dashboard/accountant-reports',
+      href: buildHref(useQueryParam ? '/dashboard/reports?section=accountant-reports' : '/dashboard/accountant-reports'),
       icon: FileSpreadsheet,
       description: 'ATO BAS statements, receipts audit trail & multi-page PDF packs',
     },

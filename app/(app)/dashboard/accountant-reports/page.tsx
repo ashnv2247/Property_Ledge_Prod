@@ -34,6 +34,7 @@ export default async function AccountantReportsPage({
       <AccountantReportsView
         initialProperties={properties}
         initialFinancialYear={initialFY}
+        initialPropertyId={params?.propertyId}
       />
     </Suspense>
   );

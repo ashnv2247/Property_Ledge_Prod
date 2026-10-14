@@ -48,6 +48,7 @@ import {
   exportReportCsvAction,
 } from '@/app/actions/reports';
 import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
+import { usePropertyContext } from '@/components/property/PropertyContext';
 import { FinancialReportsNavTabs } from '@/components/finance/reports-nav/FinancialReportsNavTabs';
 import { ExpenseReviewDrawer } from './ExpenseReviewDrawer';
 import { ExpenseCategorySummaryView } from './ExpenseCategorySummary';
@@ -62,23 +63,45 @@ import { cn } from '@/lib/utils';
 interface AccountantReportsViewProps {
   initialProperties?: Array<{ id: string; name: string }>;
   initialFinancialYear?: number;
+  initialPropertyId?: string;
 }
 
 export function AccountantReportsView({
   initialProperties = [],
   initialFinancialYear,
+  initialPropertyId,
 }: AccountantReportsViewProps) {
   const { toast } = useToast();
   const currentFY = getCurrentFinancialYearNumber();
   const availableFys = getFinancialYears({ countBack: 5, countForward: 0 });
+  const { selectedProperty, availableProperties, setSelectedProperty } = usePropertyContext();
 
   // Filters
   const [selectedFY, setSelectedFY] = useState<number>(initialFinancialYear || currentFY);
   const [selectedPeriod, setSelectedPeriod] = useState<'FY' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'custom'>('FY');
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('all');
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(() => {
+    return initialPropertyId || selectedProperty?.propertyId || 'all';
+  });
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
   const activeTab = 'receipts-expenses';
+  const isFirstMountRef = React.useRef(true);
+
+  // Sync when selectedProperty in context changes
+  useEffect(() => {
+    const nextPropId = selectedProperty?.propertyId || 'all';
+    if (isFirstMountRef.current) {
+      isFirstMountRef.current = false;
+      if (nextPropId !== 'all' && !initialPropertyId) {
+        setSelectedPropertyId(nextPropId);
+      }
+      return;
+    }
+
+    if (nextPropId !== selectedPropertyId) {
+      setSelectedPropertyId(nextPropId);
+    }
+  }, [selectedProperty?.propertyId]);
 
   // Interactive Workspace State
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
@@ -86,11 +109,42 @@ export function AccountantReportsView({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isGeneratorModalOpen, setIsGeneratorModalOpen] = useState(false);
 
+  // Merge available properties from context and server options
+  const propertyOptions = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    (initialProperties || []).forEach((p) => {
+      map.set(p.id, p);
+    });
+    (availableProperties || []).forEach((p) => {
+      if (!map.has(p.propertyId)) {
+        map.set(p.propertyId, { id: p.propertyId, name: p.propertyName });
+      }
+    });
+    return Array.from(map.values());
+  }, [initialProperties, availableProperties]);
+
+  const handlePropertyChange = (newPropId: string) => {
+    setSelectedPropertyId(newPropId);
+    if (newPropId === 'all') {
+      setSelectedProperty(null);
+    } else {
+      const prop = availableProperties.find((p) => p.propertyId === newPropId) || {
+        propertyId: newPropId,
+        propertyName: propertyOptions.find((p) => p.id === newPropId)?.name || '',
+        role: 'owner' as any,
+        status: 'active' as any,
+        organizationId: '',
+        organizationName: '',
+      };
+      setSelectedProperty(prop);
+    }
+  };
+
   // Filter payload
   const currentFilters: AccountantHubFilters = useMemo(() => ({
     financialYear: selectedFY,
     period: selectedPeriod,
-    propertyId: selectedPropertyId,
+    propertyId: selectedPropertyId === 'all' ? undefined : selectedPropertyId,
     dateFrom: selectedPeriod === 'custom' ? dateFrom : undefined,
     dateTo: selectedPeriod === 'custom' ? dateTo : undefined,
   }), [selectedFY, selectedPeriod, selectedPropertyId, dateFrom, dateTo]);
@@ -113,6 +167,7 @@ export function AccountantReportsView({
   } = usePersistentEntityQuery<any>({
     entity: `accountant-report-${activeTab}`,
     fetcher,
+    propertyId: selectedPropertyId === 'all' ? null : selectedPropertyId,
     extraKey: `fy-${selectedFY}-p-${selectedPeriod}-prop-${selectedPropertyId}`,
     freshnessTier: 'normal',
   });
@@ -189,9 +244,9 @@ export function AccountantReportsView({
   // Resolve property display label
   const selectedPropertyLabel = useMemo(() => {
     if (selectedPropertyId === 'all') return 'All Properties (Consolidated)';
-    const p = initialProperties.find((x) => x.id === selectedPropertyId);
-    return p ? p.name : 'Selected Property';
-  }, [selectedPropertyId, initialProperties]);
+    const p = propertyOptions.find((x) => x.id === selectedPropertyId);
+    return p ? p.name : (selectedProperty?.propertyName || 'Selected Property');
+  }, [selectedPropertyId, propertyOptions, selectedProperty]);
 
   return (
     <div className="h-full w-full min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#F7FAFC] dark:bg-[#07111F]">
@@ -282,11 +337,11 @@ export function AccountantReportsView({
               <span className="font-semibold text-slate-500 dark:text-slate-400">Property:</span>
               <select
                 value={selectedPropertyId}
-                onChange={(e) => setSelectedPropertyId(e.target.value)}
+                onChange={(e) => handlePropertyChange(e.target.value)}
                 className="text-xs font-semibold rounded-lg border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#08182A] text-slate-900 dark:text-white px-2.5 py-1.5 focus:outline-hidden focus:ring-1 focus:ring-[#008F83]"
               >
                 <option value="all">All Properties (Portfolio Consolidated)</option>
-                {initialProperties.map((p) => (
+                {propertyOptions.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>

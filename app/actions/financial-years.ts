@@ -144,15 +144,17 @@ export async function fetchFinancialYearsOverviewAction(propertyId?: string): Pr
 
     // 2. Generate canonical available financial years (5 years back, 1 year forward)
     const availableFys = getFinancialYears({ countBack: 5, countForward: 1 });
-    const minDate = availableFys[0]?.range?.start;
-    const maxDate = availableFys[availableFys.length - 1]?.range?.end;
+    const allStarts = availableFys.map((f) => f.range.start).filter(Boolean);
+    const allEnds = availableFys.map((f) => f.range.end).filter(Boolean);
+    const minDate = allStarts.reduce((min, cur) => (cur < min ? cur : min), allStarts[0]);
+    const maxDate = allEnds.reduce((max, cur) => (cur > max ? cur : max), allEnds[0]);
 
-    // 3. Fetch completed transactions for this workspace within FY range (filtered by property if specified)
+    // 3. Fetch completed & active transactions for this workspace within FY range (filtered by property if specified)
     let txQuery = supabase
       .from('transactions')
       .select('id, amount, transaction_type, transaction_date, status, property_id, gst_inclusive, gst_amount')
       .eq('workspace_id', context.workspaceId)
-      .eq('status', 'completed');
+      .in('status', ['completed', 'pending']);
 
     if (minDate && maxDate) {
       txQuery = txQuery.gte('transaction_date', minDate).lte('transaction_date', maxDate);
@@ -168,7 +170,16 @@ export async function fetchFinancialYearsOverviewAction(propertyId?: string): Pr
 
     let totalHistoricalIncome = 0;
     let totalHistoricalExpenses = 0;
-    let totalTransactionsCount = transactions.length;
+    const totalTransactionsCount = transactions.length;
+
+    for (const tx of transactions) {
+      const amt = Number(tx.amount) || 0;
+      if (isIncome(tx.transaction_type)) {
+        totalHistoricalIncome += amt;
+      } else if (isExpense(tx.transaction_type)) {
+        totalHistoricalExpenses += amt;
+      }
+    }
 
     const fySummaries: FinancialYearSummaryItem[] = availableFys.map((fyOpt) => {
       const yr = fyOpt.year;
@@ -194,10 +205,8 @@ export async function fetchFinancialYearsOverviewAction(propertyId?: string): Pr
         const amt = Number(tx.amount) || 0;
         if (isIncome(tx.transaction_type)) {
           income += amt;
-          totalHistoricalIncome += amt;
         } else if (isExpense(tx.transaction_type)) {
           expenses += amt;
-          totalHistoricalExpenses += amt;
         }
         if (tx.property_id) {
           activePropSet.add(tx.property_id);
@@ -290,7 +299,7 @@ export async function fetchFinancialYearDetailsAction(
         property:properties(id, name)
       `)
       .eq('workspace_id', context.workspaceId)
-      .eq('status', 'completed')
+      .in('status', ['completed', 'pending'])
       .gte('transaction_date', range.start)
       .lte('transaction_date', range.end)
       .order('transaction_date', { ascending: false });
