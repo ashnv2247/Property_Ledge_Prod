@@ -208,7 +208,10 @@ export function PropertyDetailHub({ propertyId }: PropertyDetailHubProps) {
                 { label: 'Setup Tenancy / Tenant', onClick: () => setIsTenancyWizardOpen(true) },
                 { label: 'Create Lease', onClick: () => setIsCreateLeaseWizardOpen(true) },
               ]}
-              moreItems={[{ label: 'View in Portfolio', onClick: () => router.push('/dashboard/properties') }]}
+              moreItems={[
+                { label: 'ATO Accountant Report', onClick: () => router.push(`/dashboard/properties/${propertyId}/accountant-report`) },
+                { label: 'View in Portfolio', onClick: () => router.push('/dashboard/properties') },
+              ]}
             />
           }
         />

@@ -277,7 +277,9 @@ export function AdminDataGrid<TData = any>({
       if (isServerSide) return;
       const newPageSize = api.paginationGetPageSize();
       const newPage = api.paginationGetCurrentPage() + 1;
-      setClientPageSize((prev) => (prev !== newPageSize ? newPageSize : prev));
+      if (newPageSize && newPageSize >= 5) {
+        setClientPageSize((prev) => (prev !== newPageSize ? newPageSize : prev));
+      }
       setClientPage((prev) => (prev !== newPage ? newPage : prev));
     },
     [isServerSide]
@@ -314,7 +316,7 @@ export function AdminDataGrid<TData = any>({
             params.api.paginationGoToPage(saved.page - 1);
           } catch {}
         }
-        if (saved.pageSize && !isServerSide) {
+        if (saved.pageSize && saved.pageSize >= 5 && !isServerSide) {
           setClientPageSize(saved.pageSize);
           try {
             params.api.setGridOption('paginationPageSize', saved.pageSize);
@@ -358,10 +360,13 @@ export function AdminDataGrid<TData = any>({
   const onPaginationChanged = useCallback(() => {
     if (gridApi && !isServerSide) {
       syncPaginationFromGrid(gridApi);
-      saveGridState(effectiveGridStateKey, {
-        page: gridApi.paginationGetCurrentPage() + 1,
-        pageSize: gridApi.paginationGetPageSize(),
-      });
+      const curPageSize = gridApi.paginationGetPageSize();
+      if (curPageSize && curPageSize >= 5) {
+        saveGridState(effectiveGridStateKey, {
+          page: gridApi.paginationGetCurrentPage() + 1,
+          pageSize: curPageSize,
+        });
+      }
     }
   }, [gridApi, isServerSide, syncPaginationFromGrid, effectiveGridStateKey, saveGridState]);
 
@@ -571,8 +576,8 @@ export function AdminDataGrid<TData = any>({
       <div
         ref={gridContainerRef}
         className={cn(
-          'relative w-full flex-1 min-h-0 overflow-hidden transition-[height,max-height,min-height] duration-250 ease-out',
-          isExpanded ? 'min-h-[380px]' : 'min-h-[300px]'
+          'relative w-full flex-1 flex flex-col min-h-0 overflow-hidden transition-[height,max-height,min-height] duration-250 ease-out',
+          isExpanded ? 'min-h-[500px] h-[580px]' : 'min-h-[380px] h-[480px]'
         )}
       >
         {isEmpty ? (
@@ -586,7 +591,7 @@ export function AdminDataGrid<TData = any>({
           />
         ) : (
           /* Render AG Grid with concurrent background initialization */
-          <div className="ag-theme-propertyledge w-full h-full flex-1 relative">
+          <div className="ag-theme-propertyledge w-full h-full min-h-[360px] flex-1 flex flex-col relative">
             {isLoadingState && (!isDataLoaded || rowData.length === 0) && (
               <div className="absolute inset-0 z-20 pointer-events-none bg-admin-surface">
                 <AdminDataGridLoading overlay={false} />
@@ -599,9 +604,9 @@ export function AdminDataGrid<TData = any>({
               gridOptions={mergedGridOptions}
               rowHeight={rowHeight}
               components={components}
-              pagination={!isServerSide && !disablePagination}
-              paginationAutoPageSize={!isServerSide && !disablePagination}
-              paginationPageSize={isServerSide ? effectivePageSize : undefined}
+              pagination={!disablePagination}
+              paginationAutoPageSize={false}
+              paginationPageSize={effectivePageSize || defaultPageSize || 25}
               suppressPaginationPanel={true}
               onGridReady={onGridReady}
               onPaginationChanged={onPaginationChanged}

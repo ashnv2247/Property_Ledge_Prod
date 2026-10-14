@@ -466,7 +466,7 @@ export function ExpenseTransactionsGrid({
       )}
 
       {/* 3. AG-Grid Implementation */}
-      <div className="p-3 sm:p-4">
+      <div className="p-3 sm:p-4 min-h-[560px]">
         <AdminDataGrid<AccountantExpenseItem>
           gridId="accountant-expenses-grid"
           rowData={filteredExpenses}
