@@ -16,7 +16,6 @@ import {
   FolderSimple,
   CheckSquare,
   ChartBar,
-  Gear,
   UserPlus,
   ShieldCheck,
   DotsThree,
@@ -73,7 +72,6 @@ const HIERARCHICAL_NAV: NavItemConfig[] = [
       { id: 'portfolio', label: 'Overview', href: '/dashboard/properties', exact: true },
       { id: 'people', label: 'Tenants', href: '/dashboard/people' },
       { id: 'leases', label: 'Leases', href: '/dashboard/leases' },
-      { id: 'condition-reports', label: 'Condition Reports', href: '/dashboard/condition-reports' },
     ],
   },
   {
@@ -83,7 +81,6 @@ const HIERARCHICAL_NAV: NavItemConfig[] = [
     children: [
       { id: 'money', label: 'Overview', href: '/dashboard/money', exact: true },
       { id: 'expenses', label: 'Expenses', href: '/dashboard/expenses' },
-      { id: 'invoices', label: 'Invoices', href: '/dashboard/invoices' },
       { id: 'finances', label: 'Payment Schedules', href: '/dashboard/schedules' },
       { id: 'bas', label: 'BAS Statement', href: '/dashboard/bas' },
     ],
@@ -93,8 +90,10 @@ const HIERARCHICAL_NAV: NavItemConfig[] = [
     label: 'Operations',
     icon: ClipboardText,
     children: [
+      { id: 'activity', label: 'Activity', href: '/dashboard/activity' },
       { id: 'tasks', label: 'My Tasks', href: '/dashboard/tasks' },
-      { id: 'activity', label: 'Audit Activity', href: '/dashboard/activity' },
+      { id: 'invoices', label: 'Invoices', href: '/dashboard/invoices' },
+      { id: 'condition-reports', label: 'Condition Reports', href: '/dashboard/condition-reports' },
       { id: 'automations', label: 'Automations', href: '/dashboard/automations' },
     ],
   },
@@ -107,12 +106,6 @@ const HIERARCHICAL_NAV: NavItemConfig[] = [
       { id: 'financial-years', label: 'Financial Years', href: '/dashboard/financial-years' },
       { id: 'accountant-reports', label: 'Accountant Report', href: '/dashboard/accountant-reports' },
     ],
-  },
-  {
-    id: 'documents',
-    label: 'Documents',
-    href: '/dashboard/documents',
-    icon: FolderSimple,
   },
 ];
 
@@ -158,11 +151,12 @@ function buildNavSections(persona: Persona, permissions: string[] = []): NavSect
     });
   }
 
-  if (canAccessNavItem(persona, 'settings', permissions)) {
+  if (canAccessNavItem(persona, 'documents', permissions)) {
     sections[0].items.push({
-      label: 'Settings',
-      href: '/dashboard/settings',
-      icon: Gear,
+      id: 'documents',
+      label: 'Documents',
+      href: '/dashboard/documents',
+      icon: FolderSimple,
     });
   }
 

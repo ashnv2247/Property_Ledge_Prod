@@ -41,7 +41,6 @@ import {
   validateFinancialYearPeriodAction,
 } from '@/app/actions/financial-years';
 import { usePropertyContext } from '@/components/property/PropertyContext';
-import { FinancialReportsNavTabs } from '@/components/finance/reports-nav/FinancialReportsNavTabs';
 import { cn } from '@/lib/utils';
 
 interface FinancialYearsViewProps {
@@ -215,9 +214,6 @@ export function FinancialYearsView({ initialData, initialPropertyId }: Financial
   return (
     <div className="h-full w-full min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#F7FAFC] dark:bg-[#07111F]">
       <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 pb-28">
-        {/* Top Section Nav Tabs: Financial Reports | Financial Years | Accountant Reports */}
-        <FinancialReportsNavTabs activeSection="financial-years" />
-
       {/* 1. Header with Title & Period Configuration Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-white/[0.08]">
         <div>

@@ -156,23 +156,45 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
     return scopedInvoices.filter((inv) => inv.status === statusFilter);
   }, [scopedInvoices, statusFilter]);
 
-  // KPIs strictly reflecting current property context and filters
+  // KPIs strictly reflecting current property context and filters with transparent calculation derivations
   const stats = useMemo(() => {
     let totalOutstanding = 0;
     let totalInvoiced = 0;
     let overdueCount = 0;
+    let overdueAmount = 0;
     let paidCount = 0;
+    let activeCount = 0;
 
     for (const inv of scopedInvoices) {
       if (inv.status !== 'cancelled' && inv.status !== 'void') {
+        activeCount++;
         totalInvoiced += inv.total;
         totalOutstanding += inv.balance;
       }
-      if (inv.status === 'overdue') overdueCount++;
-      if (inv.status === 'paid') paidCount++;
+      const isPastDue = inv.balance > 0 && (inv.status === 'overdue' || new Date(inv.dueDate) < new Date());
+      if (isPastDue) {
+        overdueCount++;
+        overdueAmount += inv.balance;
+      }
+      if (inv.status === 'paid' || (inv.balance === 0 && inv.total > 0)) {
+        paidCount++;
+      }
     }
 
-    return { totalOutstanding, totalInvoiced, overdueCount, paidCount };
+    const totalCollected = Math.max(0, totalInvoiced - totalOutstanding);
+    const collectionRate = totalInvoiced > 0 ? Math.round((totalCollected / totalInvoiced) * 100) : 0;
+
+    return {
+      totalOutstanding,
+      totalInvoiced,
+      totalCollected,
+      overdueCount,
+      overdueAmount,
+      paidCount,
+      activeCount,
+      totalCount: scopedInvoices.length,
+      collectionRate,
+    };
   }, [scopedInvoices]);
 
   // Actions
@@ -693,68 +715,96 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
         </div>
       }
       summary={
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-admin-surface border border-admin-border rounded-xl p-3.5 shadow-xs flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
-              <Clock className="w-5 h-5" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* 1. Outstanding Balance */}
+          <div className="bg-admin-surface border border-admin-border rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold text-admin-muted uppercase tracking-wider">Outstanding Balance</p>
+                <h3 className="text-lg font-black text-admin-foreground truncate mt-0.5">
+                  {loading ? (
+                    <span className="inline-block h-5 w-20 rounded skeleton-shimmer align-middle" />
+                  ) : (
+                    formatCurrency(stats.totalOutstanding, 'AUD')
+                  )}
+                </h3>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold text-admin-muted uppercase tracking-wider">Outstanding Balance</p>
-              <h3 className="text-lg font-black text-admin-foreground truncate">
-                {loading ? (
-                  <span className="inline-block h-5 w-20 rounded skeleton-shimmer align-middle" />
-                ) : (
-                  formatCurrency(stats.totalOutstanding, 'AUD')
-                )}
-              </h3>
-            </div>
-          </div>
-
-          <div className="bg-admin-surface border border-admin-border rounded-xl p-3.5 shadow-xs flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20">
-              <DollarSign className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold text-admin-muted uppercase tracking-wider">Total Invoiced</p>
-              <h3 className="text-lg font-black text-admin-foreground truncate">
-                {loading ? (
-                  <span className="inline-block h-5 w-20 rounded skeleton-shimmer align-middle" />
-                ) : (
-                  formatCurrency(stats.totalInvoiced, 'AUD')
-                )}
-              </h3>
+            <div className="mt-2.5 pt-2 border-t border-admin-border/60 text-[10.5px] text-slate-500 dark:text-slate-400 leading-snug">
+              <span className="font-semibold text-amber-600 dark:text-amber-400">Calculation: </span>
+              <span>Total Invoiced ({formatCurrency(stats.totalInvoiced, 'AUD')}) − Collected ({formatCurrency(stats.totalCollected, 'AUD')})</span>
             </div>
           </div>
 
-          <div className="bg-admin-surface border border-admin-border rounded-xl p-3.5 shadow-xs flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
-              <CheckCircle2 className="w-5 h-5" />
+          {/* 2. Total Invoiced */}
+          <div className="bg-admin-surface border border-admin-border rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20">
+                <DollarSign className="w-4 h-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold text-admin-muted uppercase tracking-wider">Total Invoiced</p>
+                <h3 className="text-lg font-black text-admin-foreground truncate mt-0.5">
+                  {loading ? (
+                    <span className="inline-block h-5 w-20 rounded skeleton-shimmer align-middle" />
+                  ) : (
+                    formatCurrency(stats.totalInvoiced, 'AUD')
+                  )}
+                </h3>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold text-admin-muted uppercase tracking-wider">Paid Invoices</p>
-              <h3 className="text-lg font-black text-emerald-600 dark:text-emerald-400 truncate">
-                {loading ? (
-                  <span className="inline-block h-5 w-12 rounded skeleton-shimmer align-middle" />
-                ) : (
-                  stats.paidCount
-                )}
-              </h3>
+            <div className="mt-2.5 pt-2 border-t border-admin-border/60 text-[10.5px] text-slate-500 dark:text-slate-400 leading-snug">
+              <span className="font-semibold text-blue-600 dark:text-blue-400">Calculation: </span>
+              <span>Σ Line items + GST across {stats.activeCount} active invoices (excl. void/cancelled)</span>
             </div>
           </div>
 
-          <div className="bg-admin-surface border border-admin-border rounded-xl p-3.5 shadow-xs flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/20">
-              <AlertCircle className="w-5 h-5" />
+          {/* 3. Paid Invoices */}
+          <div className="bg-admin-surface border border-admin-border rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold text-admin-muted uppercase tracking-wider">Paid Invoices</p>
+                <h3 className="text-lg font-black text-emerald-600 dark:text-emerald-400 truncate mt-0.5">
+                  {loading ? (
+                    <span className="inline-block h-5 w-12 rounded skeleton-shimmer align-middle" />
+                  ) : (
+                    stats.paidCount
+                  )}
+                </h3>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold text-admin-muted uppercase tracking-wider">Overdue Invoices</p>
-              <h3 className="text-lg font-black text-rose-600 dark:text-rose-400 truncate">
-                {loading ? (
-                  <span className="inline-block h-5 w-12 rounded skeleton-shimmer align-middle" />
-                ) : (
-                  stats.overdueCount
-                )}
-              </h3>
+            <div className="mt-2.5 pt-2 border-t border-admin-border/60 text-[10.5px] text-slate-500 dark:text-slate-400 leading-snug">
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">Calculation: </span>
+              <span>{stats.paidCount} of {stats.activeCount} invoices settled with $0 balance ({stats.collectionRate}% collected)</span>
+            </div>
+          </div>
+
+          {/* 4. Overdue Invoices */}
+          <div className="bg-admin-surface border border-admin-border rounded-xl p-3.5 shadow-xs flex flex-col justify-between">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/20">
+                <AlertCircle className="w-4 h-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold text-admin-muted uppercase tracking-wider">Overdue Invoices</p>
+                <h3 className="text-lg font-black text-rose-600 dark:text-rose-400 truncate mt-0.5">
+                  {loading ? (
+                    <span className="inline-block h-5 w-12 rounded skeleton-shimmer align-middle" />
+                  ) : (
+                    stats.overdueCount
+                  )}
+                </h3>
+              </div>
+            </div>
+            <div className="mt-2.5 pt-2 border-t border-admin-border/60 text-[10.5px] text-slate-500 dark:text-slate-400 leading-snug">
+              <span className="font-semibold text-rose-600 dark:text-rose-400">Calculation: </span>
+              <span>Invoices with Due Date &lt; Today &amp; balance &gt; $0 ({formatCurrency(stats.overdueAmount, 'AUD')} past due)</span>
             </div>
           </div>
         </div>

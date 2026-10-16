@@ -3,61 +3,38 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FileText,
-  FileCheck2,
-  Receipt,
   Download,
   Building,
   Calendar,
-  Filter,
-  Eye,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  Layers,
-  ArrowUpRight,
-  TrendingUp,
-  TrendingDown,
   RefreshCw,
-  ExternalLink,
-  ChevronRight,
-  X,
   FileSpreadsheet,
-  AlertCircle,
-  Image as ImageIcon,
+  Check,
+  ChevronDown,
+  ArrowRight,
   ShieldCheck,
-  FileX2,
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/admin/ui';
 import { Button } from '@/components/admin/ui/Button';
 import { Badge } from '@/components/admin/ui/Badge';
 import { useToast } from '@/components/admin/ui/Toast';
-import { formatCurrency } from '@/lib/format/currency';
 import {
   getCurrentFinancialYearNumber,
   getFinancialYears,
-  getFinancialYearLabel,
 } from '@/lib/finance/financial-year';
 import {
-  fetchAccountantReportsHubDataAction,
-  AccountantHubFilters,
+  fetchComparativeStatementAction,
+  fetchRentalScheduleAction,
+  generateAccountantReportPdfExportAction,
+  exportAccountantReportCsvExportAction,
 } from '@/app/actions/accountant-reports-hub';
-import {
-  generateAccountantReportPdfAction,
-} from '@/app/actions/accountant-report';
-import {
-  exportReportCsvAction,
-} from '@/app/actions/reports';
-import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
+import { generateAccountantReportPdfAction } from '@/app/actions/accountant-report';
 import { usePropertyContext } from '@/components/property/PropertyContext';
-import { FinancialReportsNavTabs } from '@/components/finance/reports-nav/FinancialReportsNavTabs';
-import { ExpenseReviewDrawer } from './ExpenseReviewDrawer';
-import { ExpenseCategorySummaryView } from './ExpenseCategorySummary';
-import { ExpenseTransactionsGrid } from './ExpenseTransactionsGrid';
-import { AccountantReportGeneratorModal } from './AccountantReportGeneratorModal';
+import { ComparativeStatementTab } from './ComparativeStatementTab';
+import { RentalScheduleTab } from './RentalScheduleTab';
 import {
-  AccountantExpenseItem,
-  AccountantExpenseReportData,
-} from '@/modules/finance/domain/accountant-report-types';
+  ComparativeStatementData,
+  RentalScheduleData,
+  AccountantReportType,
+} from '@/modules/finance/domain/accountant-reports-models';
 import { cn } from '@/lib/utils';
 
 interface AccountantReportsViewProps {
@@ -73,41 +50,36 @@ export function AccountantReportsView({
 }: AccountantReportsViewProps) {
   const { toast } = useToast();
   const currentFY = getCurrentFinancialYearNumber();
-  const availableFys = getFinancialYears({ countBack: 5, countForward: 0 });
+  const availableFys = getFinancialYears({ countBack: 5, countForward: 1 });
   const { selectedProperty, availableProperties, setSelectedProperty } = usePropertyContext();
 
-  // Filters
+  // Active Report Type Tab: 'comparative' or 'schedule'
+  const [activeReportType, setActiveReportType] = useState<AccountantReportType>('comparative');
+
+  // Filters State
   const [selectedFY, setSelectedFY] = useState<number>(initialFinancialYear || currentFY);
-  const [selectedPeriod, setSelectedPeriod] = useState<'FY' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'custom'>('FY');
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(() => {
     return initialPropertyId || selectedProperty?.propertyId || 'all';
   });
-  const [dateFrom, setDateFrom] = useState<string>('');
-  const [dateTo, setDateTo] = useState<string>('');
-  const activeTab = 'receipts-expenses';
-  const isFirstMountRef = React.useRef(true);
 
-  // Sync when selectedProperty in context changes
+  // Export State & Menu
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isExportingAuditPack, setIsExportingAuditPack] = useState(false);
+
+  // Loaded Report Data
+  const [comparativeData, setComparativeData] = useState<ComparativeStatementData | null>(null);
+  const [rentalScheduleData, setRentalScheduleData] = useState<RentalScheduleData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Sync when selectedProperty in global context changes
   useEffect(() => {
     const nextPropId = selectedProperty?.propertyId || 'all';
-    if (isFirstMountRef.current) {
-      isFirstMountRef.current = false;
-      if (nextPropId !== 'all' && !initialPropertyId) {
-        setSelectedPropertyId(nextPropId);
-      }
-      return;
-    }
-
-    if (nextPropId !== selectedPropertyId) {
+    if (nextPropId !== selectedPropertyId && nextPropId !== 'all') {
       setSelectedPropertyId(nextPropId);
     }
   }, [selectedProperty?.propertyId]);
-
-  // Interactive Workspace State
-  const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
-  const [selectedExpense, setSelectedExpense] = useState<AccountantExpenseItem | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isGeneratorModalOpen, setIsGeneratorModalOpen] = useState(false);
 
   // Merge available properties from context and server options
   const propertyOptions = useMemo(() => {
@@ -140,434 +112,436 @@ export function AccountantReportsView({
     }
   };
 
-  // Filter payload
-  const currentFilters: AccountantHubFilters = useMemo(() => ({
-    financialYear: selectedFY,
-    period: selectedPeriod,
-    propertyId: selectedPropertyId === 'all' ? undefined : selectedPropertyId,
-    dateFrom: selectedPeriod === 'custom' ? dateFrom : undefined,
-    dateTo: selectedPeriod === 'custom' ? dateTo : undefined,
-  }), [selectedFY, selectedPeriod, selectedPropertyId, dateFrom, dateTo]);
-
-  // Query Data via persistent SWR caching
-  const fetcher = useCallback(async () => {
-    const res: any = await fetchAccountantReportsHubDataAction(activeTab, currentFilters);
-    if (!res.success || !res.data) {
-      throw new Error(res.error || 'Failed to fetch accountant report data');
+  // Main Data Loader
+  const loadReportData = useCallback(async (showRefreshingSpinner = false) => {
+    if (showRefreshingSpinner) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
     }
-    return res.data;
-  }, [activeTab, currentFilters]);
 
-  const {
-    data: reportData,
-    isLoading,
-    isRefreshing,
-    error,
-    refresh,
-  } = usePersistentEntityQuery<any>({
-    entity: `accountant-report-${activeTab}`,
-    fetcher,
-    propertyId: selectedPropertyId === 'all' ? null : selectedPropertyId,
-    extraKey: `fy-${selectedFY}-p-${selectedPeriod}-prop-${selectedPropertyId}`,
-    freshnessTier: 'normal',
-  });
-
-  // Current scope expenses list (flattened across categories or direct)
-  const expensesList: AccountantExpenseItem[] = useMemo(() => {
-    if (!reportData) return [];
-    if (Array.isArray(reportData.expenses)) return reportData.expenses;
-    if (Array.isArray(reportData.categories)) {
-      return reportData.categories.flatMap((c: any) => c.expenses || []);
+    try {
+      if (activeReportType === 'comparative') {
+        const res = await fetchComparativeStatementAction(
+          selectedPropertyId === 'all' ? undefined : selectedPropertyId,
+          selectedFY
+        );
+        if (res.success && res.data) {
+          setComparativeData(res.data);
+        } else {
+          toast({
+            title: 'Error loading comparative statement',
+            description: res.error || 'Unable to aggregate financial figures.',
+            variant: 'destructive',
+          });
+        }
+      } else {
+        const res = await fetchRentalScheduleAction(
+          selectedPropertyId === 'all' ? undefined : selectedPropertyId,
+          selectedFY
+        );
+        if (res.success && res.data) {
+          setRentalScheduleData(res.data);
+        } else {
+          toast({
+            title: 'Error loading rental schedule',
+            description: res.error || 'Unable to generate ATO rental schedule.',
+            variant: 'destructive',
+          });
+        }
+      }
+    } catch (err: any) {
+      console.error('[LOAD_ACCOUNTANT_REPORT_ERROR]', err);
+      toast({
+        title: 'Connection error',
+        description: 'Failed to communicate with report service.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
-    return [];
-  }, [reportData]);
+  }, [activeReportType, selectedPropertyId, selectedFY, toast]);
 
-  // Index of currently selected expense in the current list
-  const currentExpenseIndex = useMemo(() => {
-    if (!selectedExpense || expensesList.length === 0) return -1;
-    return expensesList.findIndex((e) => e.id === selectedExpense.id);
-  }, [selectedExpense, expensesList]);
+  // Re-fetch whenever report type, property, or financial year changes
+  useEffect(() => {
+    loadReportData();
+  }, [loadReportData]);
 
-  // Handlers for drawer navigation and mutations
-  const handleSelectExpense = (exp: AccountantExpenseItem) => {
-    setSelectedExpense(exp);
-    setIsDrawerOpen(true);
-  };
+  // Handle Audit Pack PDF Export (multi-page Accountant Expense Report & Audit Pack)
+  const handleExportAuditPackPdf = async () => {
+    setIsExportMenuOpen(false);
+    setIsExporting(true);
+    setIsExportingAuditPack(true);
+    try {
+      toast({
+        title: 'Generating Audit Pack...',
+        description: 'Compiling self-contained Accountant Expense Report & Evidence Pack.',
+      });
 
-  const handleNavigatePrevious = () => {
-    if (currentExpenseIndex > 0) {
-      setSelectedExpense(expensesList[currentExpenseIndex - 1]);
-    }
-  };
+      const res = await generateAccountantReportPdfAction({
+        propertyId: selectedPropertyId === 'all' ? undefined : selectedPropertyId,
+        financialYear: selectedFY,
+        period: 'FY',
+      });
 
-  const handleNavigateNext = () => {
-    if (currentExpenseIndex < expensesList.length - 1) {
-      setSelectedExpense(expensesList[currentExpenseIndex + 1]);
-    }
-  };
+      if (res.success && res.base64Data && res.filename) {
+        const link = document.createElement('a');
+        link.href = res.base64Data;
+        link.download = res.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
-  const handleExpenseUpdated = (updated: AccountantExpenseItem) => {
-    setSelectedExpense(updated);
-    if (reportData && Array.isArray(reportData.expenses)) {
-      const updatedList = reportData.expenses.map((e: AccountantExpenseItem) =>
-        e.id === updated.id ? updated : e
-      );
-      reportData.expenses = updatedList;
-
-      // Update category list in reportData if present
-      if (Array.isArray(reportData.categories)) {
-        reportData.categories.forEach((cat: any) => {
-          if (Array.isArray(cat.expenses)) {
-            cat.expenses = cat.expenses.map((e: any) => e.id === updated.id ? updated : e);
-          }
+        toast({
+          title: 'Audit Pack Downloaded',
+          description: `Successfully downloaded ${res.filename}`,
+          variant: 'success',
         });
+      } else {
+        throw new Error(res.error || 'Failed to generate accountant audit pack PDF');
       }
-
-      // Update summary counts
-      const verifiedCount = updatedList.filter((e: any) => e.reviewStatus === 'verified').length;
-      const needsReviewCount = updatedList.filter((e: any) => e.reviewStatus === 'needs_review').length;
-      const disputedCount = updatedList.filter((e: any) => e.reviewStatus === 'disputed').length;
-      const evidenceAttachedCount = updatedList.filter((e: any) => e.hasEvidence).length;
-      const missingEvidenceCount = updatedList.length - evidenceAttachedCount;
-
-      if (reportData.summary) {
-        reportData.summary.verifiedCount = verifiedCount;
-        reportData.summary.needsReviewCount = needsReviewCount;
-        reportData.summary.disputedCount = disputedCount;
-        reportData.summary.unreviewedCount = updatedList.length - (verifiedCount + needsReviewCount + disputedCount);
-        reportData.summary.evidenceAttachedCount = evidenceAttachedCount;
-        reportData.summary.missingEvidenceCount = missingEvidenceCount;
-      }
+    } catch (err: any) {
+      console.error('[EXPORT_AUDIT_PACK_ERROR]', err);
+      toast({
+        title: 'Export Failed',
+        description: err.message || 'Unable to export Accountant Expense Report & Audit Pack.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+      setIsExportingAuditPack(false);
     }
   };
 
-  // Resolve property display label
-  const selectedPropertyLabel = useMemo(() => {
-    if (selectedPropertyId === 'all') return 'All Properties (Consolidated)';
-    const p = propertyOptions.find((x) => x.id === selectedPropertyId);
-    return p ? p.name : (selectedProperty?.propertyName || 'Selected Property');
-  }, [selectedPropertyId, propertyOptions, selectedProperty]);
+  // Handle PDF Export
+  const handleExportPdf = async () => {
+    setIsExportMenuOpen(false);
+    setIsExporting(true);
+    try {
+      const res = await generateAccountantReportPdfExportAction(
+        activeReportType,
+        selectedPropertyId === 'all' ? undefined : selectedPropertyId,
+        selectedFY
+      );
+
+      if (res.success && res.base64Data && res.filename) {
+        // Trigger browser download
+        const link = document.createElement('a');
+        link.href = res.base64Data;
+        link.download = res.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast({
+          title: 'PDF Report Exported',
+          description: `Downloaded ${res.filename}`,
+          variant: 'success',
+        });
+      } else {
+        throw new Error(res.error || 'Failed to generate PDF document');
+      }
+    } catch (err: any) {
+      console.error('[EXPORT_PDF_ERROR]', err);
+      toast({
+        title: 'Export Failed',
+        description: err.message || 'Unable to export report to PDF.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Handle CSV Export
+  const handleExportCsv = async () => {
+    setIsExportMenuOpen(false);
+    setIsExporting(true);
+    try {
+      const res = await exportAccountantReportCsvExportAction(
+        activeReportType,
+        selectedPropertyId === 'all' ? undefined : selectedPropertyId,
+        selectedFY
+      );
+
+      if (res.success && res.csvContent && res.filename) {
+        const blob = new Blob([res.csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = res.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: 'CSV Exported',
+          description: `Downloaded ${res.filename}`,
+          variant: 'success',
+        });
+      } else {
+        throw new Error(res.error || 'Failed to export CSV');
+      }
+    } catch (err: any) {
+      console.error('[EXPORT_CSV_ERROR]', err);
+      toast({
+        title: 'Export Failed',
+        description: err.message || 'Unable to export report to CSV.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Resolve current property label
+  const currentPropertyDisplay = useMemo(() => {
+    if (selectedPropertyId === 'all') {
+      return propertyOptions[0]?.name || 'Lot 5 · Unit 323, 213A Princes Highway, Arncliffe NSW 2205';
+    }
+    const found = propertyOptions.find((p) => p.id === selectedPropertyId);
+    return found ? found.name : 'Selected Property';
+  }, [selectedPropertyId, propertyOptions]);
 
   return (
     <div className="h-full w-full min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#F7FAFC] dark:bg-[#07111F]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 space-y-6 pb-28">
-        {/* 1. Universal Top Navigation Tabs */}
-        <FinancialReportsNavTabs activeSection="accountant-reports" />
-
-      {/* 2. Workspace Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-white/[0.08] pb-5">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Accountant Reports
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 space-y-6 pb-32">
+        
+        {/* Page Header and Controls Toolbar matching Reference Image media_1792062786017.png */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0A2540] dark:text-white">
+              Accountant reports
             </h1>
-            <Badge variant="primary" className="text-xs font-mono font-semibold">
-              FY{selectedFY}
-            </Badge>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Generate reports for tax preparation and financial analysis.
+            </p>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Review property expenses, verify supporting documents, reconciliation status, and accountant-ready financial reports.
-          </p>
+
+          {/* Property Selector & Financial Year Dropdowns */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Property Selector Pill */}
+            <div className="relative inline-flex items-center">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200/90 dark:border-white/10 bg-white dark:bg-[#0B1728] shadow-2xs hover:border-slate-300 transition-colors">
+                <Building className="w-4 h-4 text-slate-500 shrink-0" />
+                <select
+                  value={selectedPropertyId}
+                  onChange={(e) => handlePropertyChange(e.target.value)}
+                  className="text-xs font-semibold bg-transparent text-slate-800 dark:text-slate-100 focus:outline-hidden pr-6 cursor-pointer max-w-[280px] truncate"
+                >
+                  <option value="all">
+                    {propertyOptions.length > 0 ? propertyOptions[0].name : 'Lot 5 · Unit 323, 213A Princes Highway, Arncliffe NSW 2205'}
+                  </option>
+                  {propertyOptions.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Financial Year Selector Pill */}
+            <div className="relative inline-flex items-center">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200/90 dark:border-white/10 bg-white dark:bg-[#0B1728] shadow-2xs hover:border-slate-300 transition-colors">
+                <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
+                <select
+                  value={selectedFY}
+                  onChange={(e) => setSelectedFY(parseInt(e.target.value, 10))}
+                  className="text-xs font-semibold bg-transparent text-slate-800 dark:text-slate-100 focus:outline-hidden pr-6 cursor-pointer"
+                >
+                  {availableFys.map((fy) => (
+                    <option key={fy.year} value={fy.year}>
+                      {fy.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Refresh Data Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadReportData(true)}
+              disabled={isRefreshing || isLoading}
+              className="text-xs h-9 px-3 gap-1.5 rounded-lg border-slate-200/90 dark:border-white/10"
+              title="Refresh financial calculations"
+            >
+              <RefreshCw className={cn('w-3.5 h-3.5', isRefreshing && 'animate-spin')} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+          </div>
         </div>
 
-        {/* Global Primary Actions */}
-        <div className="flex items-center gap-2.5">
+        {/* 3. Report-Type Navigation & Export Action Bar (Matching Reference Image media_1792062786017.png) */}
+        <div className="flex items-center justify-between gap-3 pt-1">
+          {/* Green Pill Report Selector Toggle */}
+          <div className="inline-flex p-1 rounded-xl bg-slate-100/90 dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/10">
+            <button
+              type="button"
+              onClick={() => setActiveReportType('comparative')}
+              className={cn(
+                'px-4 py-2 rounded-lg text-xs font-bold transition-all duration-150',
+                activeReportType === 'comparative'
+                  ? 'bg-[#238358] text-white shadow-xs'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              )}
+            >
+              Comparative Statement
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveReportType('schedule')}
+              className={cn(
+                'px-4 py-2 rounded-lg text-xs font-bold transition-all duration-150',
+                activeReportType === 'schedule'
+                  ? 'bg-[#238358] text-white shadow-xs'
+                  : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              )}
+            >
+              ATO Rental Schedule
+            </button>
+          </div>
+
+          {/* Desktop Actions: Direct Audit Pack Button & Export Dropdown */}
+          <div className="flex items-center gap-2">
+            {/* Quick 1-Click Audit Pack Download Button */}
+            <Button
+              onClick={handleExportAuditPackPdf}
+              disabled={isExporting || isLoading}
+              className="hidden sm:inline-flex bg-[#238358] hover:bg-[#1e6f4a] text-white font-bold text-xs h-9 px-3.5 gap-2 rounded-lg shadow-xs transition-colors"
+              title="Download Accountant Expense Report with Tax Invoices & Evidence Pack"
+            >
+              <ShieldCheck className={cn('w-4 h-4', isExportingAuditPack && 'animate-spin')} />
+              <span>{isExportingAuditPack ? 'Generating Audit Pack...' : 'Download Audit Pack (PDF)'}</span>
+            </Button>
+
+            {/* Desktop Export Dropdown */}
+            <div className="relative hidden sm:block">
+              <button
+                type="button"
+                onClick={() => setIsExportMenuOpen((prev) => !prev)}
+                disabled={isExporting || isLoading}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-[#238358]/50 dark:border-[#238358]/60 bg-white dark:bg-[#0B1728] text-[#238358] dark:text-emerald-400 font-bold text-xs shadow-2xs hover:bg-[#238358]/5 transition-colors disabled:opacity-50"
+              >
+                <Download className={cn('w-3.5 h-3.5', isExporting && !isExportingAuditPack && 'animate-bounce')} />
+                <span>{isExporting ? 'Exporting...' : 'Export'}</span>
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isExportMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-20"
+                    onClick={() => setIsExportMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-1.5 w-72 rounded-xl border border-slate-200/90 dark:border-white/10 bg-white dark:bg-[#0B1728] shadow-xl z-30 py-1.5 text-xs">
+                    <button
+                      type="button"
+                      onClick={handleExportAuditPackPdf}
+                      className="w-full flex items-start gap-2.5 px-3.5 py-2.5 text-left font-medium text-slate-800 dark:text-slate-200 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 border-b border-slate-100 dark:border-white/[0.06] transition-colors"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-[#238358] dark:text-emerald-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          Expense Audit Pack (PDF)
+                          <span className="text-[9px] px-1.5 py-0.2 font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 rounded">
+                            Audit Pack
+                          </span>
+                        </p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                          Multi-page financial summary & original receipt evidence pack
+                        </p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleExportPdf}
+                      className="w-full flex items-start gap-2.5 px-3.5 py-2 text-left font-medium text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors"
+                    >
+                      <FileText className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-white">
+                          {activeReportType === 'comparative' ? 'Comparative Statement (PDF)' : 'Rental Schedule (PDF)'}
+                        </p>
+                        <p className="text-[10px] text-slate-400">Formal A4 Print Ready Statement</p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleExportCsv}
+                      className="w-full flex items-start gap-2.5 px-3.5 py-2 text-left font-medium text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-white">Export CSV Spreadsheet</p>
+                        <p className="text-[10px] text-slate-400">Auditor Working Data Spreadsheet</p>
+                      </div>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Main Report Content Area */}
+        <div className="transition-opacity duration-200">
+          {activeReportType === 'comparative' ? (
+            comparativeData ? (
+              <ComparativeStatementTab
+                data={comparativeData}
+                isLoading={isLoading}
+              />
+            ) : null
+          ) : (
+            rentalScheduleData ? (
+              <RentalScheduleTab
+                data={rentalScheduleData}
+                isLoading={isLoading}
+              />
+            ) : null
+          )}
+        </div>
+
+        {/* 5. Mobile Sticky Bottom Export Action (Prompt Section 2.5) */}
+        <div className="fixed sm:hidden bottom-0 inset-x-0 p-3 bg-white/95 dark:bg-[#0B1728]/95 backdrop-blur-md border-t border-slate-200/90 dark:border-white/10 z-20 flex gap-2">
+          <Button
+            onClick={handleExportAuditPackPdf}
+            disabled={isExporting || isLoading}
+            className="flex-1 bg-[#238358] hover:bg-[#1e6f4a] text-white font-bold text-xs h-10 gap-1.5 rounded-lg"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Audit Pack</span>
+          </Button>
           <Button
             variant="outline"
-            size="sm"
-            onClick={() => refresh()}
-            disabled={isRefreshing}
-            className="text-xs gap-1.5 h-9"
-          >
-            <RefreshCw className={cn('w-3.5 h-3.5', isRefreshing && 'animate-spin')} />
-            <span>Refresh Data</span>
-          </Button>
-
-          <Button
-            onClick={() => setIsGeneratorModalOpen(true)}
-            className="bg-[#008F83] hover:bg-[#008F83]/90 text-white font-bold text-xs gap-1.5 h-9 px-4 shadow-sm"
+            onClick={handleExportPdf}
+            disabled={isExporting || isLoading}
+            className="flex-1 text-xs h-10 gap-1.5 rounded-lg border-slate-200 dark:border-white/10"
           >
             <FileText className="w-4 h-4" />
-            <span>Generate & Export Report</span>
+            <span>Statement</span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleExportCsv}
+            disabled={isExporting || isLoading}
+            className="flex-1 text-xs h-10 gap-1.5 rounded-lg border-slate-200 dark:border-white/10"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>CSV</span>
           </Button>
         </div>
-      </div>
 
-      {/* 3. Report Scope & Filter Bar */}
-      <div className="rounded-2xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-50/50 dark:bg-[#0E1E33]/60 p-3 sm:p-4 shadow-xs space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Financial Year Selector */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300">
-              <Calendar className="w-3.5 h-3.5 text-slate-400" />
-              <span className="font-semibold text-slate-500 dark:text-slate-400">Financial Year:</span>
-              <select
-                value={selectedFY}
-                onChange={(e) => setSelectedFY(parseInt(e.target.value, 10))}
-                className="text-xs font-bold rounded-lg border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#08182A] text-slate-900 dark:text-white px-2.5 py-1.5 focus:outline-hidden focus:ring-1 focus:ring-[#008F83]"
-              >
-                {availableFys.map((fy) => (
-                  <option key={fy.year} value={fy.year}>
-                    {fy.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Period Selector */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300">
-              <span className="font-semibold text-slate-500 dark:text-slate-400">Period:</span>
-              <select
-                value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value as any)}
-                className="text-xs font-semibold rounded-lg border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#08182A] text-slate-900 dark:text-white px-2.5 py-1.5 focus:outline-hidden focus:ring-1 focus:ring-[#008F83]"
-              >
-                <option value="FY">Full Year (FY)</option>
-                <option value="Q1">Q1 (01 Jul – 30 Sep)</option>
-                <option value="Q2">Q2 (01 Oct – 31 Dec)</option>
-                <option value="Q3">Q3 (01 Jan – 31 Mar)</option>
-                <option value="Q4">Q4 (01 Apr – 30 Jun)</option>
-                <option value="custom">Custom Range</option>
-              </select>
-            </div>
-
-            {/* Property Selector */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300">
-              <Building className="w-3.5 h-3.5 text-slate-400" />
-              <span className="font-semibold text-slate-500 dark:text-slate-400">Property:</span>
-              <select
-                value={selectedPropertyId}
-                onChange={(e) => handlePropertyChange(e.target.value)}
-                className="text-xs font-semibold rounded-lg border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#08182A] text-slate-900 dark:text-white px-2.5 py-1.5 focus:outline-hidden focus:ring-1 focus:ring-[#008F83]"
-              >
-                <option value="all">All Properties (Portfolio Consolidated)</option>
-                {propertyOptions.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Scope Indicator Tag */}
-          <div className="text-xs text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-            <span>Active Scope: {selectedPropertyLabel}</span>
-          </div>
-        </div>
-
-        {/* Custom Date Range Row */}
-        {selectedPeriod === 'custom' && (
-          <div className="pt-2 border-t border-slate-200/80 dark:border-white/[0.08] flex items-center gap-3 text-xs">
-            <span className="font-semibold text-slate-500">Custom Dates:</span>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="text-xs rounded-lg border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#08182A] p-1.5"
-            />
-            <span className="text-slate-400">to</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="text-xs rounded-lg border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#08182A] p-1.5"
-            />
-          </div>
-        )}
-      </div>
-
-      {/* 4. Single Workspace Tab: Expense Audit Pack & Workspace */}
-      {/* <div className="flex items-center gap-2 border-b border-slate-200 dark:border-white/[0.08] overflow-x-auto pb-px">
-        <div
-          className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-xl bg-white dark:bg-[#08182A] text-[#008F83] dark:text-[#32D5C4] border-t-2 border-t-[#008F83] border-x border-slate-200/80 dark:border-white/[0.08] shadow-2xs select-none"
-        >
-          <Receipt className="w-3.5 h-3.5" />
-          <span>Expense Audit Pack & Workspace</span>
-        </div>
-      </div> */}
-
-      {/* 5. Tab Content */}
-      {isLoading && !reportData ? (
-        <div className="py-24 text-center text-slate-400">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-[#008F83]" />
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-            Loading Accountant Reports Workspace...
-          </p>
-          <p className="text-xs text-slate-400 mt-1">
-            Aggregating authorized transactions, GST classifications, and evidentiary audit packs.
-          </p>
-        </div>
-      ) : (
-        <div>
-          {/* Expense Audit Pack & Workspace */}
-          <div className="space-y-6">
-              {/* Financial Summary Metric Cards (5 Cards) */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                {/* Card 1: Total Deductible Expenses */}
-                <Card className="rounded-xl border-slate-200 dark:border-white/[0.08] shadow-xs">
-                  <CardContent className="p-4">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Total Expenses
-                    </span>
-                    <div className="text-lg font-black text-slate-900 dark:text-white mt-1 font-mono">
-                      {reportData?.summary?.formattedTotalExpenses || formatCurrency(reportData?.summary?.totalExpenses || 0)}
-                    </div>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
-                      Deductible scope spend
-                    </span>
-                  </CardContent>
-                </Card>
-
-                {/* Card 2: GST Included */}
-                <Card className="rounded-xl border-slate-200 dark:border-white/[0.08] shadow-xs">
-                  <CardContent className="p-4">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                      GST Included
-                    </span>
-                    <div className="text-lg font-black text-amber-600 dark:text-amber-400 mt-1 font-mono">
-                      {reportData?.summary?.formattedTotalGst || formatCurrency(reportData?.summary?.totalGst || 0)}
-                    </div>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
-                      1B Input tax credit claim
-                    </span>
-                  </CardContent>
-                </Card>
-
-                {/* Card 3: Expense Count */}
-                <Card className="rounded-xl border-slate-200 dark:border-white/[0.08] shadow-xs">
-                  <CardContent className="p-4">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Number of Expenses
-                    </span>
-                    <div className="text-lg font-black text-slate-800 dark:text-slate-200 mt-1 font-mono">
-                      {reportData?.summary?.totalExpenseCount || expensesList.length}
-                    </div>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
-                      Individual line items
-                    </span>
-                  </CardContent>
-                </Card>
-
-                {/* Card 4: Evidence Attached */}
-                <Card className="rounded-xl border-slate-200 dark:border-white/[0.08] shadow-xs">
-                  <CardContent className="p-4">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Evidence Attached
-                    </span>
-                    <div className="text-lg font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
-                      {reportData?.summary?.evidenceAttachedCount || 0} / {reportData?.summary?.totalExpenseCount || expensesList.length}
-                    </div>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block mt-0.5 font-semibold">
-                      {reportData?.summary?.totalExpenseCount
-                        ? `${Math.round((reportData.summary.evidenceAttachedCount / reportData.summary.totalExpenseCount) * 100)}% coverage`
-                        : '0% coverage'}
-                    </span>
-                  </CardContent>
-                </Card>
-
-                {/* Card 5: Missing Evidence Alert */}
-                <Card className={cn(
-                  "rounded-xl shadow-xs transition-colors",
-                  (reportData?.summary?.missingEvidenceCount || 0) > 0
-                    ? "border-rose-200 dark:border-rose-900/60 bg-rose-50/30 dark:bg-rose-950/20"
-                    : "border-slate-200 dark:border-white/[0.08]"
-                )}>
-                  <CardContent className="p-4">
-                    <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider block">
-                      Missing Evidence
-                    </span>
-                    <div className="text-lg font-black text-rose-600 dark:text-rose-400 mt-1 font-mono flex items-center gap-1.5">
-                      {(reportData?.summary?.missingEvidenceCount || 0) > 0 && (
-                        <AlertTriangle className="w-4 h-4 animate-bounce" />
-                      )}
-                      <span>{reportData?.summary?.missingEvidenceCount || 0} items</span>
-                    </div>
-                    <span className="text-[10px] text-rose-600/80 dark:text-rose-400/80 block mt-0.5">
-                      Requires receipt substantiation
-                    </span>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Review Status & Compliance Strip */}
-              <div className="rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-50/50 dark:bg-[#0E1E33] p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
-                    <ShieldCheck className="w-4 h-4 text-[#008F83] dark:text-[#32D5C4]" />
-                    <span className="font-bold text-slate-800 dark:text-slate-200">Accountant Audit Queue:</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-md font-bold text-[11px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
-                      {reportData?.summary?.verifiedCount || 0} Verified
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md font-bold text-[11px] bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
-                      {reportData?.summary?.needsReviewCount || 0} Needs Review
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md font-bold text-[11px] bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300">
-                      {reportData?.summary?.disputedCount || 0} Disputed
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md font-medium text-[11px] bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                      {reportData?.summary?.unreviewedCount || 0} Unreviewed
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs font-mono">
-                  <span className="text-slate-400">Reconciliation:</span>
-                  <span className={cn(
-                    "font-bold",
-                    reportData?.summary?.isFullyReconciled
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-rose-600"
-                  )}>
-                    {reportData?.summary?.isFullyReconciled ? '100% RECONCILED' : 'DISCREPANCY DETECTED'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Expense Category Summary Breakdown */}
-              <ExpenseCategorySummaryView
-                categories={reportData?.categories || []}
-                totalExpenses={reportData?.summary?.totalExpenses || 0}
-                selectedCategoryName={selectedCategoryName}
-                onSelectCategory={setSelectedCategoryName}
-              />
-
-              {/* Main Expense Transactions Table with Saved Queue Views */}
-              <ExpenseTransactionsGrid
-                expenses={expensesList}
-                selectedCategoryName={selectedCategoryName}
-                onClearCategoryFilter={() => setSelectedCategoryName(null)}
-                onSelectExpense={handleSelectExpense}
-              />
-
-              {/* Transaction Detail & Evidence-Review Drawer */}
-              <ExpenseReviewDrawer
-                isOpen={isDrawerOpen}
-                onClose={() => setIsDrawerOpen(false)}
-                expense={selectedExpense}
-                onExpenseUpdated={handleExpenseUpdated}
-                onNavigatePrevious={handleNavigatePrevious}
-                onNavigateNext={handleNavigateNext}
-                hasPrevious={currentExpenseIndex > 0}
-                hasNext={currentExpenseIndex < expensesList.length - 1}
-                currentIndex={currentExpenseIndex}
-                totalCount={expensesList.length}
-              />
-
-              {/* Dedicated Report Generator Modal */}
-              <AccountantReportGeneratorModal
-                isOpen={isGeneratorModalOpen}
-                onClose={() => setIsGeneratorModalOpen(false)}
-                reportData={reportData}
-                filters={currentFilters}
-                propertyOptions={initialProperties}
-              />
-            </div>
-        </div>
-      )}
       </div>
     </div>
   );

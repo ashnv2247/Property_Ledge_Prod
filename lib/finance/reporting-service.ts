@@ -359,6 +359,7 @@ export async function getFinancialOverviewReport(
     incomeByCategory: incomeCategories.sort((a, b) => b.totalAmount - a.totalAmount),
     expenseByCategory: expenseCategories.sort((a, b) => b.totalAmount - a.totalAmount),
     propertyBreakdown: Array.from(propMap.values()).sort((a, b) => b.totalIncome - a.totalIncome),
+    transactions,
   };
 }
 

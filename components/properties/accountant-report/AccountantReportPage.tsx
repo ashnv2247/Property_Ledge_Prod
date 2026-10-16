@@ -11,9 +11,12 @@ import {
   Building,
   RefreshCw,
   AlertCircle,
+  Download,
+  ShieldCheck,
 } from 'lucide-react';
 import { PropertyAccountantReportPayload } from '@/modules/properties/domain/accountant-report-types';
 import { fetchPropertyAccountantReportAction } from '@/app/actions/property-accountant-report';
+import { generateAccountantReportPdfAction } from '@/app/actions/accountant-report';
 import { FinancialSummaryTab } from './FinancialSummaryTab';
 import { ATOFormTab } from './ATOFormTab';
 import { PropertyPerformanceTab } from './PropertyPerformanceTab';
@@ -82,6 +85,33 @@ export function AccountantReportPage({ propertyId, initialFy }: AccountantReport
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
+  const [isDownloadingAuditPack, setIsDownloadingAuditPack] = useState(false);
+
+  const handleDownloadAuditPack = async () => {
+    setIsDownloadingAuditPack(true);
+    try {
+      const res = await generateAccountantReportPdfAction({
+        propertyId,
+        financialYear: selectedYear,
+        period: 'FY',
+      });
+      if (res.success && res.base64Data && res.filename) {
+        const link = document.createElement('a');
+        link.href = res.base64Data;
+        link.download = res.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        throw new Error(res.error || 'Failed to download report');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Failed to download accountant audit pack');
+    } finally {
+      setIsDownloadingAuditPack(false);
+    }
+  };
+
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
     const params = new URLSearchParams(searchParams?.toString() || '');
@@ -92,7 +122,7 @@ export function AccountantReportPage({ propertyId, initialFy }: AccountantReport
   return (
     <div className="min-h-screen bg-slate-900 text-slate-200 p-4 sm:p-8 font-sans antialiased">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Navigation Breadcrumb */}
+        {/* Navigation Breadcrumb & Actions */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
             <Link
@@ -113,15 +143,28 @@ export function AccountantReportPage({ propertyId, initialFy }: AccountantReport
             <span className="text-teal-400">ATO Accountant Report</span>
           </div>
 
-          <button
-            type="button"
-            onClick={loadData}
-            disabled={isLoading}
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-750 text-slate-300 hover:text-white transition-colors"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-teal-400' : ''}`} />
-            <span>Refresh</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadAuditPack}
+              disabled={isDownloadingAuditPack || isLoading}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#008F83] hover:bg-[#007a70] text-white shadow-xs transition-colors disabled:opacity-50"
+              title="Download Accountant Expense Report with Tax Invoices & Evidence"
+            >
+              <ShieldCheck className={`w-3.5 h-3.5 ${isDownloadingAuditPack ? 'animate-spin' : ''}`} />
+              <span>{isDownloadingAuditPack ? 'Generating Audit Pack...' : 'Download Audit Pack (PDF)'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={loadData}
+              disabled={isLoading}
+              className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-750 text-slate-300 hover:text-white transition-colors"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-teal-400' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
 
         {/* Property Header Banner */}

@@ -136,6 +136,7 @@ export interface FinancialOverviewReportDTO {
   incomeByCategory: CategoryFinancialSummary[];
   expenseByCategory: CategoryFinancialSummary[];
   propertyBreakdown: PropertyFinancialSummary[];
+  transactions?: TransactionDTO[];
 }
 
 // 2. Income Report Contract

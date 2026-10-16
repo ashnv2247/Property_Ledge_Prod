@@ -1,22 +1,33 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TrendingDown, Users, Tag, Scale, Receipt } from 'lucide-react';
-import { ExpenseReportDTO, TaxClassificationFinancialSummary, VendorFinancialSummary } from '@/modules/finance/domain/reporting-types';
+import {
+  ExpenseReportDTO,
+  TaxClassificationFinancialSummary,
+  VendorFinancialSummary,
+} from '@/modules/finance/domain/reporting-types';
+import { buildCategoryQuarterlyData } from '@/lib/finance/category-report-data';
+import { CategoryBreakdownAgGrid } from '@/components/reports/CategoryBreakdownAgGrid';
+import { CategoryBreakdownMobileView } from '@/components/reports/CategoryBreakdownMobileView';
 
 interface ExpenseReportTabProps {
   data: ExpenseReportDTO;
 }
 
 export function ExpenseReportTab({ data }: ExpenseReportTabProps) {
-  const { kpis, monthlyExpenses, byOperationalCategory, byTaxClassification, byProperty, byVendor } = data;
+  const { kpis, monthlyExpenses, byOperationalCategory, byTaxClassification, byProperty, byVendor, transactions } = data;
 
   const formatCurrency = (val: number) => {
     return `$${val.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  const categoryRows = useMemo(() => {
+    return buildCategoryQuarterlyData(transactions || []);
+  }, [transactions]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:space-y-8">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-[#08182A] border border-border rounded-2xl p-5 shadow-2xs">
@@ -49,6 +60,36 @@ export function ExpenseReportTab({ data }: ExpenseReportTabProps) {
             {formatCurrency(kpis.gstPaid)}
           </div>
           <div className="mt-1 text-xs text-slate-400 dark:text-slate-500">Input tax credits for claim</div>
+        </div>
+      </div>
+
+      {/* Category Breakdown Table (Desktop AG Grid Master-Detail + Mobile View) */}
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+            Category Breakdown & ATO Deductions
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Quarterly breakdown of fixed ATO statutory expenses and property ledger entries with master-detail transactions.
+          </p>
+        </div>
+
+        <div className="hidden md:block">
+          <CategoryBreakdownAgGrid
+            rows={categoryRows}
+            totalExpenses={kpis.totalExpenses}
+            propertyId={data?.filters?.propertyId || undefined}
+            financialYear={data?.filters?.financialYear}
+          />
+        </div>
+
+        <div className="md:hidden">
+          <CategoryBreakdownMobileView
+            rows={categoryRows}
+            totalExpenses={kpis.totalExpenses}
+            propertyId={data?.filters?.propertyId || undefined}
+            financialYear={data?.filters?.financialYear}
+          />
         </div>
       </div>
 
