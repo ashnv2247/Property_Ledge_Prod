@@ -418,7 +418,7 @@ export function AccountantReportsView({
               title="Download Accountant Expense Report with Tax Invoices & Evidence Pack"
             >
               <ShieldCheck className={cn('w-4 h-4', isExportingAuditPack && 'animate-spin')} />
-              <span>{isExportingAuditPack ? 'Generating Audit Pack...' : 'Download Audit Pack (PDF)'}</span>
+              <span>{isExportingAuditPack ? 'Generating Report...' : 'Download Report (PDF)'}</span>
             </Button>
 
             {/* Desktop Export Dropdown */}

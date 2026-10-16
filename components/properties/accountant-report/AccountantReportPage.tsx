@@ -152,7 +152,7 @@ export function AccountantReportPage({ propertyId, initialFy }: AccountantReport
               title="Download Accountant Expense Report with Tax Invoices & Evidence"
             >
               <ShieldCheck className={`w-3.5 h-3.5 ${isDownloadingAuditPack ? 'animate-spin' : ''}`} />
-              <span>{isDownloadingAuditPack ? 'Generating Audit Pack...' : 'Download Audit Pack (PDF)'}</span>
+              <span>{isDownloadingAuditPack ? 'Generating Report...' : 'Download Report (PDF)'}</span>
             </button>
 
             <button
