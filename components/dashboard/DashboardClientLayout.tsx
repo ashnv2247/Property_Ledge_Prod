@@ -98,6 +98,18 @@ const HIERARCHICAL_NAV: NavItemConfig[] = [
     ],
   },
   {
+    id: 'autopilot',
+    label: 'Autopilot',
+    icon: Lightning,
+    badge: 'New',
+    badgeVariant: 'teal',
+    children: [
+      { id: 'autopilot-dashboard', label: 'Autopilot Dashboard', href: '/dashboard/autopilot', exact: true },
+      { id: 'autopilot-create', label: 'Create Autopilot', href: '/dashboard/autopilot/create' },
+      { id: 'autopilot-manage', label: 'Manage Autopilots', href: '/dashboard/autopilot/manage' },
+    ],
+  },
+  {
     id: 'reports',
     label: 'Reports',
     icon: ChartBar,

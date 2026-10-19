@@ -137,6 +137,10 @@ export interface Activity {
   recurrenceInterval: number;
   recurrenceStartDate?: string | null;
   recurrenceEndDate?: string | null;
+  reminderDaysBefore?: number;
+  followupFrequencyDays?: number;
+  maxFollowups?: number;
+  followupCount?: number;
   metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;

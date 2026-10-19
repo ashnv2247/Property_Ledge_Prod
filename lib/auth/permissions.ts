@@ -31,7 +31,11 @@ export type NavItemId =
   | 'automations'
   | 'bas'
   | 'financial-years'
-  | 'accountant-reports';
+  | 'accountant-reports'
+  | 'autopilot'
+  | 'autopilot-dashboard'
+  | 'autopilot-create'
+  | 'autopilot-manage';
 
 /** Permission keys required to see each nav item (any one of the listed permissions). */
 export const NAV_PERMISSIONS: Partial<Record<NavItemId, string[]>> = {
@@ -57,6 +61,10 @@ export const NAV_PERMISSIONS: Partial<Record<NavItemId, string[]>> = {
   team: ['team.member.view'],
   settings: ['team.settings.view'],
   automations: ['team.settings.view'],
+  autopilot: ['activity.view', 'team.settings.view'],
+  'autopilot-dashboard': ['activity.view', 'team.settings.view'],
+  'autopilot-create': ['activity.view', 'team.settings.view'],
+  'autopilot-manage': ['activity.view', 'team.settings.view'],
 };
 
 export type QuickActionId =
@@ -93,6 +101,10 @@ const NAV_ACCESS: Record<NavItemId, Persona[]> = {
   team: ['owner', 'admin', 'manager'],
   settings: ['owner', 'admin', 'manager', 'agent', 'staff', 'viewer'],
   automations: ['owner', 'admin', 'manager'],
+  autopilot: ['owner', 'admin', 'manager', 'agent', 'staff'],
+  'autopilot-dashboard': ['owner', 'admin', 'manager', 'agent', 'staff'],
+  'autopilot-create': ['owner', 'admin', 'manager', 'agent', 'staff'],
+  'autopilot-manage': ['owner', 'admin', 'manager', 'agent', 'staff'],
 };
 
 const QUICK_ACTION_ACCESS: Record<QuickActionId, Persona[]> = {

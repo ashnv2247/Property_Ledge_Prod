@@ -51,6 +51,9 @@ const nextConfig: NextConfig = {
       { source: '/dashboard/finance/financial-years/:path*', destination: '/dashboard/financial-years/:path*', permanent: false },
       { source: '/dashboard/finance/accountant-reports', destination: '/dashboard/accountant-reports', permanent: false },
       { source: '/dashboard/finance/accountant-reports/:path*', destination: '/dashboard/accountant-reports/:path*', permanent: false },
+      { source: '/autopilot', destination: '/dashboard/autopilot', permanent: false },
+      { source: '/autopilot/create', destination: '/dashboard/autopilot/create', permanent: false },
+      { source: '/autopilot/manage', destination: '/dashboard/autopilot/manage', permanent: false },
     ];
   },
 };
