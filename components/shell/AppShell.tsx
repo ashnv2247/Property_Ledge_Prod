@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -393,16 +393,23 @@ function Sidebar({
     return initial;
   });
 
-  // Keep active route's parent tab expanded
+  const lastPathnameRef = useRef<string | null>(null);
+  const lastSearchRef = useRef<string | null>(null);
+
+  // Keep active route's parent tab expanded only on genuine route changes
   useEffect(() => {
-    expandableItems.forEach((item) => {
-      const isChildActive = item.children?.some((child) =>
-        isNavActive(pathname, search, child.href, homeHref, child.exact)
-      );
-      if (isChildActive) {
-        setExpandedMap((prev) => ({ ...prev, [item.label]: true }));
-      }
-    });
+    if (lastPathnameRef.current !== pathname || lastSearchRef.current !== search) {
+      lastPathnameRef.current = pathname;
+      lastSearchRef.current = search;
+      expandableItems.forEach((item) => {
+        const isChildActive = item.children?.some((child) =>
+          isNavActive(pathname, search, child.href, homeHref, child.exact)
+        );
+        if (isChildActive) {
+          setExpandedMap((prev) => ({ ...prev, [item.label]: true }));
+        }
+      });
+    }
   }, [pathname, search, expandableItems, homeHref]);
 
   const hasExpandableTabs = expandableItems.length > 0;
@@ -671,15 +678,22 @@ function MobileDrawer({
     return initial;
   });
 
+  const lastPathnameRef = useRef<string | null>(null);
+  const lastSearchRef = useRef<string | null>(null);
+
   useEffect(() => {
-    expandableItems.forEach((item) => {
-      const isChildActive = item.children?.some((child) =>
-        isNavActive(pathname, search, child.href, homeHref, child.exact)
-      );
-      if (isChildActive) {
-        setExpandedMap((prev) => ({ ...prev, [item.label]: true }));
-      }
-    });
+    if (lastPathnameRef.current !== pathname || lastSearchRef.current !== search) {
+      lastPathnameRef.current = pathname;
+      lastSearchRef.current = search;
+      expandableItems.forEach((item) => {
+        const isChildActive = item.children?.some((child) =>
+          isNavActive(pathname, search, child.href, homeHref, child.exact)
+        );
+        if (isChildActive) {
+          setExpandedMap((prev) => ({ ...prev, [item.label]: true }));
+        }
+      });
+    }
   }, [pathname, search, expandableItems, homeHref]);
 
   const hasExpandableTabs = expandableItems.length > 0;

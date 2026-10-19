@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   ArrowLeft,
   ChevronDown,
+  ChevronUp,
   Building,
   User,
   Sparkles,
@@ -93,10 +94,38 @@ export function PropertyAutopilotDetailView({
     setActivityConfigs(config.activityConfigs || []);
   }, [config]);
 
+  const [expandedActivities, setExpandedActivities] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    (config.activityConfigs || []).forEach((a) => {
+      initial[a.id] = true;
+    });
+    return initial;
+  });
+
   const handleToggleActivity = (id: string) => {
     setActivityConfigs((prev) =>
       prev.map((a) => (a.id === id ? { ...a, isEnabled: !a.isEnabled } : a))
     );
+  };
+
+  const handleToggleActivityExpand = (id: string) => {
+    setExpandedActivities((prev) => ({
+      ...prev,
+      [id]: prev[id] !== undefined ? !prev[id] : false,
+    }));
+  };
+
+  const allActivitiesExpanded =
+    activityConfigs.length > 0 &&
+    activityConfigs.every((a) => expandedActivities[a.id] !== false);
+
+  const handleToggleExpandAllActivities = () => {
+    const nextValue = !allActivitiesExpanded;
+    const newMap: Record<string, boolean> = {};
+    activityConfigs.forEach((a) => {
+      newMap[a.id] = nextValue;
+    });
+    setExpandedActivities(newMap);
   };
 
   const handleUpdateField = (id: string, updates: Partial<AutopilotActivityConfig>) => {
@@ -427,29 +456,40 @@ export function PropertyAutopilotDetailView({
                 </p>
               </div>
 
-              <Button
-                variant="primary"
-                onClick={handleSaveActivities}
-                disabled={isSaving}
-                className="bg-[#008F83] hover:bg-[#00746a] text-white text-xs font-semibold px-5 py-2.5 rounded-xl shadow-xs inline-flex items-center gap-2 self-start sm:self-auto"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving Changes...
-                  </>
-                ) : saveSuccess ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-300" />
-                    Changes Saved!
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    Save Schedule Changes
-                  </>
+              <div className="flex items-center gap-3 self-start sm:self-auto">
+                {activityConfigs.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleToggleExpandAllActivities}
+                    className="text-xs font-semibold text-[#008F83] dark:text-[#32D5C4] hover:underline cursor-pointer px-2 py-1"
+                  >
+                    {allActivitiesExpanded ? 'Collapse All' : 'Expand All'}
+                  </button>
                 )}
-              </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleSaveActivities}
+                  disabled={isSaving}
+                  className="bg-[#008F83] hover:bg-[#00746a] text-white text-xs font-semibold px-5 py-2.5 rounded-xl shadow-xs inline-flex items-center gap-2"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving Changes...
+                    </>
+                  ) : saveSuccess ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-300" />
+                      Changes Saved!
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Save Schedule Changes
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
 
             {activityConfigs.length === 0 ? (
@@ -468,88 +508,115 @@ export function PropertyAutopilotDetailView({
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-5">
-                {activityConfigs.map((act) => (
-                  <div
-                    key={act.id}
-                    className={cn(
-                      'p-6 rounded-2xl border transition-all duration-200 bg-white dark:bg-slate-900 shadow-xs space-y-5',
-                      act.isEnabled
-                        ? 'border-slate-200 dark:border-slate-800'
-                        : 'border-slate-100 dark:border-slate-800/60 opacity-75 bg-slate-50/50 dark:bg-slate-900/50'
-                    )}
-                  >
-                    {/* Header Row */}
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3.5">
-                        <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60">
-                          {renderActivityIcon(act.activityTypeId)}
+                {activityConfigs.map((act) => {
+                  const isExpanded = expandedActivities[act.id] !== false;
+                  return (
+                    <div
+                      key={act.id}
+                      className={cn(
+                        'p-6 rounded-2xl border transition-all duration-200 bg-white dark:bg-slate-900 shadow-xs space-y-5',
+                        act.isEnabled
+                          ? 'border-slate-200 dark:border-slate-800'
+                          : 'border-slate-100 dark:border-slate-800/60 opacity-75 bg-slate-50/50 dark:bg-slate-900/50'
+                      )}
+                    >
+                      {/* Header Row */}
+                      <div
+                        onClick={() => handleToggleActivityExpand(act.id)}
+                        className="flex items-start justify-between gap-4 cursor-pointer select-none"
+                      >
+                        <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                          <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 shrink-0">
+                            {renderActivityIcon(act.activityTypeId)}
+                          </div>
+                          <div className="space-y-1 flex-1 min-w-0">
+                            <div className="flex items-center gap-2.5">
+                              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                                {act.title}
+                              </h3>
+                              <span
+                                className={cn(
+                                  'px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider',
+                                  act.isEnabled
+                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400'
+                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                )}
+                              >
+                                {act.isEnabled ? 'Live / Active' : 'Draft / Off'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                              {act.description || 'Predefined property management activity workflow.'}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2.5">
-                            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                              {act.title}
-                            </h3>
+
+                        {/* Controls (Toggle Switch & Expand/Collapse Chevron) */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-label={`Toggle ${act.title}`}
+                            aria-checked={act.isEnabled}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleActivity(act.id);
+                            }}
+                            className={cn(
+                              'w-11 h-6 rounded-full transition-colors relative cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#008F83] focus:ring-offset-2 shrink-0',
+                              act.isEnabled ? 'bg-[#008F83]' : 'bg-slate-300 dark:bg-slate-700'
+                            )}
+                          >
                             <span
                               className={cn(
-                                'px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider',
-                                act.isEnabled
-                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400'
-                                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                'block w-4 h-4 rounded-full bg-white transition-transform absolute top-1',
+                                act.isEnabled ? 'left-6' : 'left-1'
                               )}
-                            >
-                              {act.isEnabled ? 'Live / Active' : 'Draft / Off'}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            {act.description || 'Predefined property management activity workflow.'}
-                          </p>
+                            />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleActivityExpand(act.id);
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                            title={isExpanded ? 'Collapse activity settings' : 'Expand activity settings'}
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </button>
                         </div>
                       </div>
 
-                      {/* Enable/Disable Toggle Switch */}
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-label={`Toggle ${act.title}`}
-                        aria-checked={act.isEnabled}
-                        onClick={() => handleToggleActivity(act.id)}
-                        className={cn(
-                          'w-11 h-6 rounded-full transition-colors relative cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#008F83] focus:ring-offset-2 shrink-0',
-                          act.isEnabled ? 'bg-[#008F83]' : 'bg-slate-300 dark:bg-slate-700'
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'block w-4 h-4 rounded-full bg-white transition-transform absolute top-1',
-                            act.isEnabled ? 'left-6' : 'left-1'
-                          )}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Configuration Form Controls */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80 text-xs">
-                      {/* Recurrence Frequency */}
-                      <div>
-                        <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                          Recurrence Frequency
-                        </label>
-                        <select
-                          value={act.frequency}
-                          onChange={(e) =>
-                            handleUpdateField(act.id, {
-                              frequency: e.target.value as any,
-                            })
-                          }
-                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#008F83]"
-                        >
-                          <option value="once">Once (No Recurrence)</option>
-                          <option value="monthly">Every month</option>
-                          <option value="quarterly">Every 3 months</option>
-                          <option value="semiannual">Every 6 months</option>
-                          <option value="annual">Annual (Every 12 months)</option>
-                        </select>
-                      </div>
+                      {/* Configuration Form Controls */}
+                      {isExpanded && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                          {/* Recurrence Frequency */}
+                          <div>
+                            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                              Recurrence Frequency
+                            </label>
+                            <select
+                              value={act.frequency}
+                              onChange={(e) =>
+                                handleUpdateField(act.id, {
+                                  frequency: e.target.value as any,
+                                })
+                              }
+                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#008F83]"
+                            >
+                              <option value="once">Once (No Recurrence)</option>
+                              <option value="monthly">Every month</option>
+                              <option value="quarterly">Every 3 months</option>
+                              <option value="semiannual">Every 6 months</option>
+                              <option value="annual">Annual (Every 12 months)</option>
+                            </select>
+                          </div>
 
                       {/* Next Scheduled Due Date */}
                       <div>
@@ -609,8 +676,10 @@ export function PropertyAutopilotDetailView({
                         </select>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )}
+                </div>
+              );
+            })}
               </div>
             )}
           </div>

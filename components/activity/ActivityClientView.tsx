@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   fetchActivitiesAction,
   fetchActivityDetailAction,
@@ -14,6 +14,7 @@ import {
   archiveActivityAction,
   activateSuggestedActivityAction,
   dismissSuggestedActivityAction,
+  togglePinActivityAction,
 } from '@/app/actions/activities';
 import { ActivityHeader } from '@/components/activity/ActivityHeader';
 import { ActivityStatsStrip } from '@/components/activity/ActivityStatsStrip';
@@ -93,6 +94,23 @@ export function ActivityClientView({
 
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
   const [completeTarget, setCompleteTarget] = useState<ActivityBoardItem | null>(null);
+
+  // In-flight mutex lock for pinning actions to eliminate race conditions & double-clicks
+  const pinningIdsRef = useRef<Set<string>>(new Set());
+  const [pinningIds, setPinningIds] = useState<Set<string>>(new Set());
+
+  // Deterministic stable sorting function
+  const sortActivitiesWithPinned = (list: ActivityBoardItem[]) => {
+    return [...list].sort((a, b) => {
+      const aPinned = Boolean(a.isPinned);
+      const bPinned = Boolean(b.isPinned);
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+      const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+      const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+      if (dateA !== dateB) return dateA - dateB;
+      return a.id.localeCompare(b.id);
+    });
+  };
 
   // Sync property context changes
   useEffect(() => {
@@ -318,6 +336,100 @@ export function ActivityClientView({
     }
   };
 
+  // Pinning Flow
+  const handleTogglePin = async (itemOrId: ActivityBoardItem | string, explicitPinned?: boolean) => {
+    const activityId = typeof itemOrId === 'string' ? itemOrId : itemOrId.activityId;
+    if (!activityId) return;
+
+    // Concurrency guard: ignore rapid double-clicks on the same activity
+    if (pinningIdsRef.current.has(activityId)) {
+      return;
+    }
+    pinningIdsRef.current.add(activityId);
+    setPinningIds(new Set(pinningIdsRef.current));
+
+    const currentItem = items.find((i) => i.activityId === activityId);
+    const currentPinned = Boolean(currentItem?.isPinned);
+    const nextPinned = explicitPinned !== undefined ? explicitPinned : !currentPinned;
+
+    // Instant optimistic update (0ms lag, no jitter)
+    setItems((prev) => {
+      const updated = prev.map((i) =>
+        i.activityId === activityId ? { ...i, isPinned: nextPinned } : i
+      );
+      return sortActivitiesWithPinned(updated);
+    });
+
+    if (detailData && detailData.activity.id === activityId) {
+      setDetailData({
+        ...detailData,
+        isPinned: nextPinned,
+        activity: {
+          ...detailData.activity,
+          isPinned: nextPinned,
+          metadata: {
+            ...(detailData.activity.metadata || {}),
+            is_pinned: nextPinned,
+          },
+        },
+      });
+    }
+
+    try {
+      const res = await togglePinActivityAction(activityId, nextPinned);
+      if (!res.success) {
+        console.error('Failed to toggle pin:', res.error);
+        // Rollback optimistic state
+        setItems((prev) => {
+          const reverted = prev.map((i) =>
+            i.activityId === activityId ? { ...i, isPinned: currentPinned } : i
+          );
+          return sortActivitiesWithPinned(reverted);
+        });
+        if (detailData && detailData.activity.id === activityId) {
+          setDetailData({
+            ...detailData,
+            isPinned: currentPinned,
+            activity: {
+              ...detailData.activity,
+              isPinned: currentPinned,
+              metadata: {
+                ...(detailData.activity.metadata || {}),
+                is_pinned: currentPinned,
+              },
+            },
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to toggle pin:', err);
+      // Rollback optimistic state
+      setItems((prev) => {
+        const reverted = prev.map((i) =>
+          i.activityId === activityId ? { ...i, isPinned: currentPinned } : i
+        );
+        return sortActivitiesWithPinned(reverted);
+      });
+      if (detailData && detailData.activity.id === activityId) {
+        setDetailData({
+          ...detailData,
+          isPinned: currentPinned,
+          activity: {
+            ...detailData.activity,
+            isPinned: currentPinned,
+            metadata: {
+              ...(detailData.activity.metadata || {}),
+              is_pinned: currentPinned,
+            },
+          },
+        });
+      }
+    } finally {
+      pinningIdsRef.current.delete(activityId);
+      setPinningIds(new Set(pinningIdsRef.current));
+    }
+  };
+
   // Archive Flow
   const handleArchiveActivity = async (activityId: string) => {
     await archiveActivityAction(activityId);
@@ -388,6 +500,8 @@ export function ActivityClientView({
             onCardClick={handleCardClick}
             onCompleteClick={handleOpenCompleteModal}
             onArchiveClick={(item) => handleArchiveActivity(item.activityId)}
+            onTogglePin={handleTogglePin}
+            pinningIds={pinningIds}
             onStatusChange={handleStatusChange}
             onNewActivityClick={allowCreate ? () => setIsCreateModalOpen(true) : undefined}
             allowCreate={allowCreate}
@@ -400,6 +514,8 @@ export function ActivityClientView({
             onCardClick={handleCardClick}
             onCompleteClick={handleOpenCompleteModal}
             onArchiveClick={(item) => handleArchiveActivity(item.activityId)}
+            onTogglePin={handleTogglePin}
+            pinningIds={pinningIds}
           />
         )}
 
@@ -420,6 +536,8 @@ export function ActivityClientView({
             onCardClick={handleCardClick}
             onCompleteClick={handleOpenCompleteModal}
             onArchiveClick={(item) => handleArchiveActivity(item.activityId)}
+            onTogglePin={handleTogglePin}
+            pinningIds={pinningIds}
           />
         )}
 
@@ -447,6 +565,8 @@ export function ActivityClientView({
         onDeleteComment={handleDeleteComment}
         onCompleteClick={handleOpenCompleteModal}
         onArchiveClick={handleArchiveActivity}
+        onTogglePin={(actId, next) => handleTogglePin(actId, next)}
+        isPinning={Boolean(selectedItem && pinningIds.has(selectedItem.activityId))}
       />
 
       {/* Complete Modal */}

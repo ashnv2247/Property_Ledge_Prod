@@ -25,6 +25,8 @@ import {
   UserCheck,
   CheckSquare,
   Sparkles,
+  Pin,
+  PinOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
@@ -48,6 +50,8 @@ interface ActivityDetailDrawerProps {
   onDeleteComment: (commentId: string) => Promise<void>;
   onCompleteClick: (data: ActivityDetailData) => void;
   onArchiveClick: (activityId: string) => Promise<void>;
+  onTogglePin?: (activityId: string, isPinned?: boolean) => Promise<void>;
+  isPinning?: boolean;
 }
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
@@ -75,6 +79,8 @@ export function ActivityDetailDrawer({
   onDeleteComment,
   onCompleteClick,
   onArchiveClick,
+  onTogglePin,
+  isPinning,
 }: ActivityDetailDrawerProps) {
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -85,6 +91,7 @@ export function ActivityDetailDrawer({
   const currentOcc = data?.currentOccurrence;
   const activity = data?.activity;
   const isCompleted = currentOcc?.status === 'completed';
+  const isPinned = Boolean(data?.isPinned ?? activity?.isPinned ?? (activity?.metadata as any)?.is_pinned);
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,11 +139,38 @@ export function ActivityDetailDrawer({
           </div>
 
           <div className="flex items-center gap-2">
+            {activity && onTogglePin && (
+              <button
+                type="button"
+                disabled={isPinning}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!isPinning) {
+                    onTogglePin(activity.id, !isPinned);
+                  }
+                }}
+                className={cn(
+                  'px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold',
+                  isPinning && 'opacity-50 cursor-not-allowed pointer-events-none',
+                  isPinned
+                    ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                    : 'text-muted hover:text-foreground dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                )}
+                title={isPinned ? 'Unpin activity from top' : 'Pin activity to top'}
+                aria-label={isPinned ? 'Unpin activity' : 'Pin activity to top'}
+              >
+                <Pin className={cn('w-3.5 h-3.5', isPinned ? 'fill-current rotate-45' : 'rotate-45')} />
+                <span className="hidden sm:inline">{isPinned ? 'Pinned' : 'Pin to Top'}</span>
+              </button>
+            )}
+
             {activity && (
               <button
                 type="button"
                 onClick={() => onArchiveClick(activity.id)}
-                className="p-1.5 rounded-lg text-muted hover:text-foreground dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-muted hover:text-foreground dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 title="Archive activity"
                 aria-label="Archive activity"
               >
@@ -146,7 +180,7 @@ export function ActivityDetailDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-muted hover:text-foreground dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-lg text-muted hover:text-foreground dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               title="Close modal"
               aria-label="Close modal"
             >
@@ -169,6 +203,16 @@ export function ActivityDetailDrawer({
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
+              {isPinned && (
+                <span
+                  title="Activity is pinned to stay on top"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0"
+                >
+                  <Pin className="w-3 h-3 fill-current rotate-45" />
+                  <span>Pinned</span>
+                </span>
+              )}
+
               {Boolean(
                 activity?.metadata?.auto_created ||
                 activity?.metadata?.is_system_generated ||

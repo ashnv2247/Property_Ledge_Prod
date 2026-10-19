@@ -22,7 +22,9 @@ export type JournalEventType =
   | 'status_changed'
   | 'comment_added'
   | 'activity_completed'
-  | 'next_occurrence_created';
+  | 'next_occurrence_created'
+  | 'activity_pinned'
+  | 'activity_unpinned';
 
 export interface ActivityType {
   id: string;
@@ -141,6 +143,8 @@ export interface Activity {
   followupFrequencyDays?: number;
   maxFollowups?: number;
   followupCount?: number;
+  isPinned?: boolean;
+  pinnedAt?: string | null;
   metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
@@ -226,6 +230,8 @@ export interface ActivityBoardItem {
   autoSource?: string | null;
   sequenceNumber: number;
   commentCount: number;
+  isPinned?: boolean;
+  pinnedAt?: string | null;
   lifecycleStatus: ActivityLifecycleStatus;
   createdAt: string;
 }
@@ -268,6 +274,7 @@ export interface ActivityDetailData {
   journal: ActivityJournalEntry[];
   daysOverdue: number;
   daysLate: number;
+  isPinned?: boolean;
 }
 
 export interface ActivityStats {
@@ -289,6 +296,7 @@ export interface ActivityFilters {
   searchQuery?: string;
   viewMode?: 'board' | 'list' | 'calendar' | 'my' | 'review';
   sortBy?: 'due_date_asc' | 'due_date_desc' | 'created_desc' | 'title_asc';
+  pinnedOnly?: boolean;
 }
 
 export interface CreateActivityInput {

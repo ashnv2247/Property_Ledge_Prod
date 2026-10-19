@@ -9,6 +9,7 @@ import {
   Plus,
   AlertTriangle,
   FolderOpen,
+  Pin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ActivityCard } from '@/components/activity/ActivityCard';
@@ -21,6 +22,8 @@ interface ActivityBoardProps {
   onArchiveClick: (item: ActivityBoardItem) => void;
   onStatusChange: (occurrenceId: string, newStatus: OccurrenceStatus) => Promise<void>;
   onNewActivityClick?: (defaultStatus?: string) => void;
+  onTogglePin?: (item: ActivityBoardItem) => void;
+  pinningIds?: Set<string>;
   allowCreate?: boolean;
 }
 
@@ -42,6 +45,8 @@ export function ActivityBoard({
   onArchiveClick,
   onStatusChange,
   onNewActivityClick,
+  onTogglePin,
+  pinningIds,
   allowCreate = true,
 }: ActivityBoardProps) {
   const [draggedItem, setDraggedItem] = useState<ActivityBoardItem | null>(null);
@@ -149,7 +154,18 @@ export function ActivityBoard({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start pb-12 overflow-x-auto min-w-full">
       {COLUMNS.map((column) => {
-        const columnItems = items.filter(column.filter);
+        const columnItems = items
+          .filter(column.filter)
+          .sort((a, b) => {
+            const aPinned = Boolean(a.isPinned);
+            const bPinned = Boolean(b.isPinned);
+            if (aPinned !== bPinned) return aPinned ? -1 : 1;
+            const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+            const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+            if (dateA !== dateB) return dateA - dateB;
+            return a.id.localeCompare(b.id);
+          });
+        const pinnedCount = columnItems.filter((i) => i.isPinned).length;
         const Icon = column.icon;
         const isTargeted = dragOverColumn === column.id;
 
@@ -175,6 +191,15 @@ export function ActivityBoard({
                 <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                   {columnItems.length}
                 </span>
+                {pinnedCount > 0 && (
+                  <span
+                    title={`${pinnedCount} pinned`}
+                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25"
+                  >
+                    <Pin className="w-2.5 h-2.5 fill-current rotate-45" />
+                    <span>{pinnedCount}</span>
+                  </span>
+                )}
               </div>
 
               {allowCreate && onNewActivityClick && (
@@ -203,6 +228,8 @@ export function ActivityBoard({
                     onClick={onCardClick}
                     onCompleteClick={onCompleteClick}
                     onArchiveClick={onArchiveClick}
+                    onTogglePin={onTogglePin}
+                    isPinning={pinningIds?.has(item.activityId)}
                     isDragging={draggedItem?.id === item.id}
                   />
                 </div>

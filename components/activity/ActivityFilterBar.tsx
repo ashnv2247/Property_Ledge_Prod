@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Search, Filter, Home, User, CheckSquare, X } from 'lucide-react';
+import { Search, Filter, Home, User, CheckSquare, X, Pin } from 'lucide-react';
 import { usePropertyContext } from '@/components/property/PropertyContext';
+import { cn } from '@/lib/utils';
 import type { ActivityFilters, ActivityType } from '@/types/activity';
 
 interface ActivityFilterBarProps {
@@ -58,10 +59,12 @@ export function ActivityFilterBar({
       activityTypeId: 'all',
       status: 'all',
       searchQuery: '',
+      pinnedOnly: false,
     });
   };
 
   const hasActiveFilters = Boolean(
+    filters.pinnedOnly ||
     (filters.propertyId && filters.propertyId !== 'all') ||
     (filters.assignedTo && filters.assignedTo !== 'all') ||
     (filters.activityTypeId && filters.activityTypeId !== 'all') ||
@@ -147,6 +150,22 @@ export function ActivityFilterBar({
           <option value="delayed">Delayed</option>
           <option value="completed">Completed</option>
         </select>
+
+        {/* Pinned Quick Filter Toggle */}
+        <button
+          type="button"
+          onClick={() => onChange({ ...filters, pinnedOnly: !filters.pinnedOnly })}
+          className={cn(
+            'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all shrink-0 cursor-pointer',
+            filters.pinnedOnly
+              ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-xs'
+              : 'bg-surface-subtle dark:bg-[#080D1A] border-border dark:border-[#1E2D4A] text-muted dark:text-slate-400 hover:text-foreground dark:hover:text-white'
+          )}
+          title={filters.pinnedOnly ? 'Show all activities' : 'Show only pinned activities'}
+        >
+          <Pin className={cn('w-3.5 h-3.5', filters.pinnedOnly ? 'fill-current rotate-45' : 'rotate-45')} />
+          <span>Pinned</span>
+        </button>
 
         {/* Clear Filters Button */}
         {hasActiveFilters && (

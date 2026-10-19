@@ -228,20 +228,28 @@ function DashboardShellInner({
     }
   }, []);
 
-  const navSections = buildNavSections(persona, permissions);
-  const commandMenuLinks: CommandMenuLink[] = navSections.flatMap((s) =>
-    s.items.flatMap((item) => {
-      const links: CommandMenuLink[] = [];
-      if (item.href) {
-        links.push({ label: item.label, href: item.href, icon: item.icon });
-      }
-      if (item.children) {
-        item.children.forEach((child) => {
-          links.push({ label: `${item.label} › ${child.label}`, href: child.href, icon: item.icon });
-        });
-      }
-      return links;
-    })
+  const permissionsKey = permissions.join(',');
+  const navSections = React.useMemo(
+    () => buildNavSections(persona, permissions),
+    [persona, permissionsKey]
+  );
+  const commandMenuLinks: CommandMenuLink[] = React.useMemo(
+    () =>
+      navSections.flatMap((s) =>
+        s.items.flatMap((item) => {
+          const links: CommandMenuLink[] = [];
+          if (item.href) {
+            links.push({ label: item.label, href: item.href, icon: item.icon });
+          }
+          if (item.children) {
+            item.children.forEach((child) => {
+              links.push({ label: `${item.label} › ${child.label}`, href: child.href, icon: item.icon });
+            });
+          }
+          return links;
+        })
+      ),
+    [navSections]
   );
 
   return (

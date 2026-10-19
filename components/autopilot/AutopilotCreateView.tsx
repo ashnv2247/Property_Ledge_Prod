@@ -160,6 +160,13 @@ export function AutopilotCreateView({
     );
   };
 
+  const allActivitiesExpanded = activities.length > 0 && activities.every((a) => a.isExpanded);
+
+  const handleToggleExpandAll = () => {
+    const nextState = !allActivitiesExpanded;
+    setActivities((prev) => prev.map((a) => ({ ...a, isExpanded: nextState })));
+  };
+
   // Update activity field
   const handleUpdateActivity = (
     id: string,
@@ -410,9 +417,20 @@ export function AutopilotCreateView({
               </p>
             </div>
 
-            <span className="text-xs text-muted dark:text-slate-400 font-medium">
-              {selectedCount} of {activities.length} selected for Make Live
-            </span>
+            <div className="flex items-center gap-3">
+              {activities.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleToggleExpandAll}
+                  className="text-xs font-semibold text-[#008F83] dark:text-[#32D5C4] hover:underline cursor-pointer"
+                >
+                  {allActivitiesExpanded ? 'Collapse All' : 'Expand All'}
+                </button>
+              )}
+              <span className="text-xs text-muted dark:text-slate-400 font-medium">
+                {selectedCount} of {activities.length} selected for Make Live
+              </span>
+            </div>
           </div>
 
           {isLoadingDrafts ? (
@@ -444,11 +462,15 @@ export function AutopilotCreateView({
                       : 'bg-surface/60 dark:bg-[#0B1320] border-border dark:border-[#1E2D4A] opacity-80'
                   )}
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div
+                    onClick={() => handleToggleExpand(act.id)}
+                    className="flex items-start justify-between gap-3 cursor-pointer select-none"
+                  >
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <input
                         type="checkbox"
                         checked={act.isSelected}
+                        onClick={(e) => e.stopPropagation()}
                         onChange={() => handleToggleSelect(act.id)}
                         className="mt-1 h-4 w-4 rounded border-border text-[#008F83] focus:ring-[#008F83] cursor-pointer"
                       />
@@ -501,7 +523,10 @@ export function AutopilotCreateView({
 
                     <button
                       type="button"
-                      onClick={() => handleToggleExpand(act.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleExpand(act.id);
+                      }}
                       className="p-1.5 rounded-lg text-muted hover:text-foreground dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
                       title={act.isExpanded ? 'Collapse settings' : 'Expand configuration'}
                     >

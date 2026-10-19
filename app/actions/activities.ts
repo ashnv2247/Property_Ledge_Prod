@@ -256,6 +256,9 @@ export async function fetchActivitiesAction(filters?: ActivityFilters): Promise<
 
         const actMeta = (act.metadata as Record<string, any>) || {};
         const occMeta = (row.metadata as Record<string, any>) || {};
+        const isPinned = actMeta.is_pinned !== undefined ? Boolean(actMeta.is_pinned) : Boolean(occMeta.is_pinned);
+        const pinnedAt = (actMeta.pinned_at || occMeta.pinned_at || null) as string | null;
+
         const isAutoCreated = Boolean(
           actMeta.auto_created ||
           actMeta.is_system_generated ||
@@ -315,12 +318,14 @@ export async function fetchActivitiesAction(filters?: ActivityFilters): Promise<
           autoSource,
           sequenceNumber: row.sequence_number || 1,
           commentCount: commentCountsMap.get(row.id) || 0,
+          isPinned,
+          pinnedAt,
           lifecycleStatus: act.lifecycle_status || 'active',
           createdAt: row.created_at,
         };
       });
 
-    // 5. Client-requested post-filters (e.g. search query, activity type, My Activities)
+    // 5. Client-requested post-filters (e.g. search query, activity type, My Activities, pinnedOnly)
     let filtered = boardItems;
 
     if (filters?.viewMode === 'my') {
@@ -329,6 +334,10 @@ export async function fetchActivitiesAction(filters?: ActivityFilters): Promise<
 
     if (filters?.activityTypeId && filters.activityTypeId !== 'all') {
       filtered = filtered.filter((item) => item.activityTypeId === filters.activityTypeId);
+    }
+
+    if (filters?.pinnedOnly) {
+      filtered = filtered.filter((item) => item.isPinned);
     }
 
     if (filters?.searchQuery && filters.searchQuery.trim()) {
@@ -340,6 +349,17 @@ export async function fetchActivitiesAction(filters?: ActivityFilters): Promise<
           (item.assignedToName && item.assignedToName.toLowerCase().includes(q))
       );
     }
+
+    // Keep pinned activities at the top
+    filtered.sort((a, b) => {
+      const aPinned = Boolean(a.isPinned);
+      const bPinned = Boolean(b.isPinned);
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+      const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+      const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+      if (dateA !== dateB) return dateA - dateB;
+      return a.id.localeCompare(b.id);
+    });
 
     return {
       success: true,
@@ -554,6 +574,8 @@ export async function fetchActivityDetailAction(
           recurrenceInterval: activity.recurrence_interval,
           recurrenceStartDate: activity.recurrence_start_date,
           recurrenceEndDate: activity.recurrence_end_date,
+          isPinned: Boolean(activity.metadata?.is_pinned),
+          pinnedAt: (activity.metadata?.pinned_at as string) || null,
           metadata: activity.metadata,
           createdAt: activity.created_at,
           updatedAt: activity.updated_at,
@@ -575,6 +597,7 @@ export async function fetchActivityDetailAction(
         journal,
         daysOverdue,
         daysLate,
+        isPinned: Boolean(activity.metadata?.is_pinned),
       },
     };
   } catch (error: any) {
@@ -1289,6 +1312,84 @@ export async function archiveActivityAction(
   } catch (error: any) {
     console.error('archiveActivityAction error:', error);
     return { success: false, error: error.message || 'Failed to archive activity' };
+  }
+}
+
+/**
+ * Pin or Unpin an Activity to keep it on top.
+ */
+export async function togglePinActivityAction(
+  activityId: string,
+  isPinned?: boolean
+): Promise<{ success: boolean; isPinned?: boolean; error?: string }> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: 'Unauthorized' };
+
+    const context = await resolveWorkspaceContext();
+    if (!context?.workspaceId) return { success: false, error: 'No active workspace' };
+
+    const workspaceId = context.workspaceId;
+    const admin = await createAdminClient();
+
+    // Check workspace permissions
+    const { canUpdate, canViewAll, isOwner } = await checkActivityPermissions(workspaceId, user.id);
+
+    // Fetch current activity metadata
+    const { data: act, error: fetchErr } = await (admin as any)
+      .from('activities')
+      .select('id, metadata, created_by')
+      .eq('id', activityId)
+      .eq('workspace_id', workspaceId)
+      .single();
+
+    if (fetchErr || !act) {
+      return { success: false, error: 'Activity not found' };
+    }
+
+    if (!canUpdate && !canViewAll && !isOwner && act.created_by !== user.id) {
+      return { success: false, error: 'You do not have permission to pin or unpin this activity.' };
+    }
+
+    const currentMeta = (act.metadata as Record<string, any>) || {};
+    const nextPinned = isPinned !== undefined ? isPinned : !Boolean(currentMeta.is_pinned);
+
+    const updatedMeta = {
+      ...currentMeta,
+      is_pinned: nextPinned,
+      pinned_at: nextPinned ? new Date().toISOString() : null,
+      pinned_by: nextPinned ? user.id : null,
+    };
+
+    const { error: updateErr } = await (admin as any)
+      .from('activities')
+      .update({
+        metadata: updatedMeta,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', activityId)
+      .eq('workspace_id', workspaceId);
+
+    if (updateErr) {
+      return { success: false, error: updateErr.message };
+    }
+
+    // Record in immutable activity journal
+    await (admin as any).from('activity_journal').insert({
+      workspace_id: workspaceId,
+      activity_id: activityId,
+      event_type: nextPinned ? 'activity_pinned' : 'activity_unpinned',
+      actor_id: user.id,
+      metadata: { is_pinned: nextPinned },
+    } as any);
+
+    revalidatePath('/dashboard/activity');
+    revalidatePath('/dashboard/tasks');
+
+    return { success: true, isPinned: nextPinned };
+  } catch (error: any) {
+    console.error('togglePinActivityAction error:', error);
+    return { success: false, error: error.message || 'Failed to toggle pin state' };
   }
 }
 

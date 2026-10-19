@@ -20,6 +20,7 @@ import {
   MessageSquare,
   ChevronRight,
   Sparkles,
+  Pin,
 } from 'lucide-react';
 import { ColDef, ICellRendererParams } from 'ag-grid-community';
 import { AdminDataGrid } from '@/components/admin/data-grid/AdminDataGrid';
@@ -31,6 +32,8 @@ export interface ActivityListProps {
   onCardClick: (item: ActivityBoardItem) => void;
   onCompleteClick: (item: ActivityBoardItem) => void;
   onArchiveClick: (item: ActivityBoardItem) => void;
+  onTogglePin?: (item: ActivityBoardItem) => void;
+  pinningIds?: Set<string>;
 }
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
@@ -50,7 +53,21 @@ export function ActivityList({
   onCardClick,
   onCompleteClick,
   onArchiveClick,
+  onTogglePin,
+  pinningIds,
 }: ActivityListProps) {
+  const sortedItems = useMemo(() => {
+    return [...items].sort((a, b) => {
+      const aPinned = Boolean(a.isPinned);
+      const bPinned = Boolean(b.isPinned);
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+      const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+      const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+      if (dateA !== dateB) return dateA - dateB;
+      return a.id.localeCompare(b.id);
+    });
+  }, [items]);
+
   const columnDefs = useMemo<ColDef<ActivityBoardItem>[]>(() => {
     return [
       // 1. Activity Title & Indicators
@@ -75,6 +92,16 @@ export function ActivityList({
               >
                 {item.title}
               </span>
+
+              {item.isPinned && (
+                <span
+                  title="Pinned to top"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0"
+                >
+                  <Pin className="w-2.5 h-2.5 fill-current rotate-45" />
+                  <span>Pinned</span>
+                </span>
+              )}
 
               {item.isAutoCreated && (
                 <span
@@ -268,8 +295,8 @@ export function ActivityList({
       {
         colId: 'actions',
         headerName: 'Actions',
-        width: 140,
-        minWidth: 130,
+        width: 170,
+        minWidth: 160,
         sortable: false,
         filter: false,
         pinned: 'right',
@@ -283,11 +310,36 @@ export function ActivityList({
               className="flex items-center justify-end gap-1.5 h-full"
               onClick={(e) => e.stopPropagation()}
             >
+              {onTogglePin && (
+                <button
+                  type="button"
+                  disabled={pinningIds?.has(item.activityId)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!pinningIds?.has(item.activityId)) {
+                      onTogglePin(item);
+                    }
+                  }}
+                  className={cn(
+                    'p-1.5 rounded-md transition-colors cursor-pointer',
+                    pinningIds?.has(item.activityId) && 'opacity-50 cursor-not-allowed pointer-events-none',
+                    item.isPinned
+                      ? 'text-amber-500 dark:text-amber-400 hover:bg-amber-500/15'
+                      : 'text-muted hover:text-foreground dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                  )}
+                  title={item.isPinned ? 'Unpin activity' : 'Pin activity to top'}
+                  aria-label={item.isPinned ? 'Unpin activity' : 'Pin activity to top'}
+                >
+                  <Pin className={cn('w-3.5 h-3.5', item.isPinned ? 'fill-current rotate-45' : 'rotate-45')} />
+                </button>
+              )}
               {!isCompleted && (
                 <button
                   type="button"
                   onClick={() => onCompleteClick(item)}
-                  className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors"
+                  className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors cursor-pointer"
                 >
                   Complete
                 </button>
@@ -295,7 +347,7 @@ export function ActivityList({
               <button
                 type="button"
                 onClick={() => onCardClick(item)}
-                className="p-1 rounded-md text-muted hover:text-foreground dark:text-slate-400 dark:hover:text-white transition-colors"
+                className="p-1 rounded-md text-muted hover:text-foreground dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
                 title="View details"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -305,12 +357,12 @@ export function ActivityList({
         },
       },
     ];
-  }, [onCardClick, onCompleteClick]);
+  }, [onCardClick, onCompleteClick, onTogglePin, pinningIds]);
 
   return (
     <div className="w-full flex flex-col bg-surface dark:bg-[#0B1320] border border-border dark:border-[#1E293B] rounded-2xl shadow-xs overflow-hidden">
       <AdminDataGrid<ActivityBoardItem>
-        rowData={items}
+        rowData={sortedItems}
         columnDefs={columnDefs}
         getRowId={(p) => p.data.id}
         onRowClick={(item) => onCardClick(item)}

@@ -22,6 +22,8 @@ import {
   Trash2,
   Archive,
   Sparkles,
+  Pin,
+  PinOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatRecurrenceLabel } from '@/lib/activity/recurrence';
@@ -32,6 +34,8 @@ interface ActivityCardProps {
   onClick: (item: ActivityBoardItem) => void;
   onCompleteClick?: (item: ActivityBoardItem) => void;
   onArchiveClick?: (item: ActivityBoardItem) => void;
+  onTogglePin?: (item: ActivityBoardItem) => void;
+  isPinning?: boolean;
   isDragging?: boolean;
 }
 
@@ -64,6 +68,8 @@ export function ActivityCard({
   onClick,
   onCompleteClick,
   onArchiveClick,
+  onTogglePin,
+  isPinning,
   isDragging,
 }: ActivityCardProps) {
   const [showMenu, setShowMenu] = useState(false);
@@ -153,10 +159,11 @@ export function ActivityCard({
         isCompleted
           ? 'bg-surface/60 dark:bg-[#080D1A]/60 border-border/60 dark:border-[#17243A]/60 opacity-80 hover:opacity-100 hover:border-border dark:hover:border-[#1E2D4A]'
           : 'bg-surface dark:bg-[#0E1626] border-border dark:border-[#1E2D4A] hover:border-[#008F83]/70 dark:hover:border-[#008F83]/60 shadow-xs hover:shadow-md dark:shadow-none hover:-translate-y-0.5',
+        item.isPinned && !isCompleted && 'ring-1 ring-amber-500/35 border-amber-500/40 dark:border-amber-500/30 bg-amber-500/[0.015] dark:bg-amber-500/[0.03]',
         isDragging && 'opacity-50 ring-2 ring-[#008F83]'
       )}
     >
-      {/* Top row: Type badge & Auto indicator & Recurrence & Action Menu */}
+      {/* Top row: Type badge & Auto indicator & Recurrence & Pin indicator & Action Menu */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
           <span
@@ -168,6 +175,16 @@ export function ActivityCard({
             <Icon className="w-3 h-3" />
             <span className="truncate max-w-[110px]">{item.activityTypeName}</span>
           </span>
+
+          {item.isPinned && (
+            <span
+              title="Pinned to top"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0"
+            >
+              <Pin className="w-2.5 h-2.5 fill-current rotate-45" />
+              <span>Pinned</span>
+            </span>
+          )}
 
           {item.isAutoCreated && (
             <span
@@ -189,59 +206,119 @@ export function ActivityCard({
           )}
         </div>
 
-        {/* Action Menu */}
-        <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => setShowMenu(!showMenu)}
-            className="p-1 rounded-md text-muted hover:text-foreground dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors opacity-0 group-hover:opacity-100"
-            aria-label="Activity options"
-          >
-            <MoreVertical className="w-3.5 h-3.5" />
-          </button>
-
-          {showMenu && (
-            <div className="absolute right-0 top-6 z-30 w-44 bg-surface dark:bg-[#0B1320] border border-border dark:border-[#1E293B] rounded-xl shadow-xl py-1 text-xs text-foreground dark:text-slate-200 animate-in fade-in zoom-in-95 duration-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMenu(false);
-                  onClick(item);
-                }}
-                className="w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
-              >
-                <span>View Details</span>
-              </button>
-
-              {!isCompleted && onCompleteClick && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMenu(false);
-                    onCompleteClick(item);
-                  }}
-                  className="w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-medium"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Mark Complete</span>
-                </button>
+        {/* Action Menu & Quick Pin Button */}
+        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          {onTogglePin && (
+            <button
+              type="button"
+              disabled={isPinning}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!isPinning) {
+                  onTogglePin(item);
+                }
+              }}
+              className={cn(
+                'p-1 rounded-md transition-all cursor-pointer',
+                isPinning && 'opacity-50 cursor-not-allowed pointer-events-none',
+                item.isPinned
+                  ? 'text-amber-500 dark:text-amber-400 hover:bg-amber-500/15 opacity-100'
+                  : 'text-muted hover:text-foreground dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100'
               )}
-
-              {onArchiveClick && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMenu(false);
-                    onArchiveClick(item);
-                  }}
-                  className="w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 text-muted dark:text-slate-400"
-                >
-                  <Archive className="w-3.5 h-3.5" />
-                  <span>Archive</span>
-                </button>
-              )}
-            </div>
+              title={item.isPinned ? 'Unpin activity' : 'Pin to top'}
+              aria-label={item.isPinned ? 'Unpin activity' : 'Pin activity to top'}
+            >
+              <Pin className={cn('w-3.5 h-3.5', item.isPinned ? 'fill-current rotate-45' : 'rotate-45')} />
+            </button>
           )}
+
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-1 rounded-md text-muted hover:text-foreground dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+              aria-label="Activity options"
+            >
+              <MoreVertical className="w-3.5 h-3.5" />
+            </button>
+
+            {showMenu && (
+              <div className="absolute right-0 top-6 z-30 w-44 bg-surface dark:bg-[#0B1320] border border-border dark:border-[#1E293B] rounded-xl shadow-xl py-1 text-xs text-foreground dark:text-slate-200 animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false);
+                    onClick(item);
+                  }}
+                  className="w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  <span>View Details</span>
+                </button>
+
+                {onTogglePin && (
+                  <button
+                    type="button"
+                    disabled={isPinning}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowMenu(false);
+                      if (!isPinning) {
+                        onTogglePin(item);
+                      }
+                    }}
+                    className={cn(
+                      'w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 cursor-pointer text-amber-600 dark:text-amber-400 font-medium',
+                      isPinning && 'opacity-50 cursor-not-allowed pointer-events-none'
+                    )}
+                  >
+                    {item.isPinned ? (
+                      <>
+                        <PinOff className="w-3.5 h-3.5" />
+                        <span>Unpin Activity</span>
+                      </>
+                    ) : (
+                      <>
+                        <Pin className="w-3.5 h-3.5 rotate-45" />
+                        <span>Pin to Top</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {!isCompleted && onCompleteClick && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      onCompleteClick(item);
+                    }}
+                    className="w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-medium cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Mark Complete</span>
+                  </button>
+                )}
+
+                {onArchiveClick && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      onArchiveClick(item);
+                    }}
+                    className="w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 text-muted dark:text-slate-400 cursor-pointer"
+                  >
+                    <Archive className="w-3.5 h-3.5" />
+                    <span>Archive</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

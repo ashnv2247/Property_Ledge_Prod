@@ -53,16 +53,18 @@ export default async function ActivityPage() {
   const teamMembers = teamMembersRes.data || [{ id: user.id, name: 'You', role: 'owner' }];
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-6">
-      <ActivityClientView
-        initialItems={initialItems}
-        initialStats={initialStats}
-        activityTypes={activityTypes}
-        teamMembers={teamMembers}
-        currentUserId={user.id}
-        initialAssignedTo={initialAssignedTo}
-        canViewAllActivities={canViewAllActivities}
-      />
+    <div className="h-full w-full min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-6 pb-32">
+        <ActivityClientView
+          initialItems={initialItems}
+          initialStats={initialStats}
+          activityTypes={activityTypes}
+          teamMembers={teamMembers}
+          currentUserId={user.id}
+          initialAssignedTo={initialAssignedTo}
+          canViewAllActivities={canViewAllActivities}
+        />
+      </div>
     </div>
   );
 }
