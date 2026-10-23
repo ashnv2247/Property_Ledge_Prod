@@ -1074,20 +1074,46 @@ CREATE OR REPLACE FUNCTION public.get_next_invoice_number (
   RETURNS text
   LANGUAGE plpgsql
   SECURITY DEFINER
+  SET search_path TO 'public'
   AS $function$
 DECLARE
   v_next_num INT;
   v_formatted TEXT;
+  v_max_existing INT;
 BEGIN
+  -- 1. Find the highest number suffix already used in the invoices table for this prefix and year
+  SELECT COALESCE(
+    MAX(
+      NULLIF(regexp_replace(invoice_number, '^.*-', ''), '')::INTEGER
+    ),
+    0
+  ) INTO v_max_existing
+  FROM public.invoices
+  WHERE invoice_number ~ ('^' || p_prefix || '-' || p_year::TEXT || '-[0-9]+$');
+
+  -- 2. Upsert sequence record, ensuring it is at least v_max_existing + 1
   INSERT INTO public.invoice_sequences (workspace_id, prefix, year, last_number, updated_at)
-  VALUES (p_workspace_id, p_prefix, p_year, 1, NOW())
+  VALUES (p_workspace_id, p_prefix, p_year, GREATEST(v_max_existing + 1, 1), NOW())
   ON CONFLICT (workspace_id, prefix, year)
   DO UPDATE SET
-    last_number = public.invoice_sequences.last_number + 1,
+    last_number = GREATEST(public.invoice_sequences.last_number, v_max_existing) + 1,
     updated_at = NOW()
   RETURNING last_number INTO v_next_num;
 
-  v_formatted := p_prefix || '-' || p_year::TEXT || '-' || LPAD(v_next_num::TEXT, 6, '0');
+  -- 3. Collision safety loop: advance until a completely unused invoice number is found
+  LOOP
+    v_formatted := p_prefix || '-' || p_year::TEXT || '-' || LPAD(v_next_num::TEXT, 6, '0');
+
+    EXIT WHEN NOT EXISTS (
+      SELECT 1 FROM public.invoices WHERE invoice_number = v_formatted
+    );
+
+    UPDATE public.invoice_sequences
+    SET last_number = last_number + 1, updated_at = NOW()
+    WHERE workspace_id = p_workspace_id AND prefix = p_prefix AND year = p_year
+    RETURNING last_number INTO v_next_num;
+  END LOOP;
+
   RETURN v_formatted;
 END;
 $function$;
