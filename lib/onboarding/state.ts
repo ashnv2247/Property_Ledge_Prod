@@ -3,7 +3,6 @@ export const ONBOARDING_STAGES = [
   { id: 'workspace', path: '/onboarding/workspace', label: 'Workspace' },
   { id: 'subscription', path: '/onboarding/subscription', label: 'Plan' },
   { id: 'property', path: '/onboarding/property', label: 'Property' },
-  { id: 'team', path: '/onboarding/team', label: 'Team' },
   { id: 'ready', path: '/onboarding/complete', label: 'Ready' },
 ] as const;
 
@@ -45,7 +44,7 @@ export function getStageByPath(pathname: string) {
   return ONBOARDING_STAGES.find((s) => s.path === pathname) ?? ONBOARDING_STAGES[0];
 }
 
-/** Progress steps exclude welcome and ready — user sees 4 active setup stages (Workspace, Plan, Property, Team) */
+/** Progress steps exclude welcome and ready — user sees 3 active setup stages (Workspace, Plan, Property) */
 export const PROGRESS_STAGES = ONBOARDING_STAGES.filter((s) => s.id !== 'welcome');
 
 export function getProgressStepFromPath(pathname: string): {
@@ -125,7 +124,7 @@ export function parseOnboardingProgress(raw: unknown): OnboardingProgress {
     units: 'property',
     tenants: 'property',
     leases: 'property',
-    team: 'team',
+    team: 'ready',
     complete: 'ready',
   };
 

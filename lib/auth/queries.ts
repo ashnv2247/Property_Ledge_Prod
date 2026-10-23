@@ -78,14 +78,35 @@ export const getAccountContext = cache(async function getAccountContext(userId: 
 
     if (data) {
       serverCache.set(cacheKey, data, 60_000); // 60s TTL
+      logAuthEvent('ACCOUNT_CONTEXT_LOAD_SUCCESS', {
+        userId,
+        cacheHit: false,
+        duration: `${Date.now() - startTime}ms`,
+      });
+      return data;
     }
+
+    // Fallback: If no account_context row exists yet, check user metadata
+    const userRes = await supabase.auth.getUser();
+    const meta = userRes.data.user?.user_metadata?.onboarding;
+    const isCompleted = meta?.completedStages?.includes('ready') || meta?.currentStage === 'ready';
+    const fallbackData: AccountContext = {
+      user_id: userId,
+      status: 'active',
+      onboarding_status: isCompleted ? 'completed' : 'in_progress',
+      first_login_at: null,
+      last_login_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    serverCache.set(cacheKey, fallbackData, 60_000);
 
     logAuthEvent('ACCOUNT_CONTEXT_LOAD_SUCCESS', {
       userId,
       cacheHit: false,
       duration: `${Date.now() - startTime}ms`,
     });
-    return data;
+    return fallbackData;
   } catch (err) {
     logAuthEvent('ACCOUNT_CONTEXT_LOAD_FAILED', { userId, err });
     return null;

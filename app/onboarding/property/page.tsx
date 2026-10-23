@@ -112,9 +112,9 @@ export default function OnboardingPropertyPage() {
     setIsSaving(true);
     try {
       await skipOnboardingProperty();
-      navigate('/onboarding/team');
+      navigate('/onboarding/complete');
     } catch {
-      navigate('/onboarding/team');
+      navigate('/onboarding/complete');
     } finally {
       setIsSaving(false);
     }
@@ -153,7 +153,7 @@ export default function OnboardingPropertyPage() {
         rentAmount: rentAmount ? parseFloat(rentAmount) : 0,
         paymentFrequency: rentFrequency,
       });
-      navigate('/onboarding/team');
+      navigate('/onboarding/complete');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to save property. Please try again.');
     } finally {
@@ -165,7 +165,7 @@ export default function OnboardingPropertyPage() {
     <OnboardingContent>
       <form onSubmit={handleSubmit}>
         <OnboardingStep
-          eyebrow="Step 3 of 4"
+          eyebrow="Step 3 of 3"
           title="Let's add your first property."
           description="Start with a single property to configure your dashboard. You can add more anytime."
         >

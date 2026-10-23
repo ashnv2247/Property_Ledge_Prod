@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { serverCache } from '@/lib/cache/server-cache';
 import { getSubscription } from '@/lib/subscriptions/queries';
 import { isSubscriptionActive } from '@/lib/subscriptions/utils';
 import {
@@ -99,7 +100,27 @@ export async function resolveOnboardingStage(userId: string): Promise<Onboarding
     .eq('user_id', userId)
     .maybeSingle();
 
-  if ((accountContext as { onboarding_status?: string } | null)?.onboarding_status === 'completed') {
+  const isCompletedInAccount = (accountContext as { onboarding_status?: string } | null)?.onboarding_status === 'completed';
+  const isCompletedInMeta = progress.completedStages.includes('ready');
+
+  if (isCompletedInAccount || isCompletedInMeta) {
+    if (!isCompletedInAccount) {
+      try {
+        const admin = await createAdminClient();
+        await admin.from('account_context').upsert(
+          {
+            user_id: userId,
+            status: 'active',
+            onboarding_status: 'completed',
+            updated_at: new Date().toISOString(),
+          } as never,
+          { onConflict: 'user_id' }
+        );
+        serverCache.invalidateUser(userId);
+      } catch (err) {
+        console.warn('[resolver.ts] Failed to heal account_context:', err);
+      }
+    }
     return {
       stage: 'ready',
       route: '/dashboard',
@@ -148,8 +169,6 @@ export async function resolveOnboardingStage(userId: string): Promise<Onboarding
     };
   } else if (!context.hasProperty && !progress.completedStages.includes('property')) {
     stage = 'property';
-  } else if (!progress.completedStages.includes('team')) {
-    stage = 'team';
   } else {
     stage = 'ready';
   }

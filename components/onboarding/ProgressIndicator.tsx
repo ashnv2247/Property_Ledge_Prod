@@ -12,10 +12,10 @@ interface ProgressIndicatorProps {
   className?: string;
 }
 
-const STEP_LABELS = ['Workspace', 'Plan', 'Property', 'Team'];
+const STEP_LABELS = ['Workspace', 'Plan', 'Property'];
 
 export function ProgressIndicator({ current, total, label, className }: ProgressIndicatorProps) {
-  const stepsCount = total > 0 ? total : 4;
+  const stepsCount = total > 0 ? total : 3;
   const labels = STEP_LABELS.slice(0, stepsCount);
 
   return (

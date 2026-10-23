@@ -87,7 +87,7 @@ export default function OnboardingWorkspacePage() {
     <OnboardingContent>
       <form onSubmit={handleSubmit}>
         <OnboardingStep
-          eyebrow="Step 1 of 4"
+          eyebrow="Step 1 of 3"
           title="Set up your workspace."
           description="Your workspace is the private, secure hub where your properties, financial records, and documents live."
         >

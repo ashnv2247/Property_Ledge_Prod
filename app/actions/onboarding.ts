@@ -52,20 +52,7 @@ async function readProgress(userId: string, supabase: Awaited<ReturnType<typeof 
   return DEFAULT_ONBOARDING_PROGRESS;
 }
 
-async function markOnboardingCompleted(userId: string, supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { error: updateError } = await supabase
-    .from('account_context')
-    .update({
-      onboarding_status: 'completed',
-      updated_at: new Date().toISOString(),
-    } as never)
-    .eq('user_id', userId);
-
-  if (!updateError) {
-    serverCache.invalidateUser(userId);
-    return;
-  }
-
+async function markOnboardingCompleted(userId: string, _supabase?: Awaited<ReturnType<typeof createClient>>) {
   const admin = await createAdminClient();
   const { error: upsertError } = await admin.from('account_context').upsert(
     {
@@ -78,6 +65,7 @@ async function markOnboardingCompleted(userId: string, supabase: Awaited<ReturnT
   );
 
   if (upsertError) {
+    console.error('[onboarding.ts] Failed to upsert completed account_context:', upsertError);
     throw new Error(upsertError.message || 'Failed to mark onboarding as complete');
   }
 
@@ -557,7 +545,7 @@ export async function skipOnboardingProperty(): Promise<void> {
 }
 
 export async function skipOnboardingTeam(): Promise<void> {
-  await completeStage('team', { teamSkipped: true });
+  await completeStage('ready', { teamSkipped: true });
 }
 
 export async function inviteOnboardingCollaborators(invites: { email: string; role: string }[]): Promise<void> {
@@ -605,7 +593,7 @@ export async function inviteOnboardingCollaborators(invites: { email: string; ro
     }
   }
 
-  await completeStage('team', { invitedCount: validInvites.length, invites: validInvites });
+  await completeStage('ready', { invitedCount: validInvites.length, invites: validInvites });
 }
 
 export async function finishOnboarding(): Promise<void> {

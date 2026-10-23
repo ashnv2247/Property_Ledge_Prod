@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
       { source: '/onboarding/units', destination: '/dashboard/units', permanent: false },
       { source: '/onboarding/tenants', destination: '/dashboard/people', permanent: false },
       { source: '/onboarding/leases', destination: '/dashboard/leases', permanent: false },
-      { source: '/onboarding/team', destination: '/dashboard/team', permanent: false },
+      { source: '/onboarding/team', destination: '/onboarding/complete', permanent: false },
       { source: '/leases', destination: '/dashboard/leases', permanent: false },
       { source: '/leases/:path*', destination: '/dashboard/leases/:path*', permanent: false },
       { source: '/properties', destination: '/dashboard/properties', permanent: false },

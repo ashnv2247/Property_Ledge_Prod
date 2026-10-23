@@ -54,7 +54,7 @@ export function OnboardingSubscriptionClient({ plans, recommendedPlanId }: Onboa
   return (
     <OnboardingContent>
       <OnboardingStep
-        eyebrow="Step 2 of 4"
+        eyebrow="Step 2 of 3"
         title="Choose how you'd like to start."
         description="Every PropertyLedge account starts with full access. You can adjust your plan anytime."
       >

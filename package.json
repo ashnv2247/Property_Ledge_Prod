@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "playwright test --project=unit",
     "test:unit": "playwright test --project=unit",
+    "test:safe": "npm run typecheck && npm run test:unit",
     "test:e2e": "playwright test --project=e2e"
   },
   "dependencies": {

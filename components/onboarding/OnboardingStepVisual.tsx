@@ -190,45 +190,6 @@ export function OnboardingStepVisual({ stage, className = '' }: OnboardingStepVi
             </motion.div>
           )}
 
-          {stage === 'team' && (
-            <motion.div
-              key="visual-team"
-              initial={{ opacity: 0, scale: 0.96, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: -10 }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full max-w-sm space-y-3"
-            >
-              <div className="p-4 rounded-2xl bg-[#08182A]/90 backdrop-blur-xl border border-white/[0.08] shadow-2xl shadow-black/40 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-[#00A99D]" />
-                    <span className="text-xs font-bold text-[#FFFFFF]">Collaborators & Roles</span>
-                  </div>
-                  <span className="text-[10px] text-[#8FA3B8]">Multi-User</span>
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-white/[0.06]">
-                  {[
-                    { role: 'Accountant', desc: 'Read-only financial export & tax review', icon: <Briefcase className="h-3.5 w-3.5 text-blue-400" /> },
-                    { role: 'Property Manager', desc: 'Tenant & lease maintenance access', icon: <Building2 className="h-3.5 w-3.5 text-emerald-400" /> },
-                    { role: 'Co-owner / Partner', desc: 'Full portfolio overview & visibility', icon: <UserCheck className="h-3.5 w-3.5 text-[#00A99D]" /> },
-                  ].map((item, i) => (
-                    <div key={i} className="p-2.5 rounded-xl bg-[#0B1D30]/80 border border-white/[0.04] flex items-start gap-2.5">
-                      <div className="p-1.5 rounded-lg bg-white/[0.04] shrink-0 mt-0.5">
-                        {item.icon}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs font-bold text-[#FFFFFF] block">{item.role}</span>
-                        <span className="text-[10px] text-[#8FA3B8] leading-tight block">{item.desc}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
           {stage === 'ready' && (
             <motion.div
               key="visual-ready"
@@ -278,8 +239,6 @@ export function OnboardingStepVisual({ stage, className = '' }: OnboardingStepVi
             ? 'Transparent plans built for scale.'
             : stage === 'property'
             ? 'Every property in one central hub.'
-            : stage === 'team'
-            ? 'Seamless collaboration with your team.'
             : "You're ready to get started."}
         </h3>
         <p className="text-xs text-[#8FA3B8] leading-relaxed">
@@ -289,8 +248,6 @@ export function OnboardingStepVisual({ stage, className = '' }: OnboardingStepVi
             ? 'Start with a 14-day trial or explore the platform at your own pace.'
             : stage === 'property'
             ? 'Track income, expenses, documents, and leases with ease.'
-            : stage === 'team'
-            ? 'Invite your accountant or property manager whenever you are ready.'
             : 'Your PropertyLedge workspace is fully configured.'}
         </p>
       </div>
