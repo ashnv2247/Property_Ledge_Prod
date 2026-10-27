@@ -181,7 +181,7 @@ export function Pricing() {
 
                   <div className="pt-8">
                     <Link
-                      href={plan.href}
+                      href={plan.href.startsWith('#') ? plan.href : `${plan.href}${plan.href.includes('?') ? '&' : '?'}interval=${isAnnual ? 'yearly' : 'monthly'}`}
                       className={`w-full py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
                         plan.popular
                           ? "bg-[#008F83] hover:bg-[#00A99D] text-white shadow-lg shadow-[#008F83]/25 active:scale-[0.98]"

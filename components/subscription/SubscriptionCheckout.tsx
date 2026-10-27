@@ -69,6 +69,7 @@ export function SubscriptionCheckout({
   // Step 3 Payment Form State
   const [copySuccess, setCopySuccess] = useState(false);
   const [transactionId, setTransactionId] = useState('');
+  const [customerMessage, setCustomerMessage] = useState('');
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [uploadedFile, setUploadedFile] = useState<{
     name: string;
@@ -216,6 +217,9 @@ export function SubscriptionCheckout({
         submittedAmount: expectedAmount,
         paymentDate,
         transactionId,
+        customerMessage: customerMessage.trim() || undefined,
+        paymentMethod: 'bank_transfer',
+        billingCycle: billingInterval,
         fileName: uploadedFile.name,
         fileSize: uploadedFile.size,
         mimeType: uploadedFile.type,
@@ -791,6 +795,19 @@ export function SubscriptionCheckout({
                         className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none"
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-foreground">
+                      Customer Note / Transfer Details <span className="font-normal text-muted">(Optional)</span>
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={customerMessage}
+                      onChange={(e) => setCustomerMessage(e.target.value)}
+                      placeholder="e.g. Transferred from Commonwealth Bank account ending in 4102, reference included."
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none placeholder:text-muted"
+                    />
                   </div>
 
                   <div className="space-y-2">

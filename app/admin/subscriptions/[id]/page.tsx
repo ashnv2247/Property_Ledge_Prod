@@ -58,7 +58,8 @@ export default async function AdminSubscriptionDetailPage({ params }: PageProps)
     'use server';
     const adminId = await requireAdmin();
     const payId = formData.get('paymentId') as string;
-    await approveManualPayment(payId, adminId);
+    const internalNotes = (formData.get('internalNotes') as string) || undefined;
+    await approveManualPayment(payId, adminId, internalNotes);
     redirect(`/admin/subscriptions/${id}?approved=true`);
   }
 
@@ -66,7 +67,9 @@ export default async function AdminSubscriptionDetailPage({ params }: PageProps)
     'use server';
     const adminId = await requireAdmin();
     const payId = formData.get('paymentId') as string;
-    await rejectManualPayment(payId, adminId);
+    const rejectionReason = (formData.get('rejectionReason') as string) || 'Payment could not be verified.';
+    const internalNotes = (formData.get('internalNotes') as string) || undefined;
+    await rejectManualPayment(payId, adminId, rejectionReason, internalNotes);
     redirect(`/admin/subscriptions/${id}?rejected=true`);
   }
 

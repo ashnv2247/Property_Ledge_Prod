@@ -32,6 +32,11 @@ interface SubscriptionDrawerProps {
     status?: string;
     fileUrl?: string;
     fileName?: string;
+    customerMessage?: string | null;
+    rejectionReason?: string | null;
+    internalNotes?: string | null;
+    billingCycle?: string | null;
+    paymentMethod?: string | null;
   };
 }
 
@@ -47,6 +52,10 @@ export function SubscriptionDrawer({
   const [actionMode, setActionMode] = useState<'none' | 'approve' | 'reject'>('none');
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [rejectionReason, setRejectionReason] = useState(
+    'Payment could not be verified against bank statement. Please verify your reference code and resubmit.'
+  );
+  const [internalNotes, setInternalNotes] = useState('');
 
   // Payment proof state
   const [proof, setProof] = useState<{
@@ -117,10 +126,12 @@ export function SubscriptionDrawer({
   const userName = initialData?.userName || 'Customer Account';
   const userEmail = initialData?.userEmail || 'customer@propertyledge.com.au';
   const planName = initialData?.planName || 'Landlord';
-  const billingInterval = initialData?.billingInterval || 'monthly';
+  const billingInterval = initialData?.billingCycle || initialData?.billingInterval || 'monthly';
   const amount = initialData?.amount || 29;
   const reference = initialData?.reference || 'PL-2026-10482';
   const status = initialData?.status || 'under_review';
+  const customerMessage = initialData?.customerMessage;
+  const existingRejectionReason = initialData?.rejectionReason;
 
   const fileUrl = proof?.file_preview_url || initialData?.fileUrl;
   const fileName = proof?.file_name || initialData?.fileName || 'bank_transfer_receipt.png';
@@ -137,7 +148,7 @@ export function SubscriptionDrawer({
     setErrorMsg('');
     try {
       if (initialData?.paymentId) {
-        await handleApprovePayment(initialData.paymentId);
+        await handleApprovePayment(initialData.paymentId, internalNotes.trim() || undefined);
       }
       onSuccess();
       onClose();
@@ -149,11 +160,19 @@ export function SubscriptionDrawer({
   };
 
   const onConfirmReject = async () => {
+    if (!rejectionReason.trim()) {
+      setErrorMsg('Please specify a rejection reason so the customer understands what to correct.');
+      return;
+    }
     setIsProcessing(true);
     setErrorMsg('');
     try {
       if (initialData?.paymentId) {
-        await handleRejectPayment(initialData.paymentId);
+        await handleRejectPayment(
+          initialData.paymentId,
+          rejectionReason.trim(),
+          internalNotes.trim() || undefined
+        );
       }
       onSuccess();
       onClose();
@@ -328,6 +347,30 @@ export function SubscriptionDrawer({
               )}
             </div>
 
+            {/* Customer Message / Note if provided */}
+            {customerMessage && (
+              <div className="bg-admin-sidebar-surface/60 rounded-xl border border-admin-border p-4 space-y-2">
+                <span className="text-[11px] font-semibold uppercase font-mono text-admin-muted tracking-wider block">
+                  Customer Message / Reference Details
+                </span>
+                <p className="text-xs text-white bg-admin-surface p-3 rounded-lg border border-admin-border leading-relaxed">
+                  {customerMessage}
+                </p>
+              </div>
+            )}
+
+            {/* Existing Rejection Reason if previously rejected */}
+            {existingRejectionReason && (
+              <div className="bg-admin-danger/10 rounded-xl border border-admin-danger/30 p-4 space-y-2">
+                <span className="text-[11px] font-semibold uppercase font-mono text-admin-danger tracking-wider block">
+                  Prior Rejection Reason
+                </span>
+                <p className="text-xs text-admin-danger leading-relaxed">
+                  {existingRejectionReason}
+                </p>
+              </div>
+            )}
+
             {/* Action Confirmation Panel */}
             {actionMode === 'approve' && (
               <div className="p-4 rounded-xl bg-admin-success-soft border border-admin-success/40 space-y-3">
@@ -336,8 +379,20 @@ export function SubscriptionDrawer({
                   <span>Confirm Subscription Activation</span>
                 </div>
                 <p className="text-xs text-admin-foreground leading-relaxed">
-                  Approving this payment will mark the manual payment as verified and immediately grant full workspace access for <strong>{userName}</strong>.
+                  Approving this payment will verify the manual payment, activate the <strong>PropertyLedge {planName}</strong> plan for <strong>{userName}</strong>, and notify the customer by email.
                 </p>
+                <div>
+                  <label className="text-[11px] font-mono text-admin-muted block mb-1">
+                    Internal Verification Notes (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={internalNotes}
+                    onChange={(e) => setInternalNotes(e.target.value)}
+                    placeholder="e.g. Verified in NAB business portal batch #4928"
+                    className="w-full text-xs bg-admin-surface border border-admin-border rounded-lg px-3 py-2 text-white placeholder-admin-muted/60 focus:outline-none focus:border-admin-primary"
+                  />
+                </div>
                 <div className="flex items-center gap-2 pt-1">
                   <button
                     type="button"
@@ -365,8 +420,57 @@ export function SubscriptionDrawer({
                   <span>Confirm Payment Rejection</span>
                 </div>
                 <p className="text-xs text-admin-foreground leading-relaxed">
-                  Rejecting this transfer will notify the user to re-submit proof or fix their payment reference.
+                  Rejecting this transfer will cancel this pending checkout and send an email notification with your feedback explaining what the customer should correct.
                 </p>
+                
+                {/* Preset rejection chips */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-mono text-admin-muted block">Quick Templates:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      'Reference code not found in bank statement.',
+                      'Transferred amount does not match plan price.',
+                      'Payment receipt is illegible or corrupted.',
+                      'Funds have not cleared into our account yet.',
+                    ].map((reasonText) => (
+                      <button
+                        key={reasonText}
+                        type="button"
+                        onClick={() => setRejectionReason(reasonText)}
+                        className="text-[10px] px-2 py-1 rounded bg-admin-surface border border-admin-border text-admin-muted hover:text-white hover:border-admin-danger/60 transition-colors text-left"
+                      >
+                        {reasonText}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-mono text-admin-danger font-semibold block mb-1">
+                    Customer-Facing Reason *
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    placeholder="Explain clearly to the customer why the payment could not be approved..."
+                    className="w-full text-xs bg-admin-surface border border-admin-border rounded-lg p-2.5 text-white placeholder-admin-muted/60 focus:outline-none focus:border-admin-danger"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-mono text-admin-muted block mb-1">
+                    Internal Admin Notes (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={internalNotes}
+                    onChange={(e) => setInternalNotes(e.target.value)}
+                    placeholder="e.g. Account name mismatch: transfer was from John Smith Pty Ltd"
+                    className="w-full text-xs bg-admin-surface border border-admin-border rounded-lg px-3 py-2 text-white placeholder-admin-muted/60 focus:outline-none focus:border-admin-primary"
+                  />
+                </div>
+
                 <div className="flex items-center gap-2 pt-1">
                   <button
                     type="button"

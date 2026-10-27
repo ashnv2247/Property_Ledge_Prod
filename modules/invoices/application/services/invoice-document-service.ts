@@ -15,6 +15,7 @@ import { formatInvoiceAmount } from '../../domain/value-objects/currency';
 import { PdfInvoiceAdapter } from '../../infrastructure/documents/pdf/pdf-invoice-adapter';
 import { DocxInvoiceAdapter } from '../../infrastructure/documents/docx/docx-invoice-adapter';
 import { InvoiceStorageService } from '../../infrastructure/storage/invoice-storage-service';
+import { getPredefinedTemplateById } from '../../domain/constants/predefined-templates';
 
 export interface GenerateDocOptions {
   invoiceId: string;
@@ -68,6 +69,10 @@ export class InvoiceDocumentService {
 
     const amountPaid = invoice.totalAmount - invoice.balanceDue;
 
+    const snapshot = (invoice.snapshot as any) || {};
+    const snapshotStyle = snapshot.layoutStyle || snapshot.templateStyle || snapshot.templateId;
+    const predefined = getPredefinedTemplateById(snapshotStyle || 'classic');
+
     const renderDto: InvoiceRenderDTO = {
       invoiceId: invoice.id,
       invoiceNumber: invoice.invoiceNumber,
@@ -97,13 +102,13 @@ export class InvoiceDocumentService {
       amountPaidFormatted: formatInvoiceAmount(amountPaid, currency),
       balanceDueFormatted: formatInvoiceAmount(invoice.balanceDue, currency),
       notes: invoice.notes,
-      paymentInstructions: invoice.paymentInstructions || template?.paymentInstructions || null,
-      headerText: template?.headerText || null,
-      footerText: template?.footerText || null,
-      brandColor: template?.brandColor || '#22333b',
-      accentColor: template?.accentColor || '#a9927d',
-      logoUrl: template?.logoUrl || null,
-      layoutStyle: template?.layoutStyle || 'classic',
+      paymentInstructions: invoice.paymentInstructions || template?.paymentInstructions || snapshot.paymentInstructions || null,
+      headerText: template?.headerText || snapshot.headerText || null,
+      footerText: template?.footerText || snapshot.footerText || null,
+      brandColor: template?.brandColor || snapshot.brandColor || predefined.brandColor || '#22333b',
+      accentColor: template?.accentColor || snapshot.accentColor || predefined.accentColor || '#a9927d',
+      logoUrl: template?.logoUrl || snapshot.logoUrl || null,
+      layoutStyle: template?.layoutStyle || snapshot.layoutStyle || predefined.layoutStyle || 'classic',
     };
 
     return ok(renderDto);

@@ -2,6 +2,7 @@ import React from 'react';
 import { getCurrentUser } from '@/lib/auth/queries';
 import { getSubscription } from '@/lib/subscriptions/queries';
 import { getEntitlements } from '@/lib/entitlements/queries';
+import { getLatestPaymentForAccount } from '@/lib/billing/service';
 import { SubscriptionStatusCard } from '@/components/subscription/subscription-status';
 import { EntitlementListCard } from '@/components/subscription/entitlement-list';
 import { redirect } from 'next/navigation';
@@ -17,8 +18,11 @@ export default async function SubscriptionDashboardPage() {
     redirect('/login');
   }
 
-  const subscription = await getSubscription(user.id);
-  const entitlements = await getEntitlements(user.id);
+  const [subscription, entitlements, latestPayment] = await Promise.all([
+    getSubscription(user.id),
+    getEntitlements(user.id),
+    getLatestPaymentForAccount(user.id),
+  ]);
 
   return (
     <PageContainer>
@@ -39,7 +43,7 @@ export default async function SubscriptionDashboardPage() {
           </Link>
         </div>
 
-        <SubscriptionStatusCard subscription={subscription} />
+        <SubscriptionStatusCard subscription={subscription} latestPayment={latestPayment} />
         <EntitlementListCard entitlements={entitlements} />
       </div>
     </PageContainer>

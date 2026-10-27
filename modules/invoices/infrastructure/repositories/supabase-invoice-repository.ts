@@ -144,20 +144,63 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
 
   async getNextInvoiceNumber(workspaceId: string, prefix: string = 'INV', year: number = new Date().getFullYear()): Promise<Result<string, DomainError>> {
     try {
-      // Call atomic stored procedure
-      const { data, error } = await (this.client as any).rpc('get_next_invoice_number', {
-        p_workspace_id: workspaceId,
-        p_prefix: prefix,
-        p_year: year,
-      });
-
-      if (error) {
-        // Fallback in case rpc is unavailable: compute sequence manually
-        const fallbackNum = Math.floor(100000 + Math.random() * 900000);
-        return ok(`${prefix}-${year}-${fallbackNum}`);
+      let candidateNumber: string | null = null;
+      try {
+        // Call atomic stored procedure
+        const { data, error } = await (this.client as any).rpc('get_next_invoice_number', {
+          p_workspace_id: workspaceId,
+          p_prefix: prefix,
+          p_year: year,
+        });
+        if (!error && data) candidateNumber = data;
+      } catch (e) {
+        // RPC failed or unavailable
       }
 
-      return ok(data);
+      // Check if candidateNumber is already in use in the database
+      let isTaken = false;
+      if (candidateNumber) {
+        const { data: existing } = await this.client
+          .from('invoices')
+          .select('id')
+          .eq('invoice_number', candidateNumber)
+          .maybeSingle();
+        if (existing) isTaken = true;
+      }
+
+      if (!candidateNumber || isTaken) {
+        // Query highest invoice number matching prefix-year-% across invoices table
+        const { data: allMatching } = await this.client
+          .from('invoices')
+          .select('invoice_number')
+          .ilike('invoice_number', `${prefix}-${year}-%`)
+          .order('invoice_number', { ascending: false })
+          .limit(100);
+
+        let maxNum = 0;
+        if (allMatching) {
+          for (const row of allMatching) {
+            const parts = (row.invoice_number || '').split('-');
+            const num = parseInt(parts[parts.length - 1], 10);
+            if (!isNaN(num) && num > maxNum) maxNum = num;
+          }
+        }
+        candidateNumber = `${prefix}-${year}-${String(maxNum + 1).padStart(6, '0')}`;
+
+        // Synchronize sequence table if possible
+        try {
+          await (this.client as any)
+            .from('invoice_sequences')
+            .upsert(
+              { workspace_id: workspaceId, prefix, year, last_number: maxNum + 1, updated_at: new Date().toISOString() },
+              { onConflict: 'workspace_id,prefix,year' }
+            );
+        } catch {
+          // Ignore if sequence update fails
+        }
+      }
+
+      return ok(candidateNumber);
     } catch (e) {
       return err(toSafeDomainError(e));
     }
@@ -204,6 +247,35 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
       if (invError && (invError.message?.includes('billing_period') || invError.message?.includes('schema cache'))) {
         delete invPayload.billing_period_start;
         delete invPayload.billing_period_end;
+        const retryResult = await this.client
+          .from('invoices')
+          .insert(invPayload)
+          .select()
+          .single();
+        insertedInv = retryResult.data;
+        invError = retryResult.error;
+      }
+
+      // Gracefully retry if invoice_number collision occurs (unique constraint violation 23505)
+      if (invError && invError.code === '23505' && (invError.message?.includes('invoice_number') || (invError as any).details?.includes('invoice_number'))) {
+        const year = new Date().getFullYear();
+        const prefix = 'INV';
+        const { data: allMatching } = await this.client
+          .from('invoices')
+          .select('invoice_number')
+          .ilike('invoice_number', `${prefix}-${year}-%`)
+          .order('invoice_number', { ascending: false })
+          .limit(100);
+
+        let maxNum = 0;
+        if (allMatching) {
+          for (const row of allMatching) {
+            const parts = (row.invoice_number || '').split('-');
+            const num = parseInt(parts[parts.length - 1], 10);
+            if (!isNaN(num) && num > maxNum) maxNum = num;
+          }
+        }
+        invPayload.invoice_number = `${prefix}-${year}-${String(maxNum + 1).padStart(6, '0')}`;
         const retryResult = await this.client
           .from('invoices')
           .insert(invPayload)

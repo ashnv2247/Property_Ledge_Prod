@@ -1111,6 +1111,11 @@ export interface Database {
           submitted_at: string | null
           verified_at: string | null
           verified_by: string | null
+          customer_message?: string | null
+          rejection_reason?: string | null
+          internal_notes?: string | null
+          billing_cycle?: 'monthly' | 'yearly' | null
+          payment_method?: string | null
           created_at: string
           updated_at: string
         }
@@ -1128,6 +1133,11 @@ export interface Database {
           submitted_at?: string | null
           verified_at?: string | null
           verified_by?: string | null
+          customer_message?: string | null
+          rejection_reason?: string | null
+          internal_notes?: string | null
+          billing_cycle?: 'monthly' | 'yearly' | null
+          payment_method?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -1145,6 +1155,11 @@ export interface Database {
           submitted_at?: string | null
           verified_at?: string | null
           verified_by?: string | null
+          customer_message?: string | null
+          rejection_reason?: string | null
+          internal_notes?: string | null
+          billing_cycle?: 'monthly' | 'yearly' | null
+          payment_method?: string | null
           created_at?: string
           updated_at?: string
         }

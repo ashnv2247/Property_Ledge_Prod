@@ -15,6 +15,7 @@ import { getAuDateParts, DEFAULT_AU_TIMEZONE } from '@/lib/format/australian-tim
 import { emailService } from '@/lib/email/service';
 import { PdfLeaseAdapter } from '@/lib/pdf/pdf-lease-adapter';
 import { container } from '@/composition/container';
+import { getPredefinedTemplateById } from '@/modules/invoices/domain/constants/predefined-templates';
 
 const isUuid = (val?: string | null): boolean =>
   typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
@@ -25,7 +26,8 @@ async function resolveWorkspaceInvoiceTemplateId(
   workspaceId: string
 ): Promise<string | null> {
   if (!templateId) return null;
-  if (!isUuid(templateId)) throw new Error('Invoice template ID is invalid.');
+  // Predefined canonical templates (e.g. 'template_classic') are code-based and do not have a DB row
+  if (!isUuid(templateId)) return null;
 
   const { data, error } = await supabase
     .from('invoice_templates')
@@ -34,7 +36,7 @@ async function resolveWorkspaceInvoiceTemplateId(
     .eq('workspace_id', workspaceId)
     .maybeSingle();
 
-  if (error || !data) throw new Error('Invoice template not found in the active workspace.');
+  if (error || !data) return null;
   return data.id;
 }
 
@@ -182,7 +184,13 @@ export async function fetchAutomationsAction(filters?: {
               name: row.invoice_template.name,
               isDefault: row.invoice_template.is_default,
             }
-          : undefined,
+          : (row.metadata?.templateId || row.actions?.[0]?.params?.templateId
+              ? {
+                  id: row.metadata?.templateId || row.actions?.[0]?.params?.templateId,
+                  name: getPredefinedTemplateById(row.metadata?.templateId || row.actions?.[0]?.params?.templateId)?.name || 'Standard Template',
+                  isDefault: false,
+                }
+              : undefined),
       };
     });
   } catch (err: any) {
@@ -286,6 +294,7 @@ export async function createLeaseAutomationAction(dto: CreateLeaseAutomationDTO)
       customerEmail: tenantEmail,
       customerPhone: dto.recipientOverride?.tenantPhone || t?.phone,
       amount: dto.recipientOverride?.rentAmount !== undefined ? dto.recipientOverride.rentAmount : Number(lease.rent_amount || 0),
+      templateId: dto.invoiceTemplateId || undefined,
       issuedBy: dto.issuedByOverride || undefined,
       paymentDueDays: dto.paymentDueDays || 14,
       emailSubject: dto.emailSubject || undefined,
@@ -312,7 +321,7 @@ export async function createLeaseAutomationAction(dto: CreateLeaseAutomationDTO)
             type: dto.actionType,
             params: {
               leaseId: dto.leaseId,
-              templateId: invoiceTemplateId || undefined,
+              templateId: dto.invoiceTemplateId || invoiceTemplateId || undefined,
               customerName: tenantName,
               customerEmail: tenantEmail,
               customerPhone: metadata.customerPhone,
@@ -415,6 +424,7 @@ export async function createStandaloneInvoiceAutomationAction(dto: CreateStandal
           description: dto.description,
           amount: dto.amount,
           currency: dto.currency || 'AUD',
+          templateId: dto.invoiceTemplateId || undefined,
           issuedBy: dto.issuedByOverride || undefined,
           paymentDueDays: dto.paymentDueDays || 14,
           emailSubject: dto.emailSubject || undefined,
@@ -432,7 +442,7 @@ export async function createStandaloneInvoiceAutomationAction(dto: CreateStandal
               description: dto.description,
               amount: dto.amount,
               currency: dto.currency || 'AUD',
-              templateId: invoiceTemplateId || undefined,
+              templateId: dto.invoiceTemplateId || invoiceTemplateId || undefined,
               issuedBy: dto.issuedByOverride || undefined,
               dueDays: dto.paymentDueDays || 14,
               emailSubject: dto.emailSubject || undefined,

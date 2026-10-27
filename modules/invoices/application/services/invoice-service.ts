@@ -24,7 +24,7 @@ import { InvoiceRenderDTO } from '../dto/invoice-render-dto';
 import { formatInvoiceAmount } from '../../domain/value-objects/currency';
 import { getPredefinedTemplateById } from '../../domain/constants/predefined-templates';
 
-const isUuid = (val?: string | null): boolean =>
+const isUuid = (val?: string | null): val is string =>
   typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
 export class InvoiceService {
@@ -130,7 +130,13 @@ export class InvoiceService {
       taxId: null,
     };
 
-    const predefinedTmpl = getPredefinedTemplateById(dto.templateId);
+    let customTmpl: InvoiceTemplate | null = null;
+    if (isUuid(dto.templateId) && this.templateRepository) {
+      const tRes = await this.templateRepository.getById(dto.templateId, context);
+      if (tRes.success) customTmpl = tRes.data;
+    }
+
+    const predefinedTmpl = !customTmpl ? getPredefinedTemplateById(dto.templateId) : null;
 
     const initialSnapshot: InvoiceSnapshot = {
       billTo: {
@@ -140,9 +146,17 @@ export class InvoiceService {
       },
       issuer: issuerData,
       propertyAddress: customerAddress,
-      paymentInstructions: dto.paymentInstructions || null,
+      paymentInstructions: dto.paymentInstructions || customTmpl?.paymentInstructions || null,
       capturedAt: new Date().toISOString(),
-      ...(predefinedTmpl ? {
+      ...(customTmpl ? {
+        layoutStyle: customTmpl.layoutStyle,
+        brandColor: customTmpl.brandColor,
+        accentColor: customTmpl.accentColor,
+        logoUrl: customTmpl.logoUrl,
+        headerText: customTmpl.headerText,
+        footerText: customTmpl.footerText,
+        templateId: customTmpl.id,
+      } : predefinedTmpl ? {
         layoutStyle: predefinedTmpl.layoutStyle,
         brandColor: predefinedTmpl.brandColor,
         accentColor: predefinedTmpl.accentColor,

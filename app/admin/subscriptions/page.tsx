@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { PageContainer, useToast } from '@/components/admin/ui';
 import {
   AdminDataGrid,
@@ -14,6 +15,7 @@ import { SubscriptionDrawer } from '@/components/admin/SubscriptionDrawer';
 import { fetchAdminSubscriptions, fetchAdminPayments } from '@/app/actions/admin';
 
 export default function AdminSubscriptionsPage() {
+  const searchParams = useSearchParams();
   const [activeFilter, setActiveFilter] = useState('all');
   const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -48,10 +50,15 @@ export default function AdminSubscriptionsPage() {
             userEmail: s.account_context?.profiles?.email || 'customer@propertyledge.com.au',
             planName: s.subscription_plans?.name || 'Landlord',
             billingInterval: 'monthly',
+            billingCycle: 'monthly',
             amount: Number(s.subscription_plans?.price_cents ? s.subscription_plans.price_cents / 100 : 29),
             currency: 'AUD',
             reference: `PL-2026-${s.id.substring(0, 5)}`,
             status: s.status,
+            customerMessage: null,
+            rejectionReason: null,
+            internalNotes: null,
+            paymentMethod: 'bank_transfer',
             created_at: s.created_at,
           });
         });
@@ -68,18 +75,36 @@ export default function AdminSubscriptionsPage() {
             userName: p.account_context?.profiles?.full_name || existing?.userName || 'Customer Account',
             userEmail: p.account_context?.profiles?.email || existing?.userEmail || 'customer@propertyledge.com.au',
             planName: p.subscriptions?.subscription_plans?.name || existing?.planName || 'Landlord',
-            billingInterval: 'monthly',
-            amount: Number(p.expected_amount || existing?.amount || 29),
+            billingInterval: p.billing_cycle || 'monthly',
+            billingCycle: p.billing_cycle || 'monthly',
+            amount: Number(p.amount_cents ? p.amount_cents / 100 : (p.expected_amount || existing?.amount || 29)),
             currency: p.currency || 'AUD',
             reference: p.reference || existing?.reference,
             status: p.status === 'verified' ? 'active' : p.status,
+            customerMessage: p.customer_message || null,
+            rejectionReason: p.rejection_reason || null,
+            internalNotes: p.internal_notes || null,
+            paymentMethod: p.payment_method || 'bank_transfer',
             created_at: p.created_at || existing?.created_at,
           });
         });
       }
 
-      setSubscriptionsList(Array.from(itemsMap.values()));
+      const list = Array.from(itemsMap.values());
+      setSubscriptionsList(list);
       setLastRefreshedAt(new Date());
+
+      // Auto-open drawer if payment_id or sub_id query param matches
+      const targetPaymentId = searchParams?.get('payment_id');
+      const targetSubId = searchParams?.get('sub_id');
+      if (targetPaymentId || targetSubId) {
+        const found = list.find(
+          (item) => item.paymentId === targetPaymentId || item.id === targetSubId
+        );
+        if (found) {
+          handleOpenDrawer(found);
+        }
+      }
     } catch (err) {
       console.warn('Failed to load server subscriptions:', err);
       setSubscriptionsList([]);
@@ -104,9 +129,14 @@ export default function AdminSubscriptionsPage() {
       userEmail: item.userEmail,
       planName: item.planName,
       billingInterval: item.billingInterval,
+      billingCycle: item.billingCycle,
       amount: item.amount,
       reference: item.reference,
       status: item.status,
+      customerMessage: item.customerMessage,
+      rejectionReason: item.rejectionReason,
+      internalNotes: item.internalNotes,
+      paymentMethod: item.paymentMethod,
     });
     setIsDrawerOpen(true);
   };
@@ -129,12 +159,20 @@ export default function AdminSubscriptionsPage() {
         label: 'Pending',
         count: subscriptionsList.filter((s) => s.status === 'pending' || s.status === 'pending_payment').length,
       },
+      {
+        value: 'rejected',
+        label: 'Rejected',
+        count: subscriptionsList.filter((s) => s.status === 'rejected').length,
+      },
     ],
     [subscriptionsList]
   );
 
   const filteredSubscriptions = useMemo(() => {
     if (activeFilter === 'all') return subscriptionsList;
+    if (activeFilter === 'pending') {
+      return subscriptionsList.filter((s) => s.status === 'pending' || s.status === 'pending_payment');
+    }
     return subscriptionsList.filter((s) => s.status === activeFilter);
   }, [subscriptionsList, activeFilter]);
 
