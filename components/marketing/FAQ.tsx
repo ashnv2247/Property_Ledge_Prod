@@ -46,19 +46,19 @@ export function FAQ() {
   };
 
   return (
-    <section id="faq" className="py-20 md:py-28 bg-[#061222]/80 relative overflow-hidden select-none">
+    <section id="faq" className="py-20 md:py-28 bg-surface-subtle/40 dark:bg-[#061222]/80 relative overflow-hidden select-none transition-colors duration-300">
       <div className="max-w-4xl mx-auto px-5 sm:px-8 space-y-10 relative z-10">
         <div className="text-center space-y-4">
           <Reveal direction="up" delay={0.1}>
             <SectionLabel>FREQUENTLY ASKED QUESTIONS</SectionLabel>
           </Reveal>
           <Reveal direction="up" delay={0.2}>
-            <h2 className="text-3xl sm:text-4xl font-bold font-heading tracking-tight text-white uppercase">
+            <h2 className="text-3xl sm:text-4xl font-bold font-heading tracking-tight text-foreground dark:text-white uppercase">
               Everything You Need to Know
             </h2>
           </Reveal>
           <Reveal direction="up" delay={0.3}>
-            <p className="text-sm sm:text-base text-[#8FA3B8]">
+            <p className="text-sm sm:text-base text-muted dark:text-[#8FA3B8]">
               Have more questions? Our Sydney-based support team is available 24/7.
             </p>
           </Reveal>
@@ -73,26 +73,26 @@ export function FAQ() {
                 <div
                   className={`rounded-2xl border transition-all duration-300 overflow-hidden backdrop-blur-xl ${
                     isOpen
-                      ? "border-[#008F83]/60 bg-[#08182A] shadow-xl shadow-[#008F83]/5"
-                      : "border-white/[0.05] bg-[#08182A]/60 hover:border-white/[0.12] hover:bg-[#08182A]/90"
+                      ? "border-accent/60 bg-surface shadow-md dark:border-[#008F83]/60 dark:bg-[#08182A] dark:shadow-xl dark:shadow-[#008F83]/5"
+                      : "border-border bg-surface hover:border-accent/40 dark:border-white/[0.05] dark:bg-[#08182A]/60 dark:hover:border-white/[0.12] dark:hover:bg-[#08182A]/90"
                   }`}
                 >
                   <button
                     type="button"
                     onClick={() => toggle(idx)}
                     aria-expanded={isOpen}
-                    className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 font-heading font-semibold text-sm sm:text-base text-white select-none focus:outline-none"
+                    className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 font-heading font-semibold text-sm sm:text-base text-foreground dark:text-white select-none focus:outline-none"
                   >
                     <span className="flex items-center gap-3">
                       <span className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                        isOpen ? "bg-[#00A99D]" : "bg-[#64788D]"
+                        isOpen ? "bg-accent" : "bg-muted"
                       }`} />
                       {faq.question}
                     </span>
                     <div className={`w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 transition-all duration-300 ${
                       isOpen
-                        ? "border-[#008F83] bg-[#008F83]/20 text-[#00A99D]"
-                        : "border-white/[0.08] bg-[#071526] text-[#8FA3B8]"
+                        ? "border-accent bg-accent/10 text-accent dark:border-[#008F83] dark:bg-[#008F83]/20 dark:text-[#00A99D]"
+                        : "border-border bg-surface-subtle text-muted hover:text-foreground dark:border-white/[0.08] dark:bg-[#071526] dark:text-[#8FA3B8]"
                     }`}>
                       {isOpen ? (
                         <Minus className="w-3.5 h-3.5" />
@@ -103,7 +103,7 @@ export function FAQ() {
                   </button>
 
                   {isOpen && (
-                    <div className="px-5 sm:px-6 pb-6 text-xs sm:text-sm text-[#8FA3B8] leading-relaxed border-t border-white/[0.04] pt-3 font-sans">
+                    <div className="px-5 sm:px-6 pb-6 text-xs sm:text-sm text-muted dark:text-[#8FA3B8] leading-relaxed border-t border-border/60 dark:border-white/[0.04] pt-3 font-sans">
                       {faq.answer}
                     </div>
                   )}

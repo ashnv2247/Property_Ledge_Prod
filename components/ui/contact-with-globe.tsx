@@ -710,7 +710,7 @@ export default function ContactWithGlobe({
   return (
     <section
       className={cn(
-        "relative w-full bg-[#0A0F1D] text-slate-100 overflow-hidden py-20",
+        "relative w-full bg-background dark:bg-[#0A0F1D] text-foreground dark:text-slate-100 overflow-hidden py-20 border-t border-border dark:border-white/[0.06]",
         className,
       )}
     >
@@ -721,9 +721,9 @@ export default function ContactWithGlobe({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, ease: smoothEase }}
-            className="inline-flex items-center px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-400/30"
+            className="inline-flex items-center px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20 dark:bg-cyan-500/10 dark:border-cyan-400/30"
           >
-            <span className="text-sm text-cyan-400 font-medium">
+            <span className="text-sm text-accent dark:text-cyan-400 font-medium">
               {subtitle}
             </span>
           </motion.div>
@@ -733,7 +733,7 @@ export default function ContactWithGlobe({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.9, delay: 0.15, ease: smoothEase }}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight"
+            className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground dark:text-white tracking-tight"
           >
             {title}
           </motion.h2>
@@ -743,7 +743,7 @@ export default function ContactWithGlobe({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.9, delay: 0.3, ease: smoothEase }}
-            className="text-base text-slate-400 max-w-md"
+            className="text-base text-muted dark:text-slate-400 max-w-md"
           >
             {description}
           </motion.p>
@@ -758,10 +758,10 @@ export default function ContactWithGlobe({
             className="flex flex-col gap-6"
           >
             <div className="flex flex-col gap-1">
-              <h3 className="text-xl font-semibold text-white">
+              <h3 className="text-xl font-semibold text-foreground dark:text-white">
                 Get in touch
               </h3>
-              <p className="text-sm text-slate-400 leading-relaxed max-w-xs">
+              <p className="text-sm text-muted dark:text-slate-400 leading-relaxed max-w-xs">
                 Reach out via any channel below. We typically reply within one
                 business day.
               </p>
@@ -780,10 +780,10 @@ export default function ContactWithGlobe({
                     delay: 0.3 + i * 0.1,
                     ease: smoothEase,
                   }}
-                  className="group flex items-center gap-3 w-fit text-sm text-slate-400 hover:text-white transition-colors duration-200"
+                  className="group flex items-center gap-3 w-fit text-sm text-muted dark:text-slate-400 hover:text-foreground dark:hover:text-white transition-colors duration-200"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-[#111A2E] border border-[#1E2D4A] group-hover:border-cyan-400/50 group-hover:bg-cyan-500/10 flex items-center justify-center shrink-0 transition-all duration-200">
-                    <Icon className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-400 transition-colors duration-200" />
+                  <div className="w-8 h-8 rounded-lg bg-surface dark:bg-[#111A2E] border border-border dark:border-[#1E2D4A] group-hover:border-accent/40 dark:group-hover:border-cyan-400/50 group-hover:bg-accent/10 dark:group-hover:bg-cyan-500/10 flex items-center justify-center shrink-0 transition-all duration-200">
+                    <Icon className="w-3.5 h-3.5 text-muted dark:text-slate-400 group-hover:text-accent dark:group-hover:text-cyan-400 transition-colors duration-200" />
                   </div>
                   {label}
                 </motion.a>
@@ -792,14 +792,14 @@ export default function ContactWithGlobe({
 
             <div className="relative overflow-hidden h-52">
               <GlobeWireframe
-                className="w-full aspect-square max-w-full absolute top-0 left-0 text-slate-400"
+                className="w-full aspect-square max-w-full absolute top-0 left-0 text-slate-400 dark:text-slate-400"
                 variant="wireframesolid"
                 autoRotate
                 autoRotateSpeed={0.45}
                 strokeWidth={0.6}
                 graticuleOpacity={0.15}
               />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0A0F1D] to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background dark:from-[#0A0F1D] to-transparent" />
             </div>
           </motion.div>
 
@@ -808,13 +808,13 @@ export default function ContactWithGlobe({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 1.0, delay: 0.35, ease: smoothEase }}
-            className="rounded-2xl border border-[#1E2D4A] bg-[#0E1626]/90 backdrop-blur-sm p-6 sm:p-8 flex flex-col gap-5 shadow-2xl"
+            className="rounded-2xl border border-border dark:border-[#1E2D4A] bg-surface dark:bg-[#0E1626]/90 backdrop-blur-sm p-6 sm:p-8 flex flex-col gap-5 shadow-xl dark:shadow-2xl"
           >
             <div>
-              <h3 className="text-lg font-semibold text-white mb-0.5">
+              <h3 className="text-lg font-semibold text-foreground dark:text-white mb-0.5">
                 Send a message
               </h3>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-muted dark:text-slate-400">
                 Fill out the form and we'll get back to you promptly.
               </p>
             </div>
@@ -823,50 +823,50 @@ export default function ContactWithGlobe({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-semibold tracking-widest uppercase text-slate-400">
+                <label className="text-xs font-semibold tracking-widest uppercase text-muted dark:text-slate-400">
                   Full Name
                 </label>
                 <input
                   type="text"
                   placeholder="Ahdeetai"
-                  className="w-full bg-[#080D1A] border border-[#1E2D4A] rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/15 transition-all duration-200"
+                  className="w-full bg-surface-subtle dark:bg-[#080D1A] border border-border dark:border-[#1E2D4A] rounded-xl px-4 py-2.5 text-sm text-foreground dark:text-slate-100 placeholder:text-muted/60 dark:placeholder:text-slate-500 outline-none focus:border-accent dark:focus:border-cyan-400 focus:ring-2 focus:ring-accent/15 dark:focus:ring-cyan-500/15 transition-all duration-200"
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-xs font-semibold tracking-widest uppercase text-slate-400">
+                <label className="text-xs font-semibold tracking-widest uppercase text-muted dark:text-slate-400">
                   Company
                 </label>
                 <input
                   type="text"
                   placeholder="Property Ledge"
-                  className="w-full bg-[#080D1A] border border-[#1E2D4A] rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/15 transition-all duration-200"
+                  className="w-full bg-surface-subtle dark:bg-[#080D1A] border border-border dark:border-[#1E2D4A] rounded-xl px-4 py-2.5 text-sm text-foreground dark:text-slate-100 placeholder:text-muted/60 dark:placeholder:text-slate-500 outline-none focus:border-accent dark:focus:border-cyan-400 focus:ring-2 focus:ring-accent/15 dark:focus:ring-cyan-500/15 transition-all duration-200"
                 />
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-semibold tracking-widest uppercase text-slate-400">
+              <label className="text-xs font-semibold tracking-widest uppercase text-muted dark:text-slate-400">
                 Email Address
               </label>
               <input
                 type="email"
                 placeholder="support@propertyledge.com.au"
-                className="w-full bg-[#080D1A] border border-[#1E2D4A] rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/15 transition-all duration-200"
+                className="w-full bg-surface-subtle dark:bg-[#080D1A] border border-border dark:border-[#1E2D4A] rounded-xl px-4 py-2.5 text-sm text-foreground dark:text-slate-100 placeholder:text-muted/60 dark:placeholder:text-slate-500 outline-none focus:border-accent dark:focus:border-cyan-400 focus:ring-2 focus:ring-accent/15 dark:focus:ring-cyan-500/15 transition-all duration-200"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-semibold tracking-widest uppercase text-slate-400">
+              <label className="text-xs font-semibold tracking-widest uppercase text-muted dark:text-slate-400">
                 Message
               </label>
               <textarea
                 placeholder="Type your message here"
                 rows={4}
-                className="w-full bg-[#080D1A] border border-[#1E2D4A] rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/15 resize-none transition-all duration-200"
+                className="w-full bg-surface-subtle dark:bg-[#080D1A] border border-border dark:border-[#1E2D4A] rounded-xl px-4 py-3 text-sm text-foreground dark:text-slate-100 placeholder:text-muted/60 dark:placeholder:text-slate-500 outline-none focus:border-accent dark:focus:border-cyan-400 focus:ring-2 focus:ring-accent/15 dark:focus:ring-cyan-500/15 resize-none transition-all duration-200"
               />
             </div>
 
-            <Button className="w-fit h-11 px-8 rounded-xl font-semibold text-sm bg-white hover:bg-slate-100 text-slate-900 group shadow-md transition-all">
+            <Button className="w-fit h-11 px-8 rounded-xl font-semibold text-sm bg-accent hover:bg-accent-hover text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 group shadow-md transition-all">
               Submit
               <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
             </Button>

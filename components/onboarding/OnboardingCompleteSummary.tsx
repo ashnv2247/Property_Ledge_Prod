@@ -10,17 +10,21 @@ interface OnboardingCompleteSummaryProps {
   hasSubscription: boolean;
   propertyName?: string;
   subscriptionStatus?: string | null;
+  planName?: string;
 }
 
 export function OnboardingCompleteSummary({
   workspaceName,
   hasSubscription,
   propertyName,
-  subscriptionStatus
+  subscriptionStatus,
+  planName,
 }: OnboardingCompleteSummaryProps) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isHovered, setIsHovered] = useState(false);
+
+  const isUnderReview = subscriptionStatus === 'under_review';
 
   const handleDashboardRedirect = () => {
     setError(null);
@@ -44,7 +48,11 @@ export function OnboardingCompleteSummary({
     },
     {
       label: 'Plan configuration',
-      value: subscriptionStatus === 'trial' ? 'Standard (14d Trial)' : 'Active Plan',
+      value: isUnderReview
+        ? `${planName || 'Portfolio Pro'} (14d Trial Active)`
+        : subscriptionStatus === 'trial'
+          ? 'Standard (14d Trial)'
+          : 'Active Plan',
       done: hasSubscription,
     },
     {
@@ -56,6 +64,34 @@ export function OnboardingCompleteSummary({
 
   return (
     <div className="space-y-5 mt-4">
+      {/* 14-Day Trial Active Confirmation Card for Under-Review Subscriptions */}
+      {isUnderReview && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-[#0B1D30] to-violet-500/10 border border-emerald-500/30 shadow-lg shadow-emerald-500/5"
+        >
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-white">14-Day Full Access Trial Activated</span>
+                <span className="rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                  Trial Live
+                </span>
+                <span className="rounded-full bg-violet-500/20 border border-violet-500/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-300">
+                  Receipt Under Review
+                </span>
+              </div>
+              <p className="text-xs text-[#8FA3B8] leading-relaxed">
+                We received your payment proof for <strong className="text-white">{planName || 'Portfolio Pro'}</strong>! While our accounts team verifies your transfer (typically 1–4 business hours), your <strong>14-day full trial access is active right now</strong> so you can create properties, manage leases, and explore all features immediately.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
       {/* Celebratory Checkmark Hero */}
       <div className="flex items-center gap-3.5 p-4 rounded-2xl bg-[#008F83]/10 border border-[#008F83]/25 shadow-lg shadow-[#008F83]/10">
         <motion.div

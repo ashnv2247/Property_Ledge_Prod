@@ -51,7 +51,7 @@ export const getEntitlements = cache(async function getEntitlements(accountId: s
   logAuthEvent('ENTITLEMENTS_LOAD_STARTED', { accountId: maskedId, cacheHit: false });
   try {
     const sub = await getSubscription(accountId);
-    if (!sub || !isSubscriptionActive(sub.status)) {
+    if (!sub || (!isSubscriptionActive(sub.status) && sub.status !== 'under_review')) {
       serverCache.set(cacheKey, {}, 120_000);
       logAuthEvent('ENTITLEMENTS_LOAD_SUCCESS', {
         accountId: maskedId,

@@ -42,6 +42,16 @@ export async function signUpAction(formData: {
       return { success: false, error: mapAuthError(error) };
     }
 
+    // When an email already exists and email confirmations or enumeration protection are active,
+    // Supabase returns a 200 response with an empty identities array instead of raising an error.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      logAuthEvent('AUTH_SIGNUP_FAILED', { email, reason: 'Email already exists' });
+      return {
+        success: false,
+        error: 'An account with this email address already exists. Please log in instead.',
+      };
+    }
+
     logAuthEvent('AUTH_SIGNUP_SUCCESS', { userId: data.user?.id });
     return {
       success: true,

@@ -59,7 +59,7 @@ export const getActiveSubscription = cache(async function getActiveSubscription(
   const sub = await getSubscription(accountId);
   if (!sub) return null;
 
-  if (isSubscriptionActive(sub.status)) {
+  if (isSubscriptionActive(sub.status) || sub.status === 'under_review') {
     return sub;
   }
 
@@ -68,8 +68,9 @@ export const getActiveSubscription = cache(async function getActiveSubscription(
 
 export const getSubscriptionPlans = cache(async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
   const cacheKey = 'plans:active';
+  const allowed = ['landlord', 'manager', 'agency'];
   const cached = serverCache.get<SubscriptionPlan[]>(cacheKey);
-  if (cached) {
+  if (cached && cached.length > 0 && cached.every((p) => allowed.includes(p.slug) && p.status === 'active')) {
     return cached;
   }
 
@@ -82,8 +83,9 @@ export const getSubscriptionPlans = cache(async function getSubscriptionPlans():
       .order('display_order', { ascending: true });
 
     if (error || !data) return [];
-    serverCache.set(cacheKey, data, 300_000); // 300s TTL
-    return data;
+    const filtered = (data as SubscriptionPlan[]).filter((p) => allowed.includes(p.slug));
+    serverCache.set(cacheKey, filtered, 300_000); // 300s TTL
+    return filtered;
   } catch (err) {
     return [];
   }

@@ -40,8 +40,10 @@ function OnboardingShellInner({ children, userName = 'User', userEmail, workspac
     window.location.href = '/';
   };
 
+  const isPlansStage = pathname.startsWith('/onboarding/plans');
+
   return (
-    <div className="fixed inset-0 z-50 w-screen h-screen bg-[#061222] text-[#FFFFFF] flex items-center justify-center p-4 sm:p-6 lg:p-8 overflow-hidden font-sans selection:bg-[#008F83]/30 selection:text-[#FFFFFF]">
+    <div className="dark fixed inset-0 z-50 w-screen h-screen bg-[#061222] text-[#FFFFFF] flex items-center justify-center p-3 sm:p-5 lg:p-6 overflow-hidden font-sans selection:bg-[#008F83]/30 selection:text-[#FFFFFF]">
       {/* Ambient Radial Gradient Glows */}
       <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-[#008F83]/10 rounded-full blur-[140px] pointer-events-none -z-10" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-[#0B1D30]/80 rounded-full blur-[120px] pointer-events-none -z-10" />
@@ -117,14 +119,16 @@ function OnboardingShellInner({ children, userName = 'User', userEmail, workspac
             </div>
           </motion.div>
         ) : (
-          /* Two-Column Elevated Card for Form & Config Stages */
+          /* Form & Config Stages: Full-width for plans, 2-column for forms */
           <motion.div
             key="step-card"
             initial={{ opacity: 0, y: 12, scale: 0.99 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.99 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full max-w-5xl h-[min(88vh,760px)] bg-[#08182A]/95 backdrop-blur-2xl border border-white/[0.08] rounded-3xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col lg:flex-row relative"
+            className={`w-full ${
+              isPlansStage ? 'max-w-6xl h-[min(92vh,840px)]' : 'max-w-5xl h-[min(88vh,760px)] lg:flex-row'
+            } bg-[#08182A]/95 backdrop-blur-2xl border border-white/[0.08] rounded-3xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col relative`}
           >
             {/* Top-Right Close Button with High Z-Index */}
             <button
@@ -137,8 +141,10 @@ function OnboardingShellInner({ children, userName = 'User', userEmail, workspac
               <X className="h-4 w-4" />
             </button>
 
-            {/* Left Side: Onboarding Form & Steps */}
-            <div className="flex-1 w-full lg:w-[58%] flex flex-col justify-between p-5 sm:p-7 lg:p-8 overflow-hidden h-full">
+            {/* Left/Main Side: Onboarding Form & Steps */}
+            <div className={`flex flex-col justify-between p-5 sm:p-7 lg:p-8 overflow-hidden h-full ${
+              isPlansStage ? 'w-full' : 'flex-1 w-full lg:w-[58%]'
+            }`}>
               {/* Header Actions inside card */}
               <div className="flex items-center justify-between pb-3 border-b border-white/[0.06] shrink-0">
                 <div className="flex items-center gap-2.5">
@@ -215,9 +221,11 @@ function OnboardingShellInner({ children, userName = 'User', userEmail, workspac
             </div>
 
             {/* Right Side: Contextual Live Preview & Visuals */}
-            <div className="hidden lg:flex lg:w-[42%] bg-[#071526]/90 border-l border-white/[0.06] overflow-hidden h-full rounded-r-3xl relative">
-              <OnboardingStepVisual stage={currentStage} />
-            </div>
+            {!isPlansStage && (
+              <div className="hidden lg:flex lg:w-[42%] bg-[#071526]/90 border-l border-white/[0.06] overflow-hidden h-full rounded-r-3xl relative">
+                <OnboardingStepVisual stage={currentStage} />
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

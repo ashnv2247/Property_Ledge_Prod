@@ -45,27 +45,27 @@ export function FinancialDashboard() {
   ];
 
   return (
-    <div className="w-full rounded-2xl border border-white/[0.06] bg-[#08182A]/90 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden text-foreground text-xs select-none">
+    <div className="w-full rounded-2xl border border-border dark:border-white/[0.06] bg-surface dark:bg-[#08182A]/90 backdrop-blur-xl shadow-xl dark:shadow-2xl dark:shadow-black/40 overflow-hidden text-foreground text-xs select-none">
       {/* Header bar */}
-      <div className="p-4 sm:p-5 border-b border-white/[0.04] flex items-center justify-between bg-[#061222]/50">
+      <div className="p-4 sm:p-5 border-b border-border dark:border-white/[0.04] flex items-center justify-between bg-surface-subtle/50 dark:bg-[#061222]/50">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#008F83]/15 border border-[#008F83]/30 flex items-center justify-center text-[#00A99D] shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-accent/15 border border-accent/25 dark:bg-[#008F83]/15 dark:border-[#008F83]/30 flex items-center justify-center text-accent dark:text-[#00A99D] shrink-0">
             <BarChart3 className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-heading font-bold text-sm sm:text-base text-white">
+              <h3 className="font-heading font-bold text-sm sm:text-base text-foreground dark:text-white">
                 ATO Real-Time Tax Telemetry
               </h3>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
                 FY26 Live
               </span>
             </div>
-            <p className="text-[11px] text-[#8FA3B8]">Automated Rental Schedules & Depreciation</p>
+            <p className="text-[11px] text-muted dark:text-[#8FA3B8]">Automated Rental Schedules & Depreciation</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono text-[#8FA3B8] hidden sm:inline">AU Standard</span>
+          <span className="text-[11px] font-mono text-muted dark:text-[#8FA3B8] hidden sm:inline">AU Standard</span>
         </div>
       </div>
 
@@ -75,15 +75,15 @@ export function FinancialDashboard() {
           {financialMetrics.map((m, idx) => (
             <div
               key={idx}
-              className="p-3.5 rounded-xl border border-white/[0.04] bg-[#071526]/80 hover:border-[#008F83]/30 transition-all space-y-1 group"
+              className="p-3.5 rounded-xl border border-border dark:border-white/[0.04] bg-surface-subtle/60 dark:bg-[#071526]/80 hover:border-accent/40 dark:hover:border-[#008F83]/30 transition-all space-y-1 group"
             >
-              <span className="text-[9.5px] uppercase font-bold tracking-wider text-[#64788D]">
+              <span className="text-[9.5px] uppercase font-bold tracking-wider text-muted/80 dark:text-[#64788D]">
                 {m.label}
               </span>
-              <div className="text-xl font-bold font-heading text-white">
+              <div className="text-xl font-bold font-heading text-foreground dark:text-white">
                 {m.amount}
               </div>
-              <div className="flex items-center gap-1 text-[10.5px] font-semibold text-emerald-400">
+              <div className="flex items-center gap-1 text-[10.5px] font-semibold text-emerald-600 dark:text-emerald-400">
                 <TrendingUp className="w-3 h-3" />
                 <span>{m.change} vs prior FY</span>
               </div>
@@ -94,23 +94,23 @@ export function FinancialDashboard() {
         {/* Charts: Bar Chart + Donut Chart */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           {/* Income vs Expenses Bar Chart */}
-          <div className="md:col-span-7 p-4 rounded-xl border border-white/[0.04] bg-[#071526]/60 space-y-3">
+          <div className="md:col-span-7 p-4 rounded-xl border border-border dark:border-white/[0.04] bg-surface-subtle/40 dark:bg-[#071526]/60 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="font-heading font-semibold text-xs text-white">
+              <span className="font-heading font-semibold text-xs text-foreground dark:text-white">
                 Monthly Cash Velocity
               </span>
               <div className="flex items-center gap-3 text-[10px]">
-                <span className="flex items-center gap-1.5 text-[#8FA3B8]">
+                <span className="flex items-center gap-1.5 text-muted dark:text-[#8FA3B8]">
                   <span className="w-2 h-2 rounded-xs bg-[#00A99D]" /> Rent In
                 </span>
-                <span className="flex items-center gap-1.5 text-[#8FA3B8]">
+                <span className="flex items-center gap-1.5 text-muted dark:text-[#8FA3B8]">
                   <span className="w-2 h-2 rounded-xs bg-amber-500/80" /> Expense Out
                 </span>
               </div>
             </div>
 
             {/* Custom Bar Visualization */}
-            <div className="h-36 flex items-end justify-between gap-2 pt-4 px-2 border-b border-white/[0.04]">
+            <div className="h-36 flex items-end justify-between gap-2 pt-4 px-2 border-b border-border dark:border-white/[0.04]">
               {barData.map((b, idx) => {
                 const isSelected = selectedMonth === b.month;
                 return (
@@ -136,7 +136,7 @@ export function FinancialDashboard() {
                       />
                     </div>
                     <span className={`text-[10px] font-mono transition-colors ${
-                      isSelected ? "text-[#00A99D] font-bold" : "text-[#8FA3B8]"
+                      isSelected ? "text-accent dark:text-[#00A99D] font-bold" : "text-muted dark:text-[#8FA3B8]"
                     }`}>
                       {b.month}
                     </span>
@@ -147,8 +147,8 @@ export function FinancialDashboard() {
           </div>
 
           {/* Expenses Breakdown Donut Chart */}
-          <div className="md:col-span-5 p-4 rounded-xl border border-white/[0.04] bg-[#071526]/60 flex flex-col justify-between">
-            <span className="font-heading font-semibold text-xs text-white">
+          <div className="md:col-span-5 p-4 rounded-xl border border-border dark:border-white/[0.04] bg-surface-subtle/40 dark:bg-[#071526]/60 flex flex-col justify-between">
+            <span className="font-heading font-semibold text-xs text-foreground dark:text-white">
               ATO Expense Tax Categories
             </span>
 
@@ -197,8 +197,8 @@ export function FinancialDashboard() {
                   />
                 </svg>
                 <div className="absolute text-center">
-                  <div className="text-[11px] font-bold text-white font-mono">$42.8k</div>
-                  <div className="text-[8px] text-[#8FA3B8] uppercase">Claimed</div>
+                  <div className="text-[11px] font-bold text-foreground dark:text-white font-mono">$42.8k</div>
+                  <div className="text-[8px] text-muted dark:text-[#8FA3B8] uppercase">Claimed</div>
                 </div>
               </div>
 
@@ -211,9 +211,9 @@ export function FinancialDashboard() {
                         className="w-1.5 h-1.5 rounded-full"
                         style={{ backgroundColor: item.color }}
                       />
-                      <span className="text-[#8FA3B8] truncate">{item.name}</span>
+                      <span className="text-muted dark:text-[#8FA3B8] truncate">{item.name}</span>
                     </div>
-                    <span className="font-semibold text-white ml-1">{item.pct}</span>
+                    <span className="font-semibold text-foreground dark:text-white ml-1">{item.pct}</span>
                   </div>
                 ))}
               </div>

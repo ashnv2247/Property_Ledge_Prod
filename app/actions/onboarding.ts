@@ -318,22 +318,38 @@ export async function selectOnboardingStartOption(
   return { nextRoute: '/onboarding/plans' };
 }
 
-export async function selectOnboardingPlan(planId: string, planSlug: string, priceCents: number): Promise<{ nextRoute: string }> {
+export async function selectOnboardingPlan(
+  planId: string,
+  planSlug: string,
+  priceCents: number,
+  billingInterval: 'monthly' | 'yearly' = 'yearly'
+): Promise<{ nextRoute: string }> {
   const { user } = await getSupabaseForUser();
 
-  if (priceCents === 0) {
-    await completeStage('subscription', { startMode: 'free', selectedPlanId: planId, planSlug });
+  if (planSlug === 'agency' || priceCents === 0) {
+    await completeStage('subscription', {
+      startMode: 'enterprise',
+      selectedPlanId: planId,
+      planSlug,
+      billingInterval,
+    });
     return { nextRoute: '/onboarding/property' };
   }
 
-  await completeStage('subscription', { startMode: 'paid', selectedPlanId: planId, planSlug });
+  await completeStage('subscription', {
+    startMode: 'paid',
+    selectedPlanId: planId,
+    planSlug,
+    billingInterval,
+  });
 
-  const session = await handleCreateManualCheckoutSession(planSlug, 'monthly');
+  const session = await handleCreateManualCheckoutSession(planSlug, billingInterval);
   if (session) {
     await completeStage('subscription', {
       startMode: 'paid',
       selectedPlanId: planId,
       planSlug,
+      billingInterval,
       checkoutSession: session,
     });
   }
@@ -359,7 +375,7 @@ export async function getOnboardingPaymentContext() {
     plans.find((p) => p.id === selectedPlanId || p.slug === selectedSlug) ||
     plans[0] || {
       id: 'landlord',
-      name: 'Landlord',
+      name: 'Landlord Starter',
       slug: 'landlord',
       price_cents: 2900,
       billing_interval: 'monthly',
@@ -616,7 +632,11 @@ export async function finishOnboarding(): Promise<void> {
 }
 
 export async function fetchOnboardingPlans() {
-  return getSubscriptionPlans();
+  const plans = await getSubscriptionPlans();
+  // Ensure only active canonical plans are returned and ordered by display_order
+  const allowed = ['landlord', 'manager', 'agency'];
+  const filtered = plans.filter((p) => allowed.includes(p.slug) && p.status === 'active');
+  return filtered.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
 }
 
 export async function dismissSetupChecklist(): Promise<void> {

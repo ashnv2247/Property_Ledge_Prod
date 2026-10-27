@@ -6,6 +6,7 @@ import { getSubscription } from '@/lib/subscriptions/queries';
 import { logAuthEvent } from '@/lib/debug/logger';
 import { SubscriptionPayment, PaymentProof } from '@/types/subscriptions';
 import { serverCache } from '@/lib/cache/server-cache';
+import { put } from '@vercel/blob';
 
 export async function createCheckoutSession(options: CheckoutSessionOptions): Promise<CheckoutSessionResult> {
   logAuthEvent('CHECKOUT_STARTED', { accountId: options.accountId, planSlug: options.planSlug });
@@ -239,31 +240,66 @@ export async function submitManualPayment(
     throw new Error(`Failed to update payment: ${payErr?.message}`);
   }
 
-  // 2. Upload receipt to private payment-receipts storage bucket
-  const extension = details.fileName.includes('.')
-    ? details.fileName.split('.').pop()
-    : details.mimeType === 'application/pdf'
-      ? 'pdf'
-      : 'jpg';
-  const storagePath = `${paymentId}/${crypto.randomUUID()}.${extension}`;
+  // 2. Upload receipt to Vercel Blob (primary) with Supabase storage fallback
+  let filePreviewUrl: string | null = details.filePreviewUrl || null;
+  let storagePath = `${paymentId}/${details.fileName}`;
 
   if (details.filePreviewUrl && details.filePreviewUrl.startsWith('data:')) {
-    try {
-      const base64Data = details.filePreviewUrl.split(',')[1];
-      const buffer = Buffer.from(base64Data, 'base64');
-
-      const { error: uploadErr } = await (supabase as any).storage
-        .from('payment-receipts')
-        .upload(storagePath, buffer, {
-          contentType: details.mimeType,
-          upsert: false,
-        });
-
-      if (uploadErr) {
-        console.warn('Supabase storage bucket upload failed:', uploadErr);
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    if (token) {
+      try {
+        const base64Data = details.filePreviewUrl.split(',')[1];
+        const buffer = Buffer.from(base64Data, 'base64');
+        const sanitized = details.fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const blobResult = await put(
+          `payment-receipts/${paymentId}-${sanitized}`,
+          buffer,
+          {
+            access: 'public',
+            contentType: details.mimeType,
+            token,
+          }
+        );
+        if (blobResult?.url) {
+          filePreviewUrl = blobResult.url;
+          storagePath = blobResult.url;
+        }
+      } catch (blobErr) {
+        console.warn('Vercel Blob upload failed, attempting Supabase fallback:', blobErr);
       }
-    } catch (stErr) {
-      console.warn('Supabase storage bucket upload exception:', stErr);
+    }
+
+    // Fallback: Supabase storage bucket
+    if (!filePreviewUrl || filePreviewUrl.startsWith('data:')) {
+      try {
+        const extension = details.fileName.includes('.')
+          ? details.fileName.split('.').pop()
+          : details.mimeType === 'application/pdf'
+            ? 'pdf'
+            : 'jpg';
+        const sbPath = `${paymentId}/${crypto.randomUUID()}.${extension}`;
+        const base64Data = details.filePreviewUrl.split(',')[1];
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        const { error: uploadErr } = await (supabase as any).storage
+          .from('payment-receipts')
+          .upload(sbPath, buffer, {
+            contentType: details.mimeType,
+            upsert: false,
+          });
+
+        if (!uploadErr) {
+          storagePath = sbPath;
+          const { data: signed } = await (supabase as any).storage
+            .from('payment-receipts')
+            .createSignedUrl(sbPath, 3600);
+          if (signed?.signedUrl) {
+            filePreviewUrl = signed.signedUrl;
+          }
+        }
+      } catch (stErr) {
+        console.warn('Supabase storage bucket upload exception:', stErr);
+      }
     }
   }
 
@@ -276,16 +312,20 @@ export async function submitManualPayment(
       file_name: details.fileName,
       mime_type: details.mimeType,
       file_size: details.fileSize,
-      file_preview_url: null,
+      file_preview_url: filePreviewUrl,
       uploaded_at: new Date().toISOString(),
     });
 
-  // 4. Update checkout subscription status to under_review
+  // 4. Update checkout subscription status to under_review and establish 14-day trial window
+  const now = new Date();
+  const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
   await (supabase as any)
     .from('subscriptions')
     .update({
       status: 'under_review',
-      updated_at: new Date().toISOString(),
+      trial_start: now.toISOString(),
+      trial_end: trialEnd.toISOString(),
+      updated_at: now.toISOString(),
     })
     .eq('id', payment.subscription_id);
 
@@ -304,11 +344,29 @@ export async function approveManualPayment(
   const supabase = await createAdminClient();
 
   // 1. Fetch payment and verify status
-  const { data: payment, error: fetchErr } = await (supabase as any)
+  let { data: payment, error: fetchErr } = await (supabase as any)
     .from('subscription_payments')
-    .select('*, subscriptions(*)')
+    .select('*, subscriptions!subscription_payments_subscription_id_fkey(*)')
     .eq('id', paymentId)
-    .single();
+    .maybeSingle();
+
+  // If not found directly, check by subscription_id (supports pay-<subId> or subId)
+  if (!payment) {
+    const cleanSubId = paymentId.startsWith('pay-') ? paymentId.replace('pay-', '') : paymentId;
+    const { data: altPayment } = await (supabase as any)
+      .from('subscription_payments')
+      .select('*, subscriptions!subscription_payments_subscription_id_fkey(*)')
+      .eq('subscription_id', cleanSubId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (altPayment) {
+      payment = altPayment;
+      paymentId = altPayment.id;
+      fetchErr = null;
+    }
+  }
 
   if (fetchErr || !payment) {
     throw new Error('Payment record not found.');
@@ -394,11 +452,28 @@ export async function rejectManualPayment(
 
   const supabase = await createAdminClient();
 
-  const { data: payment, error: fetchErr } = await (supabase as any)
+  let { data: payment, error: fetchErr } = await (supabase as any)
     .from('subscription_payments')
     .select('*')
     .eq('id', paymentId)
-    .single();
+    .maybeSingle();
+
+  if (!payment) {
+    const cleanSubId = paymentId.startsWith('pay-') ? paymentId.replace('pay-', '') : paymentId;
+    const { data: altPayment } = await (supabase as any)
+      .from('subscription_payments')
+      .select('*')
+      .eq('subscription_id', cleanSubId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (altPayment) {
+      payment = altPayment;
+      paymentId = altPayment.id;
+      fetchErr = null;
+    }
+  }
 
   if (fetchErr || !payment) {
     throw new Error('Payment record not found.');
@@ -473,7 +548,8 @@ export async function getLatestPaymentForAccount(accountId: string): Promise<Sub
 
 export async function getPaymentProofByPaymentId(paymentId: string): Promise<PaymentProof | null> {
   const supabase = await createAdminClient();
-  const { data: proof } = await (supabase as any)
+
+  let { data: proof } = await (supabase as any)
     .from('payment_proofs')
     .select('*')
     .eq('payment_id', paymentId)
@@ -481,18 +557,54 @@ export async function getPaymentProofByPaymentId(paymentId: string): Promise<Pay
     .limit(1)
     .maybeSingle();
 
+  // If not found directly, check if paymentId is a subscriptionId or pay-<subId>
+  if (!proof && (paymentId.startsWith('pay-') || paymentId.length > 30)) {
+    const cleanSubId = paymentId.startsWith('pay-') ? paymentId.replace('pay-', '') : paymentId;
+    const { data: pay } = await (supabase as any)
+      .from('subscription_payments')
+      .select('id')
+      .eq('subscription_id', cleanSubId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (pay?.id) {
+      const { data: proofByPay } = await (supabase as any)
+        .from('payment_proofs')
+        .select('*')
+        .eq('payment_id', pay.id)
+        .order('uploaded_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      proof = proofByPay;
+    }
+  }
+
   if (!proof) return null;
 
   if (proof.storage_path) {
-    const { data: signed } = await (supabase as any).storage
-      .from('payment-receipts')
-      .createSignedUrl(proof.storage_path, 3600);
-
-    if (signed?.signedUrl) {
+    // If it's already an absolute URL (e.g. from Vercel Blob)
+    if (proof.storage_path.startsWith('http://') || proof.storage_path.startsWith('https://')) {
       return {
         ...proof,
-        file_preview_url: signed.signedUrl,
+        file_preview_url: proof.file_preview_url || proof.storage_path,
       };
+    }
+
+    try {
+      const { data: signed } = await (supabase as any).storage
+        .from('payment-receipts')
+        .createSignedUrl(proof.storage_path, 3600);
+
+      if (signed?.signedUrl) {
+        return {
+          ...proof,
+          file_preview_url: signed.signedUrl,
+        };
+      }
+    } catch {
+      // Fallback
     }
   }
 

@@ -91,10 +91,10 @@ export function SubscriptionDrawer({
     };
   }, [isOpen]);
 
-  // Fetch payment proof when paymentId changes
+  // Fetch payment proof when paymentId or subscriptionId changes
   useEffect(() => {
-    const paymentId = initialData?.paymentId;
-    if (!paymentId || paymentId.startsWith('pay-000')) {
+    const paymentId = initialData?.paymentId || subscriptionId;
+    if (!paymentId) {
       setProof(null);
       return;
     }
@@ -118,11 +118,11 @@ export function SubscriptionDrawer({
     return () => {
       isMounted = false;
     };
-  }, [initialData?.paymentId]);
+  }, [initialData?.paymentId, subscriptionId]);
 
   if (!mounted || !subscriptionId) return null;
 
-  const paymentId = initialData?.paymentId || `pay-${subscriptionId}`;
+  const paymentId = initialData?.paymentId || subscriptionId;
   const userName = initialData?.userName || 'Customer Account';
   const userEmail = initialData?.userEmail || 'customer@propertyledge.com.au';
   const planName = initialData?.planName || 'Landlord';
@@ -147,8 +147,9 @@ export function SubscriptionDrawer({
     setIsProcessing(true);
     setErrorMsg('');
     try {
-      if (initialData?.paymentId) {
-        await handleApprovePayment(initialData.paymentId, internalNotes.trim() || undefined);
+      const targetPaymentId = initialData?.paymentId || subscriptionId;
+      if (targetPaymentId) {
+        await handleApprovePayment(targetPaymentId, internalNotes.trim() || undefined);
       }
       onSuccess();
       onClose();
@@ -167,9 +168,10 @@ export function SubscriptionDrawer({
     setIsProcessing(true);
     setErrorMsg('');
     try {
-      if (initialData?.paymentId) {
+      const targetPaymentId = initialData?.paymentId || subscriptionId;
+      if (targetPaymentId) {
         await handleRejectPayment(
-          initialData.paymentId,
+          targetPaymentId,
           rejectionReason.trim(),
           internalNotes.trim() || undefined
         );

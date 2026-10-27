@@ -106,7 +106,20 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
           className="flex items-start gap-3 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 text-xs transition-all duration-200"
         >
           <AlertCircle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
-          <span className="leading-relaxed font-medium">{errorMessage}</span>
+          <div className="leading-relaxed font-medium space-y-1">
+            <p>{errorMessage}</p>
+            {errorMessage.toLowerCase().includes("already exists") && (
+              <p>
+                <Link
+                  href={`/login?email=${encodeURIComponent(email)}`}
+                  className="font-bold underline text-accent hover:text-accent-hover inline-flex items-center gap-1"
+                >
+                  <span>Click here to sign in now</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </p>
+            )}
+          </div>
         </div>
       )}
 

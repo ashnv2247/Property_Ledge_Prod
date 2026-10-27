@@ -251,11 +251,12 @@ END $$;
 -- --------------------------------------------------------------------
 INSERT INTO public.subscription_plans ("id", "name", "slug", "description", "status", "display_order", "price_cents", "billing_interval")
 VALUES
-  ('00000000-0000-0000-0000-000000000001', 'Free', 'free', 'Ideal for getting started with basic property tracking.', 'active', 1, 0, 'monthly'),
-  ('00000000-0000-0000-0000-000000000002', 'Pro', 'pro', 'For active landlords and real estate investors needing full features.', 'active', 2, 2900, 'monthly'),
-  ('00000000-0000-0000-0000-000000000003', 'Business', 'business', 'For property managers and enterprise scale real estate teams.', 'active', 3, 9900, 'monthly'),
-  ('00000000-0000-0000-0000-000000000004', 'Landlord', 'landlord', 'For individual real estate investors managing their portfolio.', 'active', 4, 2900, 'monthly'),
-  ('00000000-0000-0000-0000-000000000005', 'Property Manager', 'manager', 'For growing portfolios and professional property managers.', 'active', 5, 7900, 'monthly')
+  ('00000000-0000-0000-0000-000000000001', 'Free', 'free', 'Legacy tier.', 'archived', 99, 0, 'monthly'),
+  ('00000000-0000-0000-0000-000000000002', 'Pro', 'pro', 'Legacy tier.', 'archived', 99, 2900, 'monthly'),
+  ('00000000-0000-0000-0000-000000000003', 'Business', 'business', 'Legacy tier.', 'archived', 99, 9900, 'monthly'),
+  ('00000000-0000-0000-0000-000000000004', 'Landlord Starter', 'landlord', 'For private investors & self-managed landlords', 'active', 1, 2900, 'monthly'),
+  ('00000000-0000-0000-0000-000000000005', 'Portfolio Pro', 'manager', 'For growing portfolios & active property managers', 'active', 2, 7900, 'monthly'),
+  ('00000000-0000-0000-0000-000000000006', 'Agency & Enterprise', 'agency', 'For real-estate agencies & institutional portfolios', 'active', 3, 0, 'monthly')
 ON CONFLICT (id) DO UPDATE
 SET name = EXCLUDED.name,
     slug = EXCLUDED.slug,

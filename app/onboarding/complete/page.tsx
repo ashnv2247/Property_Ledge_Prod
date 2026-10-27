@@ -14,6 +14,7 @@ export default async function OnboardingCompletePage() {
   const hasSubscription = Boolean(ctx?.hasSubscriptionDecision);
   const propertyName = ctx?.propertyName;
   const subscriptionStatus = ctx?.subscriptionStatus;
+  const planName = ctx?.planName;
 
   return (
     <OnboardingContent>
@@ -27,6 +28,7 @@ export default async function OnboardingCompletePage() {
           hasSubscription={hasSubscription}
           propertyName={propertyName}
           subscriptionStatus={subscriptionStatus}
+          planName={planName}
         />
       </OnboardingStep>
     </OnboardingContent>

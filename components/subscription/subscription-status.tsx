@@ -56,10 +56,15 @@ export function SubscriptionStatusCard({ subscription, latestPayment }: Subscrip
                 </h4>
                 <SubscriptionStatusBadge status="under_review" />
               </div>
-              <p className="text-xs text-violet-800 dark:text-violet-300 leading-relaxed">
-                Your payment receipt has been received and is currently being verified against our bank statement.
-                Verification typically takes 1 to 4 business hours. Your plan entitlements will activate immediately upon verification.
-              </p>
+              <div className="space-y-1.5">
+                <p className="text-xs text-violet-800 dark:text-violet-300 leading-relaxed">
+                  Your payment receipt has been received and is currently being verified against our bank statement (typically 1 to 4 business hours).
+                </p>
+                <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-xs text-emerald-800 dark:text-emerald-300 font-medium">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  <span><strong>14-Day Full Access Trial Active:</strong> You have immediate access to all plan features without waiting for verification.</span>
+                </div>
+              </div>
               {latestPayment?.reference && (
                 <div className="pt-2 flex flex-wrap items-center gap-4 text-xs font-mono text-violet-900 dark:text-violet-300">
                   <span>Reference: <strong>{latestPayment.reference}</strong></span>
@@ -150,7 +155,7 @@ export function SubscriptionStatusCard({ subscription, latestPayment }: Subscrip
               <div>
                 <div className="flex items-center gap-1.5 text-caption text-admin-muted">
                   <Calendar className="h-3.5 w-3.5" />
-                  <span>Next Renewal / Period End</span>
+                  <span>{isUnderReview ? 'Trial Period End' : 'Next Renewal / Period End'}</span>
                 </div>
                 <p className="mt-1 font-semibold text-admin-foreground">
                   {subscription.current_period_end
@@ -159,7 +164,13 @@ export function SubscriptionStatusCard({ subscription, latestPayment }: Subscrip
                         month: 'long',
                         day: 'numeric',
                       })
-                    : 'N/A'}
+                    : (subscription as any).trial_end
+                      ? `${new Date((subscription as any).trial_end).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })} (14d Trial)`
+                      : 'Active'}
                 </p>
               </div>
             </div>

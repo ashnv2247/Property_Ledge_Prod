@@ -37,6 +37,7 @@ import {
   PageContent,
   PageSkeleton,
 } from '@/components/workspace';
+import { TrialActivationNotice } from '@/components/dashboard/overview/TrialActivationNotice';
 import {
   useEntityCacheStore,
   buildCacheKey,
@@ -57,10 +58,14 @@ export function OwnerDashboard({
   userName,
   setupProgress,
   initialData,
+  subscription,
+  latestPayment,
 }: {
   userName: string;
   setupProgress?: SetupProgress;
   initialData?: any;
+  subscription?: any;
+  latestPayment?: any;
 }) {
   const { selectedProperty, availableProperties, isLoading: propertyLoading } = usePropertyContext();
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
@@ -242,6 +247,7 @@ export function OwnerDashboard({
   return (
     <PageLayout>
       <PageContent>
+        <TrialActivationNotice subscription={subscription} latestPayment={latestPayment} />
         {showSetup && <SetupChecklist progress={setupProgress!} />}
 
         {propertyLoading || isLoading ? (
@@ -469,16 +475,22 @@ export function DashboardOverview({
   userName,
   setupProgress,
   initialDashboardData,
+  subscription,
+  latestPayment,
 }: {
   userName: string;
   setupProgress?: SetupProgress;
   initialDashboardData?: any;
+  subscription?: any;
+  latestPayment?: any;
 }) {
   return (
     <OwnerDashboard
       userName={userName}
       setupProgress={setupProgress}
       initialData={initialDashboardData}
+      subscription={subscription}
+      latestPayment={latestPayment}
     />
   );
 }

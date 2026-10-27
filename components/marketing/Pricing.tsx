@@ -25,7 +25,7 @@ export function Pricing() {
         "Standard Email Support",
       ],
       popular: false,
-      cta: "Start 14-Day Free Trial",
+      cta: "Get Started Now",
       href: "/checkout?plan=pro",
     },
     {
@@ -44,7 +44,7 @@ export function Pricing() {
         "Priority 24/7 AU Support",
       ],
       popular: true,
-      cta: "Get Started Free",
+      cta: "Get Started Now",
       href: "/checkout?plan=business",
     },
     {
@@ -69,7 +69,7 @@ export function Pricing() {
   ];
 
   return (
-    <section id="pricing" className="py-20 md:py-28 bg-[#061222]/60 relative overflow-hidden select-none">
+    <section id="pricing" className="py-20 md:py-28 bg-background relative overflow-hidden select-none transition-colors duration-300">
       {/* Background ambient radial glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-[#008F83]/10 rounded-full blur-[140px] pointer-events-none" />
 
@@ -79,26 +79,26 @@ export function Pricing() {
             <SectionLabel>SIMPLE, PREDICTABLE PRICING</SectionLabel>
           </Reveal>
           <Reveal direction="up" delay={0.2}>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-heading tracking-tight text-white uppercase">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-heading tracking-tight text-foreground dark:text-white uppercase">
               Scale Your Portfolio with Confidence
             </h2>
           </Reveal>
           <Reveal direction="up" delay={0.3}>
-            <p className="text-sm sm:text-base text-[#8FA3B8]">
+            <p className="text-sm sm:text-base text-muted dark:text-[#8FA3B8]">
               14-day free trial. No credit card required. Cancel anytime.
             </p>
           </Reveal>
 
           {/* Billing Switcher (21st.dev Pill) */}
           <Reveal direction="up" delay={0.35}>
-            <div className="inline-flex items-center gap-3 p-1.5 rounded-full bg-[#071526] border border-white/[0.06] shadow-inner mt-2">
+            <div className="inline-flex items-center gap-3 p-1.5 rounded-full bg-surface border border-border shadow-xs dark:bg-[#071526] dark:border-white/[0.06] dark:shadow-inner mt-2">
               <button
                 type="button"
                 onClick={() => setIsAnnual(false)}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   !isAnnual
                     ? "bg-[#008F83] text-white shadow-xs"
-                    : "text-[#8FA3B8] hover:text-white"
+                    : "text-muted hover:text-foreground dark:text-[#8FA3B8] dark:hover:text-white"
                 }`}
               >
                 Monthly Billing
@@ -109,11 +109,11 @@ export function Pricing() {
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
                   isAnnual
                     ? "bg-[#008F83] text-white shadow-xs"
-                    : "text-[#8FA3B8] hover:text-white"
+                    : "text-muted hover:text-foreground dark:text-[#8FA3B8] dark:hover:text-white"
                 }`}
               >
                 <span>Annual Billing</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-[#00A99D] text-[#061222]">
+                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-accent/15 text-accent dark:bg-[#00A99D] dark:text-[#061222]">
                   Save 20%
                 </span>
               </button>
@@ -134,43 +134,43 @@ export function Pricing() {
                 <div
                   className={`relative rounded-2xl p-7 sm:p-8 flex flex-col justify-between h-full transition-all duration-300 backdrop-blur-xl ${
                     plan.popular
-                      ? "bg-[#08182A] border-2 border-[#008F83] shadow-2xl shadow-[#008F83]/15 ring-1 ring-[#008F83]/30"
-                      : "bg-[#08182A]/70 border border-white/[0.06] hover:border-[#008F83]/40 shadow-xl"
+                      ? "bg-surface border-2 border-accent shadow-xl shadow-accent/10 dark:bg-[#08182A] dark:border-[#008F83] dark:shadow-2xl dark:shadow-[#008F83]/15 ring-1 ring-[#008F83]/30"
+                      : "bg-surface border border-border hover:border-accent/40 shadow-subtle-card hover:shadow-md dark:bg-[#08182A]/70 dark:border-white/[0.06] dark:hover:border-[#008F83]/40 dark:shadow-xl"
                   }`}
                 >
                   {plan.popular && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-[#008F83] text-white font-heading font-bold text-[10px] tracking-widest uppercase shadow-md flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
+                      <Sparkles className="w-3.5 h-3.5" />
                       MOST POPULAR
                     </div>
                   )}
 
                   <div className="space-y-5">
                     <div>
-                      <h3 className="text-xl font-bold font-heading text-white">
+                      <h3 className="text-xl font-bold font-heading text-foreground dark:text-white">
                         {plan.name}
                       </h3>
-                      <p className="text-xs text-[#8FA3B8] mt-1">{plan.description}</p>
+                      <p className="text-xs text-muted dark:text-[#8FA3B8] mt-1">{plan.description}</p>
                     </div>
 
-                    <div className="flex items-baseline gap-1.5 pt-2 pb-4 border-b border-white/[0.04]">
-                      <span className="text-3xl sm:text-4xl font-extrabold font-heading text-white">
+                    <div className="flex items-baseline gap-1.5 pt-2 pb-4 border-b border-border/60 dark:border-white/[0.04]">
+                      <span className="text-3xl sm:text-4xl font-extrabold font-heading text-foreground dark:text-white">
                         {price}
                       </span>
                       {plan.period && (
-                        <span className="text-xs font-medium text-[#8FA3B8]">
+                        <span className="text-xs font-medium text-muted dark:text-[#8FA3B8]">
                           {plan.period} {isAnnual ? "(billed annually)" : "(billed monthly)"}
                         </span>
                       )}
                     </div>
 
                     <div className="space-y-3 pt-2">
-                      <div className="text-[11px] font-bold text-[#8FA3B8] uppercase tracking-wider">
+                      <div className="text-[11px] font-bold text-muted-dark dark:text-[#8FA3B8] uppercase tracking-wider">
                         Included with plan:
                       </div>
                       <ul className="space-y-2.5">
                         {plan.features.map((feat, fIdx) => (
-                          <li key={fIdx} className="flex items-center gap-2.5 text-xs text-white/90">
+                          <li key={fIdx} className="flex items-center gap-2.5 text-xs text-foreground/90 dark:text-white/90">
                             <CheckCircle2 className="w-4 h-4 text-[#00A99D] shrink-0" />
                             <span>{feat}</span>
                           </li>
@@ -185,7 +185,7 @@ export function Pricing() {
                       className={`w-full py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
                         plan.popular
                           ? "bg-[#008F83] hover:bg-[#00A99D] text-white shadow-lg shadow-[#008F83]/25 active:scale-[0.98]"
-                          : "bg-[#071526] hover:bg-[#0B1D30] border border-white/[0.06] hover:border-[#008F83]/40 text-white active:scale-[0.98]"
+                          : "bg-surface-subtle hover:bg-surface border border-border hover:border-accent text-foreground dark:bg-[#071526] dark:hover:bg-[#0B1D30] dark:border-white/[0.06] dark:hover:border-[#008F83]/40 dark:text-white active:scale-[0.98]"
                       }`}
                     >
                       <span>{plan.cta}</span>

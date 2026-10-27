@@ -20,6 +20,7 @@ export interface OnboardingResolverContext {
   workspaceName?: string;
   propertyId?: string;
   propertyName?: string;
+  planName?: string;
   pendingPayment: boolean;
 }
 
@@ -91,6 +92,7 @@ export async function resolveOnboardingStage(userId: string): Promise<Onboarding
     workspaceName: (workspaces?.[0] as { name?: string } | undefined)?.name,
     propertyId: (properties?.[0] as { id?: string } | undefined)?.id,
     propertyName: (properties?.[0] as { name?: string } | undefined)?.name,
+    planName: subscription?.subscription_plans?.name || (progress.data.planSlug as string) || undefined,
     pendingPayment,
   };
 
