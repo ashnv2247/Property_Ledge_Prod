@@ -142,7 +142,7 @@ export default function AdminNotificationsPage() {
     admin_user_id: '',
     ...DEFAULT_ADMIN_PREFERENCES,
   });
-  const [primaryAdminEmail, setPrimaryAdminEmail] = useState<string>('shdeveloper2247@gmail.com');
+  const [primaryAdminEmail, setPrimaryAdminEmail] = useState<string>('ashdeveloper2247@gmail.com');
   const [isSavingPrefs, setIsSavingPrefs] = useState<boolean>(false);
   const [isLoadingPrefs, setIsLoadingPrefs] = useState<boolean>(false);
 

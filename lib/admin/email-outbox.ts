@@ -181,12 +181,20 @@ export async function processPendingEmailEvents(options?: {
 }
 
 /**
- * Triggers background outbox delivery without blocking the caller.
+ * Dispatches pending outbox emails immediately with safe fallback so it never blocks or crashes callers.
  */
-export function triggerEmailOutboxDelivery(): void {
-  // Fire and forget
-  processPendingEmailEvents().catch((err) => {
-    console.warn('[EmailOutbox] Background dispatch triggered error:', err);
-  });
+export async function triggerEmailOutboxDelivery(): Promise<OutboxProcessResult> {
+  try {
+    return await processPendingEmailEvents();
+  } catch (err: any) {
+    console.warn('[EmailOutbox] Background dispatch error:', err);
+    return {
+      processed: 0,
+      successful: 0,
+      failed: 0,
+      simulated: 0,
+      errors: [{ id: 'fatal', error: err?.message || 'Outbox exception' }],
+    };
+  }
 }
 

@@ -6,6 +6,7 @@ import { mapAuthError } from '@/lib/errors';
 import { logAuthEvent } from '@/lib/debug/logger';
 import { getAppBaseUrl } from '@/lib/routing/env';
 import { serverCache } from '@/lib/cache/server-cache';
+import { triggerEmailOutboxDelivery } from '@/lib/admin/email-outbox';
 
 export async function signUpAction(formData: {
   email: string;
@@ -53,6 +54,7 @@ export async function signUpAction(formData: {
     }
 
     logAuthEvent('AUTH_SIGNUP_SUCCESS', { userId: data.user?.id });
+    await triggerEmailOutboxDelivery();
     return {
       success: true,
       message: 'Signup successful! Please check your email to verify your account before logging in.',

@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.platform_notification_settings (
   CONSTRAINT single_row CHECK (id = 1)
 );
 
--- Seed initial configuration with shdeveloper2247@gmail.com
+-- Seed initial configuration with ashdeveloper2247@gmail.com
 INSERT INTO public.platform_notification_settings (id, primary_admin_email, email_notifications_enabled)
 VALUES (1, 'ashdeveloper2247@gmail.com', true)
 ON CONFLICT (id) DO UPDATE
@@ -134,7 +134,7 @@ BEGIN
   WHERE id = 1;
 
   -- Safe fallback defaults
-  v_primary_email := COALESCE(NULLIF(trim(v_primary_email), ''), 'shdeveloper2247@gmail.com');
+  v_primary_email := COALESCE(NULLIF(trim(v_primary_email), ''), 'ashdeveloper2247@gmail.com');
   v_email_enabled := COALESCE(v_email_enabled, true);
 
   IF v_email_enabled AND v_primary_email IS NOT NULL AND length(v_primary_email) > 0 THEN

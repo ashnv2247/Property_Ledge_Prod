@@ -7,6 +7,7 @@ import { logAuthEvent } from '@/lib/debug/logger';
 import { SubscriptionPayment, PaymentProof } from '@/types/subscriptions';
 import { serverCache } from '@/lib/cache/server-cache';
 import { put } from '@vercel/blob';
+import { triggerEmailOutboxDelivery } from '@/lib/admin/email-outbox';
 
 export async function createCheckoutSession(options: CheckoutSessionOptions): Promise<CheckoutSessionResult> {
   logAuthEvent('CHECKOUT_STARTED', { accountId: options.accountId, planSlug: options.planSlug });
@@ -191,6 +192,7 @@ export async function createManualCheckoutSession(
     paymentId = payment.id;
   }
 
+  await triggerEmailOutboxDelivery();
   return {
     subscriptionId,
     paymentId,
@@ -437,6 +439,7 @@ export async function approveManualPayment(
     serverCache.invalidateAccount(payment.account_id);
   }
 
+  await triggerEmailOutboxDelivery();
   return updatedPayment;
 }
 
@@ -517,6 +520,7 @@ export async function rejectManualPayment(
     serverCache.invalidateAccount(payment.account_id);
   }
 
+  await triggerEmailOutboxDelivery();
   return updatedPayment;
 }
 
