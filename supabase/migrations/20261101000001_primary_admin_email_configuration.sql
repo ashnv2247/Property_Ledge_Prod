@@ -9,7 +9,7 @@ BEGIN;
 -- 1. Create centralized platform notification configuration table
 CREATE TABLE IF NOT EXISTS public.platform_notification_settings (
   id integer PRIMARY KEY DEFAULT 1,
-  primary_admin_email text NOT NULL DEFAULT 'shdeveloper2247@gmail.com',
+  primary_admin_email text NOT NULL DEFAULT 'ashdeveloper2247@gmail.com',
   email_notifications_enabled boolean NOT NULL DEFAULT true,
   updated_at timestamptz NOT NULL DEFAULT now(),
   updated_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -18,9 +18,9 @@ CREATE TABLE IF NOT EXISTS public.platform_notification_settings (
 
 -- Seed initial configuration with shdeveloper2247@gmail.com
 INSERT INTO public.platform_notification_settings (id, primary_admin_email, email_notifications_enabled)
-VALUES (1, 'shdeveloper2247@gmail.com', true)
+VALUES (1, 'ashdeveloper2247@gmail.com', true)
 ON CONFLICT (id) DO UPDATE
-SET primary_admin_email = 'shdeveloper2247@gmail.com',
+SET primary_admin_email = 'ashdeveloper2247@gmail.com',
     email_notifications_enabled = true,
     updated_at = now();
 

@@ -604,7 +604,7 @@ export default function AdminNotificationsPage() {
                   type="email"
                   value={primaryAdminEmail}
                   onChange={(e) => setPrimaryAdminEmail(e.target.value)}
-                  placeholder="shdeveloper2247@gmail.com"
+                  placeholder="ashdeveloper2247@gmail.com"
                   className="flex-1 px-3 py-2 rounded-xl bg-admin-surface border border-admin-border text-xs text-admin-foreground focus:outline-none focus:border-admin-primary transition-colors font-mono"
                 />
               </div>

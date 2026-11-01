@@ -298,7 +298,7 @@ export async function getPlatformNotificationSettings(): Promise<PlatformNotific
   }
 
   return {
-    primary_admin_email: data?.primary_admin_email || process.env.ADMIN_NOTIFY_EMAIL || 'shdeveloper2247@gmail.com',
+    primary_admin_email: data?.primary_admin_email || process.env.ADMIN_NOTIFY_EMAIL || 'ashdeveloper2247@gmail.com',
     email_notifications_enabled: data?.email_notifications_enabled ?? true,
     updated_at: data?.updated_at,
   };
@@ -322,7 +322,7 @@ export async function updatePlatformNotificationSettings(
     .from('platform_notification_settings')
     .upsert({
       id: 1,
-      primary_admin_email: email || 'shdeveloper2247@gmail.com',
+      primary_admin_email: email || 'ashdeveloper2247@gmail.com',
       email_notifications_enabled: settings.email_notifications_enabled ?? true,
       updated_at: new Date().toISOString(),
       updated_by: adminId,
