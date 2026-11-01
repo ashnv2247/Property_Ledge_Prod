@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Menu, Search, X } from 'lucide-react';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { AdminNotificationBell } from '@/components/admin/notifications/AdminNotificationBell';
 import { ThemeSelector } from '@/components/ui/ThemeSelector';
 import { AccountMenu } from './AccountMenu';
 import { HelpMenu } from './HelpMenu';
@@ -136,7 +137,13 @@ export function GlobalNavbar({
         </motion.button>
 
         {showHelp && <HelpMenu settingsHref={settingsHref} />}
-        {showNotifications && <NotificationCenter variant="navbar" />}
+        {showNotifications && (
+          brandBadge === 'Admin' || homeHref === '/admin' ? (
+            <AdminNotificationBell />
+          ) : (
+            <NotificationCenter variant="navbar" />
+          )
+        )}
         {showTheme && <ThemeSelector variant="navbar" className="hidden sm:block" />}
         <AccountMenu
           userName={userName}

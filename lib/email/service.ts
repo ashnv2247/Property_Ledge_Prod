@@ -1,3 +1,4 @@
+import { renderAdminEmailHtml } from '@/lib/email/admin-templates';
 import { createAdminClient } from '@/lib/supabase/server';
 import { getAppBaseUrl } from '@/lib/routing/env';
 
@@ -43,6 +44,9 @@ const formatDate = (dateStr: string | undefined | null): string => {
  * Renders HTML content based on V1 dark-mode email design system
  */
 export function buildEmailHtml(templateType: string, variables: Record<string, any>): string {
+  const adminHtml = renderAdminEmailHtml(templateType, variables);
+  if (adminHtml) return adminHtml;
+
   const currentYear = new Date().getFullYear();
 
   const wrapLayout = (title: string, content: string) => `<!DOCTYPE html>

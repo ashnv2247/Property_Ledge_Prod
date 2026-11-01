@@ -16,6 +16,7 @@ import {
   CheckSquare,
   BarChart3,
   Shield,
+  Bell,
 } from 'lucide-react';
 import { AppShell } from '@/components/shell/AppShell';
 import type { CommandMenuLink, NavSection } from '@/components/shell/types';
@@ -23,7 +24,10 @@ import type { CommandMenuLink, NavSection } from '@/components/shell/types';
 const navSections: NavSection[] = [
   {
     label: 'Overview',
-    items: [{ label: 'Dashboard', href: '/admin', icon: LayoutDashboard }],
+    items: [
+      { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+      { label: 'Notifications', href: '/admin/notifications', icon: Bell },
+    ],
   },
   {
     label: 'Platform',
