@@ -106,13 +106,6 @@ export const getSetupProgress = cache(async function getSetupProgress(userId: st
       completed: hasProperty,
     },
     {
-      id: 'units',
-      label: 'Add units',
-      description: 'Add the units within your property',
-      href: '/dashboard/units',
-      completed: hasUnits,
-    },
-    {
       id: 'tenants',
       label: 'Add tenants',
       description: 'Start managing your tenants',
