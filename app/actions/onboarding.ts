@@ -88,26 +88,17 @@ async function writeProgress(
     return;
   }
 
-  const { error } = await supabase
-    .from('account_context')
-    .update({
+  // Always ensure account_context exists and is updated to in_progress
+  const admin = await createAdminClient();
+  await admin.from('account_context').upsert(
+    {
+      user_id: userId,
+      status: 'active',
       onboarding_status: 'in_progress',
       updated_at: new Date().toISOString(),
-    } as never)
-    .eq('user_id', userId);
-
-  if (error) {
-    const admin = await createAdminClient();
-    await admin.from('account_context').upsert(
-      {
-        user_id: userId,
-        status: 'active',
-        onboarding_status: 'in_progress',
-        updated_at: new Date().toISOString(),
-      } as never,
-      { onConflict: 'user_id' }
-    );
-  }
+    } as never,
+    { onConflict: 'user_id' }
+  );
 
   serverCache.invalidateUser(userId);
 }
@@ -292,30 +283,35 @@ export async function selectOnboardingStartOption(
   planId?: string,
   planSlug?: string
 ): Promise<{ nextRoute: string }> {
-  const { user } = await getSupabaseForUser();
+  try {
+    const { user } = await getSupabaseForUser();
 
-  if (mode === 'explore') {
-    await completeStage('subscription', { startMode: 'explore' });
-    return { nextRoute: '/onboarding/property' };
-  }
+    if (mode === 'explore') {
+      await completeStage('subscription', { startMode: 'explore' });
+      return { nextRoute: '/onboarding/property' };
+    }
 
-  if (mode === 'trial' && planId) {
-    await createTrialSubscription(user.id, planId);
-    await completeStage('subscription', { startMode: 'trial', selectedPlanId: planId, planSlug });
-    return { nextRoute: '/onboarding/property' };
-  }
+    if (mode === 'trial' && planId) {
+      await createTrialSubscription(user.id, planId);
+      await completeStage('subscription', { startMode: 'trial', selectedPlanId: planId, planSlug });
+      return { nextRoute: '/onboarding/property' };
+    }
 
-  if (mode === 'free' && planId) {
-    await completeStage('subscription', { startMode: 'free', selectedPlanId: planId, planSlug });
-    return { nextRoute: '/onboarding/property' };
-  }
+    if (mode === 'free' && planId) {
+      await completeStage('subscription', { startMode: 'free', selectedPlanId: planId, planSlug });
+      return { nextRoute: '/onboarding/property' };
+    }
 
-  if (mode === 'paid' && planSlug) {
-    await completeStage('subscription', { startMode: 'paid', planSlug, selectedPlanId: planId });
+    if (mode === 'paid' && planSlug) {
+      await completeStage('subscription', { startMode: 'paid', planSlug, selectedPlanId: planId });
+      return { nextRoute: '/onboarding/plans' };
+    }
+
     return { nextRoute: '/onboarding/plans' };
+  } catch (err: any) {
+    console.error('[selectOnboardingStartOption] Failed:', err);
+    throw new Error(err.message || 'Failed to select start option');
   }
-
-  return { nextRoute: '/onboarding/plans' };
 }
 
 export async function selectOnboardingPlan(

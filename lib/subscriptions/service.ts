@@ -54,6 +54,16 @@ export async function createSubscription(
   await assertCanManageSubscription(accountId, undefined, systemOp);
   const supabase = await createAdminClient();
 
+  // Ensure account_context exists before inserting subscription (account_context.user_id is FK for subscriptions.account_id)
+  await supabase.from('account_context').upsert(
+    {
+      user_id: accountId,
+      status: 'active',
+      updated_at: new Date().toISOString(),
+    } as never,
+    { onConflict: 'user_id' }
+  );
+
   const { data, error } = await (supabase as any)
     .from('subscriptions')
     .insert({
@@ -70,6 +80,7 @@ export async function createSubscription(
     .single();
 
   if (error) {
+    console.error('[createSubscription] Error creating subscription:', error);
     throw new Error(`Failed to create subscription: ${error.message}`);
   }
 
@@ -145,6 +156,49 @@ export async function createTrialSubscription(
   await assertCanManageSubscription(accountId);
   const supabase = await createAdminClient();
 
+  // 1. Ensure account_context exists before inserting subscription (account_context.user_id is FK for subscriptions.account_id)
+  await supabase.from('account_context').upsert(
+    {
+      user_id: accountId,
+      status: 'active',
+      onboarding_status: 'in_progress',
+      updated_at: now.toISOString(),
+    } as never,
+    { onConflict: 'user_id' }
+  );
+
+  // 2. Check if an active or trialing subscription already exists for this account
+  const { data: existingSub } = await (supabase as any)
+    .from('subscriptions')
+    .select('id, status, trial_start, trial_end')
+    .eq('account_id', accountId)
+    .in('status', ['trialing', 'active', 'past_due', 'paused'])
+    .maybeSingle();
+
+  if (existingSub) {
+    const { data: updated, error: updateErr } = await (supabase as any)
+      .from('subscriptions')
+      .update({
+        plan_id: planId,
+        status: 'trialing',
+        trial_start: existingSub.trial_start || now.toISOString(),
+        trial_end: existingSub.trial_end || trialEnd.toISOString(),
+        updated_at: now.toISOString(),
+      })
+      .eq('id', existingSub.id)
+      .select()
+      .single();
+
+    if (updateErr) {
+      console.error('[createTrialSubscription] Error updating subscription:', updateErr);
+      throw new Error(`Failed to update trial subscription: ${updateErr.message}`);
+    }
+
+    serverCache.invalidateAccount(accountId);
+    return updated;
+  }
+
+  // 3. Insert new trial subscription
   const { data, error } = await (supabase as any)
     .from('subscriptions')
     .insert({
@@ -161,6 +215,7 @@ export async function createTrialSubscription(
     .single();
 
   if (error) {
+    console.error('[createTrialSubscription] Error creating trial subscription:', error);
     throw new Error(`Failed to create trial subscription: ${error.message}`);
   }
 
