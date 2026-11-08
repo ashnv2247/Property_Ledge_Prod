@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { safeRedirectPath } from '@/lib/routing/safeRedirect';
 import { resolveOnboardingStage } from '@/lib/onboarding/resolver';
+import { triggerEmailOutboxDelivery } from '@/lib/admin/email-outbox';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -18,6 +19,9 @@ export async function GET(request: Request) {
 
       let target = next;
       if (user) {
+        // Dispatch pending notifications from the transactional outbox (e.g., new user registered)
+        await triggerEmailOutboxDelivery();
+
         const resolution = await resolveOnboardingStage(user.id);
         if (!resolution.completed) {
           target = resolution.route || '/onboarding';
