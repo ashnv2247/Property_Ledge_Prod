@@ -74,10 +74,14 @@ export default function OnboardingPropertyPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getOnboardingProgress().then((progress) => {
-      const id = progress.data.workspaceId as string | undefined;
-      if (id) setWorkspaceId(id);
-    });
+    getOnboardingProgress()
+      .then((progress) => {
+        const id = progress?.data?.workspaceId as string | undefined;
+        if (id) setWorkspaceId(id);
+      })
+      .catch((err) => {
+        console.warn('[OnboardingPropertyPage] Failed to fetch progress:', err);
+      });
   }, []);
 
   const filteredSuggestions = addressInput.trim().length > 1
@@ -285,13 +289,15 @@ export default function OnboardingPropertyPage() {
             </div>
 
             {/* Stage D: Rent & Optional Details (Progressively shown if tenanted) */}
-            {occupancy === 'Tenanted' && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="p-4 rounded-2xl bg-[#0B1D30]/60 border border-white/[0.06] space-y-3"
-              >
+            <AnimatePresence>
+              {occupancy === 'Tenanted' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="p-4 rounded-2xl bg-[#0B1D30]/60 border border-white/[0.06] space-y-3 overflow-hidden"
+                >
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#00A99D]">
                     04 · Rental Income & Specs
@@ -381,6 +387,7 @@ export default function OnboardingPropertyPage() {
                 </div>
               </motion.div>
             )}
+          </AnimatePresence>
           </div>
 
           <OnboardingFooter

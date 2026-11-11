@@ -189,18 +189,15 @@ function OnboardingShellInner({ children, userName = 'User', userEmail, workspac
 
               {/* Animated Form step with dedicated custom-scrollbar scroll area */}
               <div className="flex-1 overflow-y-auto custom-scrollbar py-2 pr-1 my-1">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={pathname}
-                    initial={{ opacity: 0, x: xOffset }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -xOffset }}
-                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                    className="w-full"
-                  >
-                    {children}
-                  </motion.div>
-                </AnimatePresence>
+                <motion.div
+                  key={pathname}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  className="w-full"
+                >
+                  {children}
+                </motion.div>
               </div>
 
               {/* Sub card SSL Notice & explore link */}
