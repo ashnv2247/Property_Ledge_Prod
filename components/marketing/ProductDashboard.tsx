@@ -77,7 +77,7 @@ export function ProductDashboard() {
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface border border-border text-[11px] text-muted">
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface border border-border text-[11px] text-muted">
             <Search className="w-3 h-3 text-muted" />
             <span>Search anything...</span>
             <kbd className="text-[9px] bg-surface-subtle px-1 rounded text-muted">⌘K</kbd>

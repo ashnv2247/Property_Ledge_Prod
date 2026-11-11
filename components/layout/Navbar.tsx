@@ -111,12 +111,21 @@ export function Navbar() {
       if (event.key === "Escape") {
         setDropdownOpen(false);
         setProfileMenuOpen(false);
+        setMobileMenuOpen(false);
       }
     }
+
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
 
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
+      window.removeEventListener("resize", handleResize);
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
@@ -162,22 +171,24 @@ export function Navbar() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 flex justify-center ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 flex flex-col items-center ${
         isScrolled ? "top-3 px-4 sm:px-6" : "top-0 px-0"
       }`}
     >
       <div
         className={`w-full flex items-center justify-between transition-all duration-300 relative ${
           isScrolled
-            ? "max-w-[1020px] px-5 sm:px-6 py-2.5 rounded-full bg-white/90 dark:bg-[#0E1112]/90 backdrop-blur-xl border border-black/10 dark:border-[#2A3032]/80 shadow-lg shadow-black/5 dark:shadow-black/30"
-            : "max-w-[1440px] px-5 sm:px-8 py-5 sm:py-6 bg-transparent dark:bg-transparent border-b border-transparent"
+            ? "max-w-[1020px] px-4 sm:px-6 py-2.5 rounded-full bg-white/90 dark:bg-[#0E1112]/90 backdrop-blur-xl border border-black/10 dark:border-[#2A3032]/80 shadow-lg shadow-black/5 dark:shadow-black/30"
+            : mobileMenuOpen
+            ? "max-w-[1440px] px-4 sm:px-8 py-4 sm:py-5 bg-background/95 dark:bg-[#0E1112]/95 backdrop-blur-2xl border-b border-border/50 dark:border-[#2A3032]/50 shadow-md"
+            : "max-w-[1440px] px-4 sm:px-8 py-4 sm:py-6 bg-transparent dark:bg-transparent border-b border-transparent"
         }`}
       >
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
+        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group shrink-0">
           <div
             className={`flex items-center justify-center transition-all duration-300 group-hover:scale-105 ${
-              isScrolled ? "w-7 h-7" : "w-8 sm:w-9 h-8 sm:h-9"
+              isScrolled ? "w-6 h-6 sm:w-7 sm:h-7" : "w-7 h-7 sm:w-8 sm:h-8"
             }`}
           >
             <img
@@ -193,10 +204,10 @@ export function Navbar() {
           </div>
           <span
             className={`font-heading font-bold tracking-tight text-foreground transition-all duration-300 ${
-              isScrolled ? "text-base" : "text-lg sm:text-xl"
+              isScrolled ? "text-sm sm:text-base" : "text-base sm:text-xl"
             }`}
           >
-            PropertyLedge<span className="text-accent text-xs sm:text-sm font-normal">.com.au</span>
+            PropertyLedge<span className="text-accent text-[11px] sm:text-sm font-normal">.com.au</span>
           </span>
         </Link>
 
@@ -372,13 +383,14 @@ export function Navbar() {
         </div>
 
         {/* Mobile Hamburger & Theme Toggle */}
-        <div className="flex md:hidden items-center gap-2">
+        <div className="flex md:hidden items-center gap-2 shrink-0">
           <ThemeToggle />
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg border border-border dark:border-[#2A3032] text-foreground hover:bg-surface dark:hover:bg-[#151A1C]"
+            className="p-2 rounded-lg border border-border dark:border-[#2A3032] text-foreground hover:bg-surface dark:hover:bg-[#151A1C] transition-colors focus:outline-none focus:ring-2 focus:ring-accent/40"
             aria-label="Toggle Navigation Menu"
+            aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -388,10 +400,10 @@ export function Navbar() {
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div
-          className={`md:hidden bg-background/95 dark:bg-[#0E1112]/95 backdrop-blur-xl px-6 py-6 transition-all duration-300 ${
+          className={`md:hidden bg-background/98 dark:bg-[#0E1112]/98 backdrop-blur-2xl transition-all duration-300 max-h-[calc(100vh-5.5rem)] overflow-y-auto overscroll-contain shadow-2xl ${
             isScrolled
-              ? "w-full max-w-[1020px] mt-2 rounded-2xl border border-black/10 dark:border-[#2A3032] shadow-xl"
-              : "w-full border-b border-t border-border dark:border-[#2A3032] mt-0"
+              ? "w-full max-w-[1020px] mt-2 rounded-2xl border border-black/10 dark:border-[#2A3032] px-5 sm:px-6 py-6"
+              : "w-full max-w-[1440px] border-b border-border dark:border-[#2A3032] px-5 sm:px-8 py-6"
           }`}
         >
           <div className="flex flex-col gap-4">

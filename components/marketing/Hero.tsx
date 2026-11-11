@@ -16,7 +16,7 @@ export function Hero() {
   ];
 
   return (
-    <section className="relative pt-32 sm:pt-36 pb-20 md:pb-28 overflow-hidden bg-background">
+    <section className="relative pt-28 sm:pt-36 pb-20 md:pb-28 overflow-hidden bg-background">
       {/* Right-Side Architectural Background Images (Dark & Light mode) */}
       <div className="absolute top-0 right-0 w-full lg:w-[68%] h-full pointer-events-none z-0 overflow-hidden">
         {/* Dark Mode BG Image */}
@@ -50,7 +50,7 @@ export function Hero() {
             </Reveal>
 
             <Reveal direction="up" delay={0.2}>
-              <h1 className="text-4xl sm:text-5xl lg:text-[62px] xl:text-[68px] font-bold font-heading tracking-tight leading-[1.05] text-foreground uppercase">
+              <h1 className="text-3xl min-[380px]:text-4xl sm:text-5xl lg:text-[62px] xl:text-[68px] font-bold font-heading tracking-tight leading-[1.08] sm:leading-[1.05] text-foreground uppercase break-words">
                 Property <br />
                 Management, <br />
                 <span className="text-accent font-extrabold">Without</span> <br />
