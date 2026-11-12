@@ -207,7 +207,7 @@ export function LeaseEditDrawer({
 
       setAssignedTenants(existingTenants);
     }
-  }, [isOpen, lease]);
+  }, [isOpen, lease?.id]);
 
   // Filter unassigned available tenants
   const unassignedTenants = useMemo(() => {

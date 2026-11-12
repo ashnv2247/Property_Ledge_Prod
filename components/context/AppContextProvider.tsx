@@ -51,16 +51,19 @@ export function AppContextProvider({
   const storeEntitlements = useWorkspaceStore((s) => s.entitlements);
   const updateFromServer = useWorkspaceStore((s) => s.updateFromServer);
 
+  const resolvedWsId = initialWorkspaceId || (workspaces && workspaces.length > 0 ? workspaces[0].id : null);
+  const resolvedWsName = workspaceName || (workspaces && workspaces.length > 0 ? workspaces[0].name : null);
+
   useEffect(() => {
     hydrate({
-      activeWorkspaceId: initialWorkspaceId,
-      workspaceName,
+      activeWorkspaceId: resolvedWsId,
+      workspaceName: resolvedWsName,
       roleName,
       permissions,
       entitlements,
       workspaces,
     });
-  }, [initialWorkspaceId, workspaceName, roleName, permissions, entitlements, workspaces, hydrate]);
+  }, [resolvedWsId, resolvedWsName, roleName, permissions, entitlements, workspaces, hydrate]);
 
   const setWorkspaceId = useCallback(
     (id: string | null) => {

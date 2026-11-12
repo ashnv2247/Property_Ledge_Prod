@@ -14,10 +14,14 @@ export async function fetchWorkspaceBootstrap() {
     getUserWorkspaces(user.id),
   ]);
 
+  const fallbackWs = workspaces.length > 0 ? workspaces[0] : null;
+  const effectiveWsId = context?.workspaceId ?? fallbackWs?.id ?? null;
+  const effectiveWsName = context?.workspaceName ?? fallbackWs?.name ?? null;
+
   return {
-    activeWorkspaceId: context?.workspaceId ?? null,
-    workspaceName: context?.workspaceName ?? null,
-    roleName: context?.roleName ?? null,
+    activeWorkspaceId: effectiveWsId,
+    workspaceName: effectiveWsName,
+    roleName: context?.roleName ?? fallbackWs?.roleName ?? 'Owner',
     permissions: context?.permissions ?? [],
     entitlements: context?.entitlements ?? {},
     workspaces: workspaces.map((ws) => ({

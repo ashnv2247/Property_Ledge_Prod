@@ -32,9 +32,9 @@ export function PortfolioOverviewBanner({
         className
       )}
     >
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 lg:gap-8">
+      <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-6 xl:gap-8">
         {/* LEFT: Generous Architectural Visual with Floating Glass/White Pill */}
-        <div className="relative w-full lg:w-[340px] xl:w-[360px] h-52 sm:h-56 lg:h-[220px] rounded-[20px] overflow-hidden shrink-0 group border border-slate-200/80 dark:border-[#17283A] shadow-xs">
+        <div className="relative w-full xl:w-[320px] 2xl:w-[360px] h-52 sm:h-56 xl:h-[210px] rounded-[20px] overflow-hidden shrink-0 group border border-slate-200/80 dark:border-[#17283A] shadow-xs">
           <Image
             src="/images/property_banner_visual.jpg"
             alt="Property Portfolio Visual"
@@ -63,7 +63,7 @@ export function PortfolioOverviewBanner({
 
         {/* CENTER: Portfolio Overview Metrics */}
         <div className="flex-1 flex flex-col justify-center min-w-0 py-1">
-          <div className="mb-4">
+          <div className="mb-3.5">
             <h2 className="text-xl font-heading font-bold text-slate-900 dark:text-white tracking-tight">
               Portfolio Overview
             </h2>
@@ -72,14 +72,14 @@ export function PortfolioOverviewBanner({
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 xl:gap-6 pt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4 gap-3.5 sm:gap-4 xl:gap-3.5 pt-1">
             {/* Metric 1: Total Properties */}
-            <div className="flex items-center gap-3.5">
-              <div className="h-11 w-11 rounded-2xl bg-[#E8F1FD] text-[#2563EB] dark:bg-blue-500/15 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/60 dark:border-blue-500/20 shadow-xs">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 min-w-0">
+              <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-[#E8F1FD] text-[#2563EB] dark:bg-blue-500/15 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/60 dark:border-blue-500/20 shadow-xs">
                 <Home className="w-5 h-5" />
               </div>
-              <div className="min-w-0">
-                <p className="font-heading text-2xl sm:text-3xl font-bold tabular-nums text-slate-900 dark:text-white leading-tight">
+              <div className="min-w-0 flex-1">
+                <p className="font-heading text-xl sm:text-2xl font-bold tabular-nums text-slate-900 dark:text-white leading-tight">
                   {isLoading ? '—' : totalProperties}
                 </p>
                 <span className="text-xs text-slate-500 dark:text-[#7F8B99] truncate block mt-0.5 font-medium">
@@ -89,12 +89,12 @@ export function PortfolioOverviewBanner({
             </div>
 
             {/* Metric 2: Active Properties */}
-            <div className="flex items-center gap-3.5">
-              <div className="h-11 w-11 rounded-2xl bg-[#E6F8F3] text-[#008F83] dark:bg-emerald-500/15 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200/60 dark:border-emerald-500/20 shadow-xs">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 min-w-0">
+              <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-[#E6F8F3] text-[#008F83] dark:bg-emerald-500/15 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200/60 dark:border-emerald-500/20 shadow-xs">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
-              <div className="min-w-0">
-                <p className="font-heading text-2xl sm:text-3xl font-bold tabular-nums text-slate-900 dark:text-white leading-tight">
+              <div className="min-w-0 flex-1">
+                <p className="font-heading text-xl sm:text-2xl font-bold tabular-nums text-slate-900 dark:text-white leading-tight">
                   {isLoading ? '—' : activeProperties}
                 </p>
                 <span className="text-xs text-slate-500 dark:text-[#7F8B99] truncate block mt-0.5 font-medium">
@@ -104,12 +104,12 @@ export function PortfolioOverviewBanner({
             </div>
 
             {/* Metric 3: Tenanted Properties */}
-            <div className="flex items-center gap-3.5">
-              <div className="h-11 w-11 rounded-2xl bg-[#E8F3FD] text-[#0284C7] dark:bg-sky-500/15 dark:text-sky-400 flex items-center justify-center shrink-0 border border-sky-200/60 dark:border-sky-500/20 shadow-xs">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 min-w-0">
+              <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-[#E8F3FD] text-[#0284C7] dark:bg-sky-500/15 dark:text-sky-400 flex items-center justify-center shrink-0 border border-sky-200/60 dark:border-sky-500/20 shadow-xs">
                 <Users className="w-5 h-5" />
               </div>
-              <div className="min-w-0">
-                <p className="font-heading text-2xl sm:text-3xl font-bold tabular-nums text-slate-900 dark:text-white leading-tight">
+              <div className="min-w-0 flex-1">
+                <p className="font-heading text-xl sm:text-2xl font-bold tabular-nums text-slate-900 dark:text-white leading-tight">
                   {isLoading ? '—' : tenantedProperties}
                 </p>
                 <span className="text-xs text-slate-500 dark:text-[#7F8B99] truncate block mt-0.5 font-medium">
@@ -119,12 +119,12 @@ export function PortfolioOverviewBanner({
             </div>
 
             {/* Metric 4: Vacant Properties */}
-            <div className="flex items-center gap-3.5">
-              <div className="h-11 w-11 rounded-2xl bg-[#F3EDFD] text-[#7C3AED] dark:bg-purple-500/15 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200/60 dark:border-purple-500/20 shadow-xs">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 min-w-0">
+              <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-[#F3EDFD] text-[#7C3AED] dark:bg-purple-500/15 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200/60 dark:border-purple-500/20 shadow-xs">
                 <DoorOpen className="w-5 h-5" />
               </div>
-              <div className="min-w-0">
-                <p className="font-heading text-2xl sm:text-3xl font-bold tabular-nums text-slate-900 dark:text-white leading-tight">
+              <div className="min-w-0 flex-1">
+                <p className="font-heading text-xl sm:text-2xl font-bold tabular-nums text-slate-900 dark:text-white leading-tight">
                   {isLoading ? '—' : vacantProperties}
                 </p>
                 <span className="text-xs text-slate-500 dark:text-[#7F8B99] truncate block mt-0.5 font-medium">
@@ -136,7 +136,7 @@ export function PortfolioOverviewBanner({
         </div>
 
         {/* RIGHT: Contextual Action Panel with Skyline Silhouette Accent */}
-        <div className="w-full lg:w-72 xl:w-80 p-5 sm:p-6 rounded-[20px] bg-slate-50/70 dark:bg-[#0B1726]/70 border border-slate-200/70 dark:border-[#17283A] shrink-0 flex flex-col justify-between relative overflow-hidden min-h-[170px] lg:min-h-[200px]">
+        <div className="w-full xl:w-72 2xl:w-80 p-5 sm:p-6 rounded-[20px] bg-slate-50/70 dark:bg-[#0B1726]/70 border border-slate-200/70 dark:border-[#17283A] shrink-0 flex flex-col justify-between relative overflow-hidden min-h-[170px] xl:min-h-[200px]">
           {/* Subtle Skyline Vector Accent in Background */}
           <svg
             className="absolute right-0 bottom-0 w-44 h-32 opacity-20 dark:opacity-10 pointer-events-none text-slate-600 dark:text-slate-300"

@@ -256,9 +256,11 @@ export function ConditionReportsDashboard({
     setIsDeleting(false);
   };
 
+  const safeReports = useMemo(() => (Array.isArray(reports) ? reports : []), [reports]);
+
   // Filtered & Sorted reports
   const filteredReports = useMemo(() => {
-    return reports
+    return safeReports
       .filter((r) => {
         if (statusFilter !== 'All' && r.status !== statusFilter) return false;
         const address = (
@@ -278,22 +280,22 @@ export function ConditionReportsDashboard({
         const dateB = new Date(b.inspection_date || b.created_at).getTime();
         return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
       });
-  }, [reports, searchQuery, statusFilter, sortOrder]);
+  }, [safeReports, searchQuery, statusFilter, sortOrder]);
 
   // Metric aggregates
-  const totalReportsCount = reports.length;
-  const draftReportsCount = reports.filter((r) => r.status === 'Draft').length;
-  const completedReportsCount = reports.filter((r) => r.status === 'Completed').length;
+  const totalReportsCount = safeReports.length;
+  const draftReportsCount = safeReports.filter((r) => r.status === 'Draft').length;
+  const completedReportsCount = safeReports.filter((r) => r.status === 'Completed').length;
   const draftPct = totalReportsCount > 0 ? Math.round((draftReportsCount / totalReportsCount) * 100) : 0;
   const completedPct = totalReportsCount > 0 ? Math.round((completedReportsCount / totalReportsCount) * 100) : 0;
 
   // Calculate total issues / defects across reports
   const issuesFoundCount = useMemo(() => {
-    return reports.reduce((acc, r) => {
+    return safeReports.reduce((acc, r) => {
       const roomDefects = (r as unknown as { inspection_defects?: unknown[] }).inspection_defects?.length || 0;
       return acc + roomDefects;
     }, 0);
-  }, [reports]);
+  }, [safeReports]);
 
   // Circular progress calculation
   const circleRadius = 34;

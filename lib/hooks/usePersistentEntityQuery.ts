@@ -214,20 +214,13 @@ export function usePersistentEntityQuery<T>({
     [cacheKey, enabled, freshnessTier, effectiveWorkspaceId, effectivePropertyId, readCurrentCache]
   );
 
+  const executeFetchRef = useRef(executeFetch);
+  executeFetchRef.current = executeFetch;
+
   // Trigger revalidation on mount or when cacheKey / enabled changes
   useEffect(() => {
-    // Sync local state if cache already has data for this key
-    const entry = readCurrentCache();
-    if (entry?.data) {
-      setData(entry.data);
-      setIsLoading(false);
-      if (entry.fetchedAt) setLastRefreshedAt(new Date(entry.fetchedAt));
-    } else if (!initialData) {
-      setIsLoading(enabled);
-    }
-
-    executeFetch(false);
-  }, [cacheKey, enabled, executeFetch, readCurrentCache, initialData]);
+    executeFetchRef.current(false);
+  }, [cacheKey, enabled]);
 
   const refresh = useCallback(async () => {
     await executeFetch(true);

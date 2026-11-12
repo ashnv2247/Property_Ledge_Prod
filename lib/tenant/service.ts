@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { requireTenantContext } from './queries';
 import type { Database } from '@/types/database';
 
@@ -11,7 +11,7 @@ export async function createTenantMaintenanceRequest(
   >
 ) {
   const { user, tenant } = await requireTenantContext();
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
 
   const propertyId = (tenant as { property_id: string }).property_id;
   const tenantId = (tenant as { id: string }).id;

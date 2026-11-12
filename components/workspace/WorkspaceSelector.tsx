@@ -35,11 +35,13 @@ export function WorkspaceSelector({ className, showCreateLink = true, variant = 
     workspaces.find((w) => w.id === activeWorkspaceId) ??
     (activeWorkspaceId && workspaceName
       ? { id: activeWorkspaceId, name: workspaceName, slug: '', status: 'active', role: '' }
+      : workspaces.length > 0
+      ? workspaces[0]
       : null);
 
   const displayName = isSwitching
     ? 'Switching...'
-    : (selectedWorkspace?.name ?? workspaceName ?? 'Select Workspace');
+    : (selectedWorkspace?.name ?? workspaceName ?? (workspaces.length > 0 ? workspaces[0].name : 'Select Workspace'));
 
   const hasKnownWorkspace = !!(activeWorkspaceId || workspaceName || workspaces.length > 0);
 
@@ -58,6 +60,13 @@ export function WorkspaceSelector({ className, showCreateLink = true, variant = 
       setIsLoading(false);
     }
   }, [updateFromServer]);
+
+  // Auto-activate the first workspace if none is active
+  useEffect(() => {
+    if (!activeWorkspaceId && workspaces.length > 0 && !isSwitching) {
+      handleSelect(workspaces[0]);
+    }
+  }, [activeWorkspaceId, workspaces, isSwitching]);
 
   useEffect(() => {
     if (workspaces.length === 0 && hasKnownWorkspace) {

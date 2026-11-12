@@ -343,7 +343,7 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
             <div
               className={cn(
                 'grid grid-cols-1 gap-5 items-stretch transition-all duration-300',
-                isTableExpanded ? 'grid-cols-1' : 'lg:grid-cols-12'
+                isTableExpanded ? 'grid-cols-1' : 'xl:grid-cols-12'
               )}
             >
               {/* PRIMARY OPERATIONAL PROPERTY TABLE (Col-span-8 or Col-span-12) */}
@@ -352,7 +352,7 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
                   'rounded-[24px] border border-slate-200/80 dark:border-[#17283A] bg-white dark:bg-[#07111F] p-4 sm:p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:shadow-none flex flex-col transition-all duration-300',
                   isTableExpanded
                     ? 'col-span-12 min-h-[calc(100vh-160px)]'
-                    : 'lg:col-span-8 h-full'
+                    : 'xl:col-span-8 h-full'
                 )}
               >
                 <div className="flex-1 flex flex-col min-h-0 h-full">
@@ -377,18 +377,18 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
                     isExpanded={isTableExpanded}
                     onExpandedChange={setIsTableExpanded}
                     leftToolbarContent={
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 min-w-0 max-w-full">
                         <span className="font-heading text-base font-bold text-slate-900 dark:text-white shrink-0">
                           Properties
                         </span>
 
                         {/* Status Filter Tabs Pill */}
-                        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/80 dark:bg-[#0E1E33] text-xs font-semibold">
+                        <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-xl bg-slate-100/80 dark:bg-[#0E1E33] text-xs font-semibold overflow-x-auto max-w-full">
                           <button
                             type="button"
                             onClick={() => setStatusFilter('All')}
                             className={cn(
-                              'px-3 py-1.5 rounded-lg transition-all cursor-pointer font-medium',
+                              'px-3 py-1.5 rounded-lg transition-all cursor-pointer font-medium whitespace-nowrap shrink-0',
                               statusFilter === 'All'
                                 ? 'bg-[#E6F8F3] dark:bg-[#008F83]/25 text-[#008F83] dark:text-[#32D5C4] border border-[#008F83]/30 shadow-xs font-bold'
                                 : 'text-slate-600 dark:text-[#7F8B99] hover:text-slate-900 dark:hover:text-white'
@@ -400,7 +400,7 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
                             type="button"
                             onClick={() => setStatusFilter('Active')}
                             className={cn(
-                              'px-3 py-1.5 rounded-lg transition-all cursor-pointer font-medium',
+                              'px-3 py-1.5 rounded-lg transition-all cursor-pointer font-medium whitespace-nowrap shrink-0',
                               statusFilter === 'Active'
                                 ? 'bg-[#E6F8F3] dark:bg-[#008F83]/25 text-[#008F83] dark:text-[#32D5C4] border border-[#008F83]/30 shadow-xs font-bold'
                                 : 'text-slate-600 dark:text-[#7F8B99] hover:text-slate-900 dark:hover:text-white'
@@ -412,7 +412,7 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
                             type="button"
                             onClick={() => setStatusFilter('Draft')}
                             className={cn(
-                              'px-3 py-1.5 rounded-lg transition-all cursor-pointer font-medium',
+                              'px-3 py-1.5 rounded-lg transition-all cursor-pointer font-medium whitespace-nowrap shrink-0',
                               statusFilter === 'Draft'
                                 ? 'bg-[#E6F8F3] dark:bg-[#008F83]/25 text-[#008F83] dark:text-[#32D5C4] border border-[#008F83]/30 shadow-xs font-bold'
                                 : 'text-slate-600 dark:text-[#7F8B99] hover:text-slate-900 dark:hover:text-white'
@@ -424,7 +424,7 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
                             type="button"
                             onClick={() => setStatusFilter('Archived')}
                             className={cn(
-                              'px-3 py-1.5 rounded-lg transition-all cursor-pointer font-medium',
+                              'px-3 py-1.5 rounded-lg transition-all cursor-pointer font-medium whitespace-nowrap shrink-0',
                               statusFilter === 'Archived'
                                 ? 'bg-[#E6F8F3] dark:bg-[#008F83]/25 text-[#008F83] dark:text-[#32D5C4] border border-[#008F83]/30 shadow-xs font-bold'
                                 : 'text-slate-600 dark:text-[#7F8B99] hover:text-slate-900 dark:hover:text-white'
@@ -441,7 +441,7 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
 
               {/* RIGHT VISUAL CONTEXT (Col-span-4, Hidden when Expanded) */}
               {!isTableExpanded && (
-                <div className="lg:col-span-4 flex flex-col">
+                <div className="xl:col-span-4 flex flex-col">
                   <PropertiesCategoryDonut
                     properties={rows}
                     isLoading={isLoading}

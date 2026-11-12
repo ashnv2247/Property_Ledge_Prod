@@ -8,8 +8,8 @@ export const metadata = {
 };
 
 export default async function ExpensesPage() {
-  let initialExpenses;
-  let initialCategories;
+  let initialExpenses: any[] = [];
+  let initialCategories: any[] = [];
 
   try {
     const res = await fetchExpensesPageDataAction();

@@ -187,7 +187,7 @@ export function ExpectedScheduleList({ initialSchedules }: ExpectedScheduleListP
 
   // Filtered schedules array
   const filteredSchedules = useMemo(() => {
-    return schedules.filter((s) => {
+    return (schedules || []).filter((s) => {
       if (statusFilter !== 'All' && s.status !== statusFilter) return false;
       if (typeFilter !== 'all' && s.schedule_type !== typeFilter) return false;
       if (tenantFilter !== 'All') {

@@ -115,6 +115,7 @@ export function getPropertiesTableColumns(onEditProperty: (property: Record<stri
     {
       field: 'property_category',
       headerName: 'Category',
+      minWidth: 120,
       width: 130,
       valueGetter: (params) => params.data?.property_category || 'Residential',
       cellRenderer: PropertyCategoryCell,
@@ -122,6 +123,7 @@ export function getPropertiesTableColumns(onEditProperty: (property: Record<stri
     {
       field: 'property_type',
       headerName: 'Property Type',
+      minWidth: 140,
       width: 150,
       valueGetter: (params) => params.data?.property_type || 'Apartment',
       cellRenderer: PropertyTypeCell,

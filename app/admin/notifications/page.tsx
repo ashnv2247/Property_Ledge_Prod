@@ -48,10 +48,10 @@ import {
   getPlatformNotificationSettings,
   updatePlatformNotificationSettings,
   triggerManualEmailDispatch,
-  DEFAULT_ADMIN_PREFERENCES,
   type AdminNotification,
   type AdminNotificationPreferences,
 } from '@/app/actions/admin-notifications';
+import { DEFAULT_ADMIN_PREFERENCES } from '@/lib/notifications/admin-types';
 import { useAdminNotifications } from '@/lib/hooks/useAdminNotifications';
 import { cn } from '@/lib/utils';
 

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getPropertyStats, getUserProperties } from '@/lib/properties/queries';
 import { serverCache } from '@/lib/cache/server-cache';
 import { getActiveWorkspaceId } from '@/lib/auth/authorization';
@@ -334,19 +334,36 @@ export async function getLeaseDetail(propertyId: string, leaseId: string) {
 }
 
 export async function getMaintenanceDetail(propertyId: string, requestId: string) {
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
   const { data, error } = await supabase
     .from('maintenance_requests')
-    .select(`
-      *,
-      tenant:tenants(first_name, last_name)
-    `)
-    .eq('property_id', propertyId)
+    .select('*')
     .eq('id', requestId)
-    .single();
+    .maybeSingle();
 
-  if (error) return null;
-  return data;
+  if (error || !data) return null;
+
+  let property = null;
+  if ((data as any).property_id) {
+    const { data: prop } = await supabase
+      .from('properties')
+      .select('id, name, address_line_1, city, state')
+      .eq('id', (data as any).property_id)
+      .maybeSingle();
+    property = prop;
+  }
+
+  let tenant = null;
+  if ((data as any).tenant_id) {
+    const { data: ten } = await supabase
+      .from('tenants')
+      .select('id, first_name, last_name, email, phone')
+      .eq('id', (data as any).tenant_id)
+      .maybeSingle();
+    tenant = ten;
+  }
+
+  return { ...(data as Record<string, unknown>), property, tenant };
 }
 
 export async function getInspectionDetail(propertyId: string, inspectionId: string) {

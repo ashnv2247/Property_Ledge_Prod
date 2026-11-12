@@ -91,84 +91,84 @@ export function LeaseCommandCenter({
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-0 pt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4 gap-3 xl:gap-3.5 pt-1">
             {/* Metric 1: Active Leases */}
-            <div className="flex items-center gap-3.5 min-w-0 pr-2 sm:pr-4">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.08] border border-white/12 min-w-0 backdrop-blur-xs">
               <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-white/15 text-white flex items-center justify-center shrink-0 border border-white/20 shadow-xs">
                 <FileText className="w-5 h-5" />
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="font-heading text-2xl sm:text-[26px] xl:text-[28px] font-bold tabular-nums text-white leading-tight">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="font-heading text-xl sm:text-2xl font-bold tabular-nums text-white leading-tight">
                     {isLoading ? '—' : activeLeasesCount}
                   </p>
-                  <span className="inline-flex items-center text-[10.5px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-white border border-white/25">
+                  <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-white border border-white/25">
                     ↑ 0%
                   </span>
                 </div>
-                <span className="text-xs sm:text-[13px] font-semibold text-white block leading-tight truncate mt-1">
+                <span className="text-xs font-semibold text-white block leading-tight truncate mt-1">
                   Active Leases
                 </span>
-                <span className="text-[10.5px] sm:text-[11px] text-white/75 block leading-none mt-1 truncate font-normal">
+                <span className="text-[10px] text-white/75 block leading-none mt-1 truncate font-normal">
                   Currently running
                 </span>
               </div>
             </div>
 
             {/* Metric 2: Monthly Rent Inflow */}
-            <div className="flex items-center gap-3.5 min-w-0 md:border-l md:border-white/15 md:pl-4 sm:md:pl-5 pr-2 sm:pr-4">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.08] border border-white/12 min-w-0 backdrop-blur-xs">
               <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-white/15 text-white flex items-center justify-center shrink-0 border border-white/20 shadow-xs">
                 <DollarSign className="w-5 h-5 stroke-[2.5]" />
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="font-heading text-2xl sm:text-[26px] xl:text-[28px] font-bold tabular-nums text-white leading-tight">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="font-heading text-xl sm:text-2xl font-bold tabular-nums text-white leading-tight">
                     {isLoading ? '—' : `$${monthlyRentInflow.toLocaleString()}`}
                   </p>
-                  <span className="inline-flex items-center text-[10.5px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-white border border-white/25">
+                  <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-white border border-white/25">
                     ↑ 0%
                   </span>
                 </div>
-                <span className="text-xs sm:text-[13px] font-semibold text-white block leading-tight truncate mt-1">
+                <span className="text-xs font-semibold text-white block leading-tight truncate mt-1">
                   Monthly Rent Inflow
                 </span>
-                <span className="text-[10.5px] sm:text-[11px] text-white/75 block leading-none mt-1 truncate font-normal">
+                <span className="text-[10px] text-white/75 block leading-none mt-1 truncate font-normal">
                   From active leases
                 </span>
               </div>
             </div>
 
             {/* Metric 3: Expiring Soon */}
-            <div className="flex items-center gap-3.5 min-w-0 md:border-l md:border-white/15 md:pl-4 sm:md:pl-5 pr-2 sm:pr-4">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.08] border border-white/12 min-w-0 backdrop-blur-xs">
               <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-white/15 text-white flex items-center justify-center shrink-0 border border-white/20 shadow-xs">
                 <Clock className="w-5 h-5" />
               </div>
-              <div className="min-w-0">
-                <p className="font-heading text-2xl sm:text-[26px] xl:text-[28px] font-bold tabular-nums text-white leading-tight">
+              <div className="min-w-0 flex-1">
+                <p className="font-heading text-xl sm:text-2xl font-bold tabular-nums text-white leading-tight">
                   {isLoading ? '—' : expiringSoonCount}
                 </p>
-                <span className="text-xs sm:text-[13px] font-semibold text-white block leading-tight truncate mt-1">
+                <span className="text-xs font-semibold text-white block leading-tight truncate mt-1">
                   Expiring Soon
                 </span>
-                <span className="text-[10.5px] sm:text-[11px] text-white/75 block leading-none mt-1 truncate font-normal">
+                <span className="text-[10px] text-white/75 block leading-none mt-1 truncate font-normal">
                   Next 3 months
                 </span>
               </div>
             </div>
 
             {/* Metric 4: Periodic Leases */}
-            <div className="flex items-center gap-3.5 min-w-0 md:border-l md:border-white/15 md:pl-4 sm:md:pl-5">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.08] border border-white/12 min-w-0 backdrop-blur-xs">
               <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-white/15 text-white flex items-center justify-center shrink-0 border border-white/20 shadow-xs">
                 <RefreshCw className="w-5 h-5" />
               </div>
-              <div className="min-w-0">
-                <p className="font-heading text-2xl sm:text-[26px] xl:text-[28px] font-bold tabular-nums text-white leading-tight">
+              <div className="min-w-0 flex-1">
+                <p className="font-heading text-xl sm:text-2xl font-bold tabular-nums text-white leading-tight">
                   {isLoading ? '—' : periodicLeasesCount}
                 </p>
-                <span className="text-xs sm:text-[13px] font-semibold text-white block leading-tight truncate mt-1">
+                <span className="text-xs font-semibold text-white block leading-tight truncate mt-1">
                   Periodic Leases
                 </span>
-                <span className="text-[10.5px] sm:text-[11px] text-white/75 block leading-none mt-1 truncate font-normal">
+                <span className="text-[10px] text-white/75 block leading-none mt-1 truncate font-normal">
                   Month-to-month
                 </span>
               </div>

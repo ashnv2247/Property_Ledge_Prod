@@ -97,6 +97,18 @@ export const getPersonaForUser = cache(async function getPersonaForUser(userId: 
         if (['owner', 'manager', 'agent', 'staff', 'viewer'].includes(role)) {
           result = { persona: role, workspaceRole: role };
         }
+      } else {
+        const { data: tenantRecord } = await supabase
+          .from('tenants')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .limit(1)
+          .maybeSingle();
+
+        if (tenantRecord) {
+          result = { persona: 'tenant', workspaceRole: 'tenant' };
+        }
       }
     }
   }

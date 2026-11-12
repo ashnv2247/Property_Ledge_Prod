@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import {
@@ -316,7 +316,7 @@ export async function createConditionReportAction(
     if (!context?.workspaceId)
       return { success: false, error: 'No active workspace' };
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     // 1. Validate property belongs to the workspace
     const { data: prop, error: propErr } = await (supabase as any)
@@ -438,7 +438,7 @@ export async function saveSchedule2DataAction(
     if (!context?.workspaceId)
       return { success: false, error: 'No active workspace' };
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const serialized = serializeSchedule2Data(plainNotes, statutoryData);
 
     const { error } = await (supabase as any)
@@ -469,7 +469,7 @@ export async function updateItemRatingAction(
     const user = await getCurrentUser();
     if (!user) return { success: false, error: 'Unauthorized' };
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { error } = await (supabase as any)
       .from('inspection_items')
       .update({ rating })
@@ -498,7 +498,7 @@ export async function updateItemFullConditionAction(
     const user = await getCurrentUser();
     if (!user) return { success: false, error: 'Unauthorized' };
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     // 1. Update rating on item
     await (supabase as any)
@@ -583,7 +583,7 @@ export async function updateRoomStatusAction(
     const user = await getCurrentUser();
     if (!user) return { success: false, error: 'Unauthorized' };
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { error } = await (supabase as any)
       .from('inspection_rooms')
       .update({ status })
@@ -615,7 +615,7 @@ export async function addDefectAction(
 
     if (!notes.trim()) return { success: false, error: 'Notes are required' };
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { data, error } = await (supabase as any)
       .from('inspection_defects')
       .insert({
@@ -652,7 +652,7 @@ export async function deleteDefectAction(
     const user = await getCurrentUser();
     if (!user) return { success: false, error: 'Unauthorized' };
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { error } = await (supabase as any)
       .from('inspection_defects')
       .delete()
@@ -763,7 +763,7 @@ export async function deletePhotoAction(
     const user = await getCurrentUser();
     if (!user) return { success: false, error: 'Unauthorized' };
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { error } = await (supabase as any)
       .from('inspection_photos')
       .delete()

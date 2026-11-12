@@ -24,6 +24,7 @@ import { handleCreateManualCheckoutSession, handleSubmitManualPayment } from '@/
 import { BANK_DETAILS } from '@/lib/billing/types';
 import { getSubscriptionPaymentBySubId, getPaymentProofByPaymentId } from '@/lib/billing/service';
 import { serverCache } from '@/lib/cache/server-cache';
+import { setActiveWorkspaceCookie } from '@/lib/auth/authorization';
 
 const ONBOARDING_METADATA_KEY = 'onboarding';
 
@@ -274,6 +275,12 @@ export async function saveOnboardingWorkspaceSetup(input: {
     workspaceName: input.workspaceName,
     businessType: input.businessType,
   });
+
+  try {
+    await setActiveWorkspaceCookie(workspaceId);
+  } catch (err) {
+    console.warn('Could not set active workspace cookie:', err);
+  }
 
   return { workspaceId };
 }
@@ -547,6 +554,12 @@ export async function createOnboardingProperty(input: {
 
   if (error || !property) throw new Error(error?.message ?? 'Failed to create property');
 
+  try {
+    await setActiveWorkspaceCookie(workspaceId);
+  } catch (err) {
+    console.warn('Could not set active workspace cookie on createOnboardingProperty:', err);
+  }
+
   const propertyId = (property as { id: string }).id;
   await completeStage('property', { propertyId, propertyName: input.name });
   return { propertyId };
@@ -621,6 +634,23 @@ export async function finishOnboarding(): Promise<void> {
     data: { [ONBOARDING_METADATA_KEY]: finalProgress },
   });
   await markOnboardingCompleted(user.id, supabase);
+
+  try {
+    const { data: ws } = await supabase
+      .from('workspaces')
+      .select('id')
+      .eq('owner_id', user.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const wsId = (ws as { id?: string } | null)?.id;
+    if (wsId) {
+      await setActiveWorkspaceCookie(wsId);
+    }
+  } catch (err) {
+    console.warn('Could not set active workspace cookie upon finishOnboarding:', err);
+  }
 
   revalidatePath('/onboarding');
   revalidatePath('/dashboard');

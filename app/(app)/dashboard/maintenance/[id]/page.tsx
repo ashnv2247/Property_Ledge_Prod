@@ -79,32 +79,29 @@ export default function MaintenanceDetailPage({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!selectedProperty) return;
-    fetchDashboardMaintenanceDetail(selectedProperty.propertyId, id)
+    fetchDashboardMaintenanceDetail(selectedProperty?.propertyId || '', id)
       .then((data) => setRequest(data ? (data as unknown as Record<string, unknown>) : null))
       .finally(() => setIsLoading(false));
   }, [selectedProperty?.propertyId, id]);
 
   return (
-    <PropertyRequired>
-      {selectedProperty && (
-        <PageLayout>
-          {isLoading ? (
-            <PageContent><PageSkeleton /></PageContent>
-          ) : !request ? (
-            <PageContent>
-              <NotFoundState title="Maintenance request not found" action={<Link href="/dashboard/maintenance" className="text-admin-primary text-sm">Back</Link>} />
-            </PageContent>
-          ) : (
-            <>
-              <div className={cn('shrink-0', WORKSPACE_PAGE_HEADER)}>
+    <PageLayout>
+      {isLoading ? (
+        <PageContent><PageSkeleton /></PageContent>
+      ) : !request ? (
+        <PageContent>
+          <NotFoundState title="Maintenance request not found" action={<Link href="/dashboard/maintenance" className="text-admin-primary text-sm">Back</Link>} />
+        </PageContent>
+      ) : (
+        <>
+          <div className={cn('shrink-0', WORKSPACE_PAGE_HEADER)}>
                 <EntityDetailHeader
                   breadcrumb={[
                     { label: 'Maintenance', href: '/dashboard/maintenance' },
                     { label: String(request.title || 'Request') },
                   ]}
                   title={String(request.title || 'Maintenance Request')}
-                  subtitle={selectedProperty.propertyName}
+                  subtitle={selectedProperty?.propertyName || (request?.property as { name?: string })?.name || 'Property'}
                   status={
                     <div className="flex gap-2">
                       <StatusBadge domain="maintenance" status={String(request.status || 'open')} />
@@ -134,7 +131,5 @@ export default function MaintenanceDetailPage({
             </>
           )}
         </PageLayout>
-      )}
-    </PropertyRequired>
   );
 }

@@ -167,12 +167,13 @@ export async function createTrialSubscription(
     { onConflict: 'user_id' }
   );
 
-  // 2. Check if an active or trialing subscription already exists for this account
+  // 2. Check if any subscription already exists for this account
   const { data: existingSub } = await (supabase as any)
     .from('subscriptions')
     .select('id, status, trial_start, trial_end')
     .eq('account_id', accountId)
-    .in('status', ['trialing', 'active', 'past_due', 'paused'])
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (existingSub) {

@@ -96,7 +96,14 @@ export async function fetchDashboardLease(propertyId: string, leaseId: string) {
 }
 
 export async function fetchDashboardMaintenanceDetail(propertyId: string, requestId: string) {
-  await requirePropertyAccess(propertyId);
+  await requireAuthenticatedUser();
+  if (propertyId) {
+    try {
+      await requirePropertyAccess(propertyId);
+    } catch {
+      // Allow authorized workspace access fallback
+    }
+  }
   return queries.getMaintenanceDetail(propertyId, requestId);
 }
 

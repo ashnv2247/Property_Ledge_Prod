@@ -183,7 +183,7 @@ export function ExpenseList({ initialExpenses, initialCategories }: ExpenseListP
 
   // Filtered Expenses
   const filteredExpenses = useMemo(() => {
-    return expenses.filter((exp) => {
+    return (expenses || []).filter((exp) => {
       if (activePropertyId && exp.property_id !== activePropertyId) {
         return false;
       }

@@ -22,14 +22,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect('/login');
   }
 
-  const [workspaceContext, personaContext, profile, userWorkspaces, initialProperties, accountCtx] = await Promise.all([
+  const [workspaceContext, personaContext, profile, userWorkspaces, accountCtx] = await Promise.all([
     resolveWorkspaceContext(activeWsId),
     getPersonaForUser(user.id),
     getUserProfile(user.id),
     getUserWorkspaces(user.id),
-    getUserProperties(user.id, activeWsId ?? undefined),
     getAccountContext(user.id),
   ]);
+
+  const effectiveWsId = activeWsId ?? workspaceContext?.workspaceId ?? (userWorkspaces[0]?.id ?? null);
+  const initialProperties = await getUserProperties(user.id, effectiveWsId ?? undefined);
 
   if (personaContext.persona === 'tenant') {
     redirect('/tenant');
@@ -61,8 +63,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       userName={profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
       userAvatarUrl={profile?.avatar_url || ''}
       persona={personaContext.persona}
-      workspaceId={workspaceContext?.workspaceId ?? null}
-      workspaceName={workspaceContext?.workspaceName ?? null}
+      workspaceId={effectiveWsId}
+      workspaceName={workspaceContext?.workspaceName ?? (userWorkspaces[0]?.name ?? null)}
       roleName={workspaceContext?.roleName ?? null}
       permissions={workspaceContext?.permissions ?? EMPTY_PERMISSIONS}
       entitlements={workspaceContext?.entitlements ?? EMPTY_ENTITLEMENTS}

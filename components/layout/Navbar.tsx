@@ -172,22 +172,22 @@ export function Navbar() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 flex flex-col items-center ${
-        isScrolled ? "top-3 px-4 sm:px-6" : "top-0 px-0"
+        isScrolled ? "top-2 sm:top-3 px-3 sm:px-6" : "top-0 px-0"
       }`}
     >
       <div
         className={`w-full flex items-center justify-between transition-all duration-300 relative ${
           isScrolled
-            ? "max-w-[1020px] px-4 sm:px-6 py-2.5 rounded-full bg-white/90 dark:bg-[#0E1112]/90 backdrop-blur-xl border border-black/10 dark:border-[#2A3032]/80 shadow-lg shadow-black/5 dark:shadow-black/30"
+            ? "max-w-[1020px] px-4 sm:px-6 py-2 sm:py-2.5 rounded-full bg-white/95 dark:bg-[#0E1112]/95 backdrop-blur-xl border border-black/10 dark:border-[#2A3032]/80 shadow-lg shadow-black/5 dark:shadow-black/30"
             : mobileMenuOpen
-            ? "max-w-[1440px] px-4 sm:px-8 py-4 sm:py-5 bg-background/95 dark:bg-[#0E1112]/95 backdrop-blur-2xl border-b border-border/50 dark:border-[#2A3032]/50 shadow-md"
-            : "max-w-[1440px] px-4 sm:px-8 py-4 sm:py-6 bg-transparent dark:bg-transparent border-b border-transparent"
+            ? "max-w-[1440px] px-4 sm:px-8 py-3.5 sm:py-5 bg-background/95 dark:bg-[#0E1112]/95 backdrop-blur-2xl border-b border-border/50 dark:border-[#2A3032]/50 shadow-md"
+            : "max-w-[1440px] px-4 sm:px-8 py-3 sm:py-5 max-md:bg-background/85 max-md:dark:bg-[#0E1112]/85 max-md:backdrop-blur-md max-md:border-b max-md:border-border/30 bg-transparent dark:bg-transparent border-b border-transparent"
         }`}
       >
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group shrink-0">
+        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group shrink-0 min-w-0">
           <div
-            className={`flex items-center justify-center transition-all duration-300 group-hover:scale-105 ${
+            className={`flex items-center justify-center transition-all duration-300 group-hover:scale-105 shrink-0 ${
               isScrolled ? "w-6 h-6 sm:w-7 sm:h-7" : "w-7 h-7 sm:w-8 sm:h-8"
             }`}
           >
@@ -203,11 +203,11 @@ export function Navbar() {
             />
           </div>
           <span
-            className={`font-heading font-bold tracking-tight text-foreground transition-all duration-300 ${
-              isScrolled ? "text-sm sm:text-base" : "text-base sm:text-xl"
+            className={`font-heading font-bold tracking-tight text-foreground transition-all duration-300 truncate ${
+              isScrolled ? "text-sm sm:text-base" : "text-sm sm:text-lg lg:text-xl"
             }`}
           >
-            PropertyLedge<span className="text-accent text-[11px] sm:text-sm font-normal">.com.au</span>
+            PropertyLedge<span className="text-accent text-[11px] sm:text-sm font-normal hidden min-[360px]:inline">.com.au</span>
           </span>
         </Link>
 
@@ -400,10 +400,10 @@ export function Navbar() {
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div
-          className={`md:hidden bg-background/98 dark:bg-[#0E1112]/98 backdrop-blur-2xl transition-all duration-300 max-h-[calc(100vh-5.5rem)] overflow-y-auto overscroll-contain shadow-2xl ${
+          className={`md:hidden w-full bg-background/98 dark:bg-[#0E1112]/98 backdrop-blur-2xl transition-all duration-300 max-h-[calc(100vh-4.5rem)] overflow-y-auto overscroll-contain shadow-2xl ${
             isScrolled
-              ? "w-full max-w-[1020px] mt-2 rounded-2xl border border-black/10 dark:border-[#2A3032] px-5 sm:px-6 py-6"
-              : "w-full max-w-[1440px] border-b border-border dark:border-[#2A3032] px-5 sm:px-8 py-6"
+              ? "max-w-[1020px] mt-2 rounded-2xl border border-black/10 dark:border-[#2A3032] px-5 sm:px-6 py-6"
+              : "border-b border-border dark:border-[#2A3032] px-5 sm:px-8 py-6"
           }`}
         >
           <div className="flex flex-col gap-4">
