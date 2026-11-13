@@ -93,6 +93,7 @@ const HIERARCHICAL_NAV: NavItemConfig[] = [
       { id: 'activity', label: 'Activity', href: '/dashboard/activity' },
       { id: 'tasks', label: 'My Tasks', href: '/dashboard/tasks' },
       { id: 'invoices', label: 'Invoices', href: '/dashboard/invoices' },
+      { id: 'schedule-email', label: 'Schedule Email', href: '/dashboard/invoices/schedule-email' },
       { id: 'condition-reports', label: 'Condition Reports', href: '/dashboard/condition-reports' },
       { id: 'automations', label: 'Automations', href: '/dashboard/automations' },
     ],

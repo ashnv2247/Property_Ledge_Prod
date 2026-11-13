@@ -472,7 +472,7 @@ export function AdminDataGrid<TData = any>({
     [isServerSide, onPageSizeChange, gridApi, effectiveGridStateKey, saveGridState]
   );
 
-  // Prepare column definitions (excluding any redundant legacy selection column)
+  // Prepare column definitions (excluding legacy selection columns to let rowSelection manage it)
   const effectiveColDefs = useMemo(() => {
     return columnDefs.filter((c) => c.colId !== '_selection');
   }, [columnDefs]);

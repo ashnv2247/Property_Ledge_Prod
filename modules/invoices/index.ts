@@ -2,6 +2,7 @@
 export * from './domain/entities/invoice';
 export * from './domain/entities/invoice-template';
 export * from './domain/entities/invoice-document';
+export * from './domain/entities/invoice-schedule';
 export * from './domain/value-objects/currency';
 export * from './domain/services/invoice-calculator';
 export * from './domain/services/invoice-state-machine';

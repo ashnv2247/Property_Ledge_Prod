@@ -68,6 +68,10 @@ const BulkInvoiceModal = dynamic(
   () => import('./BulkInvoiceModal').then((mod) => mod.BulkInvoiceModal),
   { ssr: false }
 );
+const ScheduleEmailModal = dynamic(
+  () => import('./ScheduleEmailModal').then((mod) => mod.ScheduleEmailModal),
+  { ssr: false }
+);
 
 import { useEntityCacheStore } from '@/lib/stores/useEntityCacheStore';
 import { useWorkspaceStore } from '@/lib/stores/useWorkspaceStore';
@@ -109,6 +113,8 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const [isScheduleEmailOpen, setIsScheduleEmailOpen] = useState(false);
+  const [invoiceToSchedule, setInvoiceToSchedule] = useState<InvoiceDTO | null>(null);
   const [invoiceToEdit, setInvoiceToEdit] = useState<InvoiceDTO | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceDTO | null>(null);
   const [invoiceToDelete, setInvoiceToDelete] = useState<InvoiceDTO | null>(null);
@@ -369,6 +375,15 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
   const bulkActions = useMemo<BulkAction[]>(
     () => [
       {
+        label: 'Schedule Email',
+        icon: <CalendarRange className="w-3.5 h-3.5 text-[#008F83]" />,
+        onClick: (selectedRows: InvoiceDTO[]) => {
+          if (!selectedRows || selectedRows.length === 0) return;
+          setInvoiceToSchedule(selectedRows[0]);
+          setIsScheduleEmailOpen(true);
+        },
+      },
+      {
         label: 'Issue Selected Invoices',
         onClick: async (selectedRows: InvoiceDTO[]) => {
           const drafts = selectedRows.filter((inv) => inv.status === 'draft');
@@ -581,7 +596,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
       {
         headerName: 'Actions',
         colId: 'actions',
-        width: 175,
+        width: 205,
         pinned: 'right',
         sortable: false,
         filter: false,
@@ -600,6 +615,17 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
                 title="View Invoice"
               >
                 <Eye className="w-3.5 h-3.5" /> View
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setInvoiceToSchedule(inv);
+                  setIsScheduleEmailOpen(true);
+                }}
+                className="p-1 text-admin-muted hover:text-[#008F83] hover:bg-[#008F83]/10 rounded transition-colors"
+                title="Schedule Recurring Email"
+              >
+                <CalendarRange className="w-3.5 h-3.5 text-[#008F83]" />
               </button>
               {canEdit && (
                 <button
@@ -679,6 +705,17 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
               <LayoutGrid className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          <Link href="/dashboard/invoices/schedule-email">
+            <Button
+              variant="outline"
+              size="sm"
+              className="font-bold border-admin-border hover:bg-admin-surface-subtle text-admin-foreground text-xs flex items-center gap-1.5"
+            >
+              <Mail className="w-3.5 h-3.5 text-[#008F83]" />
+              Schedule Email
+            </Button>
+          </Link>
 
           <Link href="/dashboard/invoices/templates">
             <Button
@@ -1030,6 +1067,16 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
                           </button>
                         )}
                         <button
+                          onClick={() => {
+                            setInvoiceToSchedule(inv);
+                            setIsScheduleEmailOpen(true);
+                          }}
+                          className="p-1.5 text-admin-muted hover:text-[#008F83] hover:bg-[#008F83]/10 rounded-md transition-colors"
+                          title="Schedule Recurring Email"
+                        >
+                          <CalendarRange className="w-3.5 h-3.5 text-[#008F83]" />
+                        </button>
+                        <button
                           onClick={() => handleDownload(inv.id, 'pdf')}
                           className="p-1.5 text-admin-muted hover:text-admin-foreground hover:bg-admin-surface-subtle rounded-md transition-colors"
                           title="Download PDF"
@@ -1077,6 +1124,20 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
       <BulkInvoiceModal
         isOpen={isBulkOpen}
         onClose={() => setIsBulkOpen(false)}
+        onSuccess={() => {
+          loadInvoices();
+        }}
+      />
+
+      {/* Schedule Email Recurring Invoice Modal */}
+      <ScheduleEmailModal
+        isOpen={isScheduleEmailOpen}
+        onClose={() => {
+          setIsScheduleEmailOpen(false);
+          setInvoiceToSchedule(null);
+        }}
+        selectedInvoice={invoiceToSchedule}
+        availableInvoices={displayedInvoices}
         onSuccess={() => {
           loadInvoices();
         }}

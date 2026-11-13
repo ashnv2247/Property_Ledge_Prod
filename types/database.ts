@@ -481,58 +481,263 @@ export interface Database {
       invoices: {
         Row: {
           id: string
-          property_id: string
+          workspace_id?: string | null
+          property_id: string | null
           unit_id: string | null
           lease_id: string | null
           tenant_id: string | null
           invoice_number: string
           status: 'draft' | 'issued' | 'partially_paid' | 'paid' | 'overdue' | 'void' | 'cancelled'
-          issue_date: string
-          due_date: string
+          currency?: string
+          customer_name?: string | null
+          customer_email?: string | null
+          customer_address?: string | null
           subtotal: number
           tax_amount: number
           total_amount: number
           balance_due: number
+          paid_amount?: number
+          issue_date: string
+          due_date: string
+          billing_period_start?: string | null
+          billing_period_end?: string | null
           description: string | null
+          notes?: string | null
+          payment_instructions?: string | null
+          template_id?: string | null
+          automation_id?: string | null
+          schedule_id?: string | null
+          source_invoice_id?: string | null
+          email_status?: string | null
+          snapshot?: Json | null
           created_by: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          property_id: string
+          workspace_id?: string | null
+          property_id?: string | null
           unit_id?: string | null
           lease_id?: string | null
           tenant_id?: string | null
           invoice_number: string
           status?: 'draft' | 'issued' | 'partially_paid' | 'paid' | 'overdue' | 'void' | 'cancelled'
-          issue_date?: string
-          due_date: string
+          currency?: string
+          customer_name?: string | null
+          customer_email?: string | null
+          customer_address?: string | null
           subtotal?: number
           tax_amount?: number
           total_amount?: number
           balance_due?: number
+          paid_amount?: number
+          issue_date?: string
+          due_date: string
+          billing_period_start?: string | null
+          billing_period_end?: string | null
           description?: string | null
+          notes?: string | null
+          payment_instructions?: string | null
+          template_id?: string | null
+          automation_id?: string | null
+          schedule_id?: string | null
+          source_invoice_id?: string | null
+          email_status?: string | null
+          snapshot?: Json | null
           created_by?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          property_id?: string
+          workspace_id?: string | null
+          property_id?: string | null
           unit_id?: string | null
           lease_id?: string | null
           tenant_id?: string | null
           invoice_number?: string
           status?: 'draft' | 'issued' | 'partially_paid' | 'paid' | 'overdue' | 'void' | 'cancelled'
-          issue_date?: string
-          due_date?: string
+          currency?: string
+          customer_name?: string | null
+          customer_email?: string | null
+          customer_address?: string | null
           subtotal?: number
           tax_amount?: number
           total_amount?: number
           balance_due?: number
+          paid_amount?: number
+          issue_date?: string
+          due_date?: string
+          billing_period_start?: string | null
+          billing_period_end?: string | null
           description?: string | null
+          notes?: string | null
+          payment_instructions?: string | null
+          template_id?: string | null
+          automation_id?: string | null
+          schedule_id?: string | null
+          source_invoice_id?: string | null
+          email_status?: string | null
+          snapshot?: Json | null
           created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      invoice_email_schedules: {
+        Row: {
+          id: string
+          workspace_id: string
+          source_invoice_id: string | null
+          property_id: string | null
+          tenant_id: string | null
+          lease_id: string | null
+          recipient_name: string
+          recipient_email: string
+          billing_start_month: string
+          billing_end_month: string
+          frequency: string
+          generation_day_of_month: number
+          due_days_after: number
+          due_date_fixed: number | null
+          timezone: string
+          email_mode: 'automatic' | 'manual'
+          status: 'active' | 'completed' | 'paused' | 'cancelled' | 'failed'
+          invoices_generated_count: number
+          emails_sent_count: number
+          emails_pending_count: number
+          emails_failed_count: number
+          subject_template: string | null
+          custom_message: string | null
+          drive_folder_url: string | null
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          source_invoice_id?: string | null
+          property_id?: string | null
+          tenant_id?: string | null
+          lease_id?: string | null
+          recipient_name: string
+          recipient_email: string
+          billing_start_month: string
+          billing_end_month: string
+          frequency?: string
+          generation_day_of_month?: number
+          due_days_after?: number
+          due_date_fixed?: number | null
+          timezone?: string
+          email_mode?: 'automatic' | 'manual'
+          status?: 'active' | 'completed' | 'paused' | 'cancelled' | 'failed'
+          invoices_generated_count?: number
+          emails_sent_count?: number
+          emails_pending_count?: number
+          emails_failed_count?: number
+          subject_template?: string | null
+          custom_message?: string | null
+          drive_folder_url?: string | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          source_invoice_id?: string | null
+          property_id?: string | null
+          tenant_id?: string | null
+          lease_id?: string | null
+          recipient_name?: string
+          recipient_email?: string
+          billing_start_month?: string
+          billing_end_month?: string
+          frequency?: string
+          generation_day_of_month?: number
+          due_days_after?: number
+          due_date_fixed?: number | null
+          timezone?: string
+          email_mode?: 'automatic' | 'manual'
+          status?: 'active' | 'completed' | 'paused' | 'cancelled' | 'failed'
+          invoices_generated_count?: number
+          emails_sent_count?: number
+          emails_pending_count?: number
+          emails_failed_count?: number
+          subject_template?: string | null
+          custom_message?: string | null
+          drive_folder_url?: string | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      invoice_scheduled_email_jobs: {
+        Row: {
+          id: string
+          workspace_id: string
+          schedule_id: string
+          invoice_id: string
+          recipient_email: string
+          recipient_name: string | null
+          billing_month: string
+          scheduled_send_date: string
+          attempted_at: string | null
+          delivered_at: string | null
+          status: 'scheduled' | 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled'
+          attempts: number
+          max_attempts: number
+          failure_reason: string | null
+          provider_message_id: string | null
+          subject: string | null
+          custom_message: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          schedule_id: string
+          invoice_id: string
+          recipient_email: string
+          recipient_name?: string | null
+          billing_month: string
+          scheduled_send_date: string
+          attempted_at?: string | null
+          delivered_at?: string | null
+          status?: 'scheduled' | 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled'
+          attempts?: number
+          max_attempts?: number
+          failure_reason?: string | null
+          provider_message_id?: string | null
+          subject?: string | null
+          custom_message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          schedule_id?: string
+          invoice_id?: string
+          recipient_email?: string
+          recipient_name?: string | null
+          billing_month?: string
+          scheduled_send_date?: string
+          attempted_at?: string | null
+          delivered_at?: string | null
+          status?: 'scheduled' | 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled'
+          attempts?: number
+          max_attempts?: number
+          failure_reason?: string | null
+          provider_message_id?: string | null
+          subject?: string | null
+          custom_message?: string | null
           created_at?: string
           updated_at?: string
         }

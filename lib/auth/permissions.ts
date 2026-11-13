@@ -17,6 +17,7 @@ export type NavItemId =
   | 'money'
   | 'finances'
   | 'invoices'
+  | 'schedule-email'
   | 'payments'
   | 'expenses'
   | 'maintenance'
@@ -49,6 +50,7 @@ export const NAV_PERMISSIONS: Partial<Record<NavItemId, string[]>> = {
   'financial-years': ['invoice.view', 'payment.view', 'expense.view', 'financial.view'],
   'accountant-reports': ['invoice.view', 'payment.view', 'expense.view', 'insights.view', 'financial.view'],
   invoices: ['invoice.view'],
+  'schedule-email': ['invoice.view'],
   payments: ['payment.view'],
   expenses: ['expense.view'],
   maintenance: ['maintenance.view'],
@@ -89,6 +91,7 @@ const NAV_ACCESS: Record<NavItemId, Persona[]> = {
   'financial-years': ['owner', 'admin', 'manager', 'agent'],
   'accountant-reports': ['owner', 'admin', 'manager', 'agent'],
   invoices: ['owner', 'admin', 'manager', 'agent'],
+  'schedule-email': ['owner', 'admin', 'manager', 'agent'],
   payments: ['owner', 'admin', 'manager', 'agent'],
   expenses: ['owner', 'admin', 'manager', 'agent'],
   maintenance: ['owner', 'admin', 'manager', 'agent', 'staff'],
