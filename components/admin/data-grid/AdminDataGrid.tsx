@@ -472,34 +472,27 @@ export function AdminDataGrid<TData = any>({
     [isServerSide, onPageSizeChange, gridApi, effectiveGridStateKey, saveGridState]
   );
 
-  // Prepare column definitions with explicit selection column
+  // Prepare column definitions (excluding any redundant legacy selection column)
   const effectiveColDefs = useMemo(() => {
-    if (!enableSelection) return columnDefs;
-    const hasSelection = columnDefs.some((c) => c.colId === '_selection' || c.checkboxSelection);
-    if (hasSelection) return columnDefs;
+    return columnDefs.filter((c) => c.colId !== '_selection');
+  }, [columnDefs]);
 
-    return [
-      {
-        colId: '_selection',
-        headerName: '',
-        width: 48,
-        minWidth: 48,
-        maxWidth: 48,
-        resizable: false,
-        sortable: false,
-        filter: false,
-        suppressMovable: true,
-        pinned: 'left' as const,
-        lockPosition: 'left' as const,
-        checkboxSelection: true,
-        headerCheckboxSelection: true,
-        headerCheckboxSelectionFilteredOnly: true,
-        cellClass: 'selection-checkbox-cell',
-        headerClass: 'selection-checkbox-header',
-      },
-      ...columnDefs,
-    ];
-  }, [columnDefs, enableSelection]);
+  const effectiveSelectionColumnDef = useMemo<SelectionColumnDef | undefined>(() => {
+    if (!enableSelection) return undefined;
+    return {
+      width: 48,
+      minWidth: 48,
+      maxWidth: 48,
+      resizable: false,
+      sortable: false,
+      suppressMovable: true,
+      pinned: 'left' as const,
+      lockPosition: 'left' as const,
+      cellClass: 'selection-checkbox-cell',
+      headerClass: 'selection-checkbox-header',
+      ...selectionColumnDef,
+    };
+  }, [enableSelection, selectionColumnDef]);
 
   const isDataLoaded = Array.isArray(rowData);
   const isLoadingState = Boolean(loading || !isDataLoaded);
@@ -547,8 +540,9 @@ export function AdminDataGrid<TData = any>({
         ? {
             mode: 'multiRow' as const,
             enableClickSelection: false,
-            checkboxes: false,
-            headerCheckbox: false,
+            checkboxes: true,
+            headerCheckbox: true,
+            selectAll: 'filtered' as const,
           }
         : undefined,
     [enableSelection]
@@ -607,7 +601,9 @@ export function AdminDataGrid<TData = any>({
               pagination={!disablePagination}
               paginationAutoPageSize={false}
               paginationPageSize={effectivePageSize || defaultPageSize || 25}
+              paginationPageSizeSelector={[10, 20, 25, 50, 100]}
               suppressPaginationPanel={true}
+              selectionColumnDef={effectiveSelectionColumnDef}
               onGridReady={onGridReady}
               onPaginationChanged={onPaginationChanged}
               onSelectionChanged={onSelectionChanged}

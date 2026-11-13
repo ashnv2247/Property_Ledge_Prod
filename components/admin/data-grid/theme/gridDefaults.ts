@@ -29,4 +29,5 @@ export const defaultGridOptions: GridOptions = {
   enableCellTextSelection: true,
   suppressMenuHide: true,
   enableBrowserTooltips: true,
+  paginationPageSizeSelector: [10, 20, 25, 50, 100],
 };
