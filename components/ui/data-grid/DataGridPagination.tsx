@@ -176,3 +176,4 @@ export function DataGridPagination({
 // Backward compatibility alias
 export const AdminDataGridPagination = DataGridPagination;
 export type AdminDataGridPaginationProps = DataGridPaginationProps;
+

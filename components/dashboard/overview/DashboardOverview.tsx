@@ -97,6 +97,7 @@ export function OwnerDashboard({
 
   const latestRequestIdRef = useRef(0);
   const isInitialMount = useRef(true);
+  const servedByServerRef = useRef(Boolean(initialData));
   const [leaseWizardOpen, setLeaseWizardOpen] = useState(false);
 
   const { isCollapsed: isAttentionCollapsed, toggle: toggleAttention } = useCollapsibleWidget('dashboard-needs-attention');
@@ -177,6 +178,15 @@ export function OwnerDashboard({
 
   // Main SWR coordination on property or workspace change
   useEffect(() => {
+    // If the server provided fresh initialData on this mount, suppress duplicate immediate fetch
+    if (servedByServerRef.current) {
+      servedByServerRef.current = false;
+      if (initialData && activeWorkspaceId) {
+        setCachedDashboard(initialData, activeWorkspaceId, propertyId);
+      }
+      return;
+    }
+
     const currentCache = useEntityCacheStore.getState().dashboard;
     const isCurrentMatching =
       currentCache &&
@@ -197,7 +207,7 @@ export function OwnerDashboard({
     }
 
     loadData(false);
-  }, [propertyId, activeWorkspaceId, loadData]);
+  }, [propertyId, activeWorkspaceId, loadData, initialData, setCachedDashboard]);
 
   // Visibility handler with stable ref to avoid re-binding on every render
   const loadDataRef = useRef(loadData);

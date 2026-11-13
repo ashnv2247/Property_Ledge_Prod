@@ -149,6 +149,7 @@ function TreeNavItem({
       >
         <Link
           href={targetHref}
+          prefetch={true}
           onClick={onNavigate}
           className={cn(
             'relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-150',
@@ -190,6 +191,7 @@ function TreeNavItem({
       <div className="relative w-full py-0.5">
         <Link
           href={item.href || homeHref}
+          prefetch={true}
           onClick={onNavigate}
           className={cn('block select-none w-full', item.comingSoon && 'opacity-50 pointer-events-none')}
         >
@@ -302,6 +304,7 @@ function TreeNavItem({
                       {/* Child Navigation Link */}
                       <Link
                         href={child.href}
+                        prefetch={true}
                         onClick={onNavigate}
                         className={cn(
                           'relative flex items-center justify-between w-full ml-[35px] px-3 py-1.5 rounded-xl text-[13.5px] transition-all duration-150',
@@ -546,6 +549,7 @@ function Sidebar({
         {settingsHref && !isCollapsed && (
           <Link
             href={settingsHref}
+            prefetch={true}
             className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium text-[#94A3B8] hover:text-white hover:bg-[#0E1E33] transition-colors"
           >
             <Settings className="w-4 h-4 shrink-0 text-[#94A3B8]" />
@@ -820,6 +824,7 @@ function MobileDrawer({
           {settingsHref && (
             <Link
               href={settingsHref}
+              prefetch={true}
               onClick={onClose}
               className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-[#94A3B8] hover:text-white hover:bg-[#0E1E33]"
             >

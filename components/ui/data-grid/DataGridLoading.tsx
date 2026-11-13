@@ -66,3 +66,4 @@ export function DataGridLoading({ overlay = false }: { overlay?: boolean }) {
 
 // Backward compatibility alias
 export const AdminDataGridLoading = DataGridLoading;
+

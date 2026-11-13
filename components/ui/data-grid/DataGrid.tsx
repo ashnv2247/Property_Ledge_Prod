@@ -697,3 +697,4 @@ function DataGridToolbarBridge(props: DataGridToolbarProps) {
 // Backward-compatible aliases
 export const AdminDataGrid = DataGrid;
 export type AdminDataGridProps<TData = any> = DataGridProps<TData>;
+

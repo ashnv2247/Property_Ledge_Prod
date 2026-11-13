@@ -22,6 +22,12 @@ export async function getDashboardOverview(propertyId: string) {
 }
 
 export async function getWorkspaceDashboardOverview(workspaceId: string) {
+  const cacheKey = `workspace:${workspaceId}:dashboard_overview`;
+  const cached = serverCache.get<any>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const supabase = await createClient();
   const [
     { count: activeTenantsCount },
@@ -58,7 +64,7 @@ export async function getWorkspaceDashboardOverview(workspaceId: string) {
       .limit(10),
   ]);
 
-  return {
+  const result = {
     stats: {
       totalUnits: 0,
       activeTenants: activeTenantsCount || 0,
@@ -69,6 +75,9 @@ export async function getWorkspaceDashboardOverview(workspaceId: string) {
     },
     recentActivity: activityResult.data || [],
   };
+
+  serverCache.set(cacheKey, result, 30_000);
+  return result;
 }
 
 export async function getPropertiesForUser(userId: string) {
@@ -764,7 +773,15 @@ export async function getReportsSummary(propertyId: string) {
 }
 
 export async function getWorkspaceReportsSummary(workspaceId: string) {
+  const cacheKey = `workspace:${workspaceId}:dashboard_reports_summary`;
+  const cached = serverCache.get<any>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const supabase = await createClient();
+  const twoYearsAgoIso = new Date(Date.now() - 730 * 86400000).toISOString().slice(0, 10);
+
   const [invoices, transactions, tenants, leases, properties] = await Promise.all([
     supabase
       .from('invoices')
@@ -775,7 +792,8 @@ export async function getWorkspaceReportsSummary(workspaceId: string) {
       .from('transactions')
       .select('amount, status, transaction_type, transaction_date, property_id')
       .eq('workspace_id', workspaceId)
-      .eq('status', 'completed'),
+      .eq('status', 'completed')
+      .gte('transaction_date', twoYearsAgoIso),
     supabase
       .from('tenants')
       .select('id, status, property_id, properties!inner(workspace_id)')
@@ -892,7 +910,7 @@ export async function getWorkspaceReportsSummary(workspaceId: string) {
   const residentialCount = propertyData.filter((p) => p.property_category !== 'Commercial').length;
   const commercialCount = propertyData.filter((p) => p.property_category === 'Commercial').length;
 
-  return {
+  const result = {
     totalRevenue,
     outstandingBalance: invoiceData.reduce((sum, i) => sum + Number(i.balance_due || 0), 0),
     totalExpenses,
@@ -915,6 +933,9 @@ export async function getWorkspaceReportsSummary(workspaceId: string) {
     },
     propertyBreakdown,
   };
+
+  serverCache.set(cacheKey, result, 30_000);
+  return result;
 }
 
 

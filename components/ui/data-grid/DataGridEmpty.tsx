@@ -63,3 +63,4 @@ export function DataGridEmpty({
 // Backward compatibility alias
 export const AdminDataGridEmpty = DataGridEmpty;
 export type AdminDataGridEmptyProps = DataGridEmptyProps;
+

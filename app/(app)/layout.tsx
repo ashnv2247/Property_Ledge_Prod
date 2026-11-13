@@ -22,16 +22,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect('/login');
   }
 
-  const [workspaceContext, personaContext, profile, userWorkspaces, accountCtx] = await Promise.all([
+  const [workspaceContext, personaContext, profile, userWorkspaces, accountCtx, preloadedProperties] = await Promise.all([
     resolveWorkspaceContext(activeWsId),
     getPersonaForUser(user.id),
     getUserProfile(user.id),
     getUserWorkspaces(user.id),
     getAccountContext(user.id),
+    getUserProperties(user.id, activeWsId ?? undefined),
   ]);
 
   const effectiveWsId = activeWsId ?? workspaceContext?.workspaceId ?? (userWorkspaces[0]?.id ?? null);
-  const initialProperties = await getUserProperties(user.id, effectiveWsId ?? undefined);
+  const initialProperties =
+    preloadedProperties && (activeWsId || !effectiveWsId || preloadedProperties.length > 0)
+      ? preloadedProperties
+      : (effectiveWsId !== activeWsId ? await getUserProperties(user.id, effectiveWsId ?? undefined) : preloadedProperties);
 
   if (personaContext.persona === 'tenant') {
     redirect('/tenant');
