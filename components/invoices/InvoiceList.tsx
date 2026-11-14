@@ -1107,41 +1107,47 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
       </div>
 
       {/* Create / Edit Modal */}
-      <CreateInvoiceModal
-        isOpen={isCreateOpen}
-        onClose={() => {
-          setIsCreateOpen(false);
-          setInvoiceToEdit(null);
-        }}
-        onSubmit={handleCreateSubmit}
-        invoiceToEdit={invoiceToEdit}
-        onUpdate={handleUpdateSubmit}
-        onOpenBulkModal={() => setIsBulkOpen(true)}
-        initialPropertyId={activePropertyId || undefined}
-      />
+      {isCreateOpen && (
+        <CreateInvoiceModal
+          isOpen={isCreateOpen}
+          onClose={() => {
+            setIsCreateOpen(false);
+            setInvoiceToEdit(null);
+          }}
+          onSubmit={handleCreateSubmit}
+          invoiceToEdit={invoiceToEdit}
+          onUpdate={handleUpdateSubmit}
+          onOpenBulkModal={() => setIsBulkOpen(true)}
+          initialPropertyId={activePropertyId || undefined}
+        />
+      )}
 
       {/* Bulk Multi-Month Invoice Generation Modal */}
-      <BulkInvoiceModal
-        isOpen={isBulkOpen}
-        onClose={() => setIsBulkOpen(false)}
-        onSuccess={() => {
-          loadInvoices();
-        }}
-      />
+      {isBulkOpen && (
+        <BulkInvoiceModal
+          isOpen={isBulkOpen}
+          onClose={() => setIsBulkOpen(false)}
+          onSuccess={() => {
+            loadInvoices();
+          }}
+        />
+      )}
 
       {/* Schedule Email Recurring Invoice Modal */}
-      <ScheduleEmailModal
-        isOpen={isScheduleEmailOpen}
-        onClose={() => {
-          setIsScheduleEmailOpen(false);
-          setInvoiceToSchedule(null);
-        }}
-        selectedInvoice={invoiceToSchedule}
-        availableInvoices={displayedInvoices}
-        onSuccess={() => {
-          loadInvoices();
-        }}
-      />
+      {isScheduleEmailOpen && (
+        <ScheduleEmailModal
+          isOpen={isScheduleEmailOpen}
+          onClose={() => {
+            setIsScheduleEmailOpen(false);
+            setInvoiceToSchedule(null);
+          }}
+          selectedInvoice={invoiceToSchedule}
+          availableInvoices={displayedInvoices}
+          onSuccess={() => {
+            loadInvoices();
+          }}
+        />
+      )}
 
       {/* Detail Modal */}
       {selectedInvoice && (

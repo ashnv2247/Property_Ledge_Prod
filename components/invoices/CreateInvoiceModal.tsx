@@ -383,7 +383,16 @@ export function CreateInvoiceModal({
   }, 0);
   const grandTotal = subtotal + taxTotal;
 
-  // Validate Step 2
+  // Pure boolean check without side-effects for render-time disable conditions
+  const isStep2Complete = useMemo(() => {
+    return (
+      Boolean(recipientName.trim()) &&
+      items.length > 0 &&
+      items.every((i) => Boolean(i.description.trim()) && (Number(i.quantity) || 0) > 0)
+    );
+  }, [recipientName, items]);
+
+  // Validate Step 2 (called on user action, displays error banner)
   const validateStep2 = () => {
     setError(null);
     if (!recipientName.trim()) {
@@ -589,7 +598,7 @@ export function CreateInvoiceModal({
                   <div key={s.idx} className="flex flex-col items-center group">
                     <button
                       type="button"
-                      disabled={idx > step && (idx > 1 || !validateStep2())}
+                      disabled={idx > step && (idx > 1 || !isStep2Complete)}
                       onClick={() => {
                         if (idx === 2 && !validateStep2()) return;
                         setStep(idx);
