@@ -56,8 +56,9 @@ interface CreateInvoiceModalProps {
   onSubmit: (
     dto: CreateInvoiceDTO,
     issueImmediately?: boolean,
-    emailOptions?: { subject?: string; customMessage?: string; driveFolderUrl?: string }
-  ) => Promise<void>;
+    emailOptions?: { subject?: string; customMessage?: string; driveFolderUrl?: string },
+    downloadImmediately?: boolean
+  ) => Promise<any>;
   invoiceToEdit?: InvoiceDTO | null;
   onUpdate?: (id: string, dto: UpdateInvoiceDTO) => Promise<void>;
   initialTemplateId?: string;
@@ -530,7 +531,7 @@ export function CreateInvoiceModal({
     if (!validateStep2()) return;
     setLoading(true);
     try {
-      await onSubmit(buildDto(true), true);
+      await onSubmit(buildDto(true), true, undefined, true);
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to issue invoice');
@@ -1484,7 +1485,7 @@ export function CreateInvoiceModal({
                   disabled={loading}
                   className="h-11 px-6 rounded-xl bg-[#008F83] text-white font-semibold text-xs sm:text-sm hover:bg-[#008F83]/90 shadow-xs transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50"
                 >
-                  <Download className="w-4 h-4" /> Issue & Download PDF
+                  <Download className="w-4 h-4" /> {loading ? 'Issuing & Preparing PDF...' : 'Issue & Download PDF'}
                 </button>
               </>
             )}

@@ -221,7 +221,8 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
   const handleCreateSubmit = async (
     dto: CreateInvoiceDTO,
     issueImmediately = false,
-    emailOptions?: { subject?: string; customMessage?: string; driveFolderUrl?: string }
+    emailOptions?: { subject?: string; customMessage?: string; driveFolderUrl?: string },
+    downloadImmediately = false
   ) => {
     const res = await createInvoiceAction(dto);
     if (!res.success || !res.invoice) {
@@ -246,11 +247,19 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
           console.warn('[InvoiceList] Email send warning:', emailErr);
         }
       }
+
+      if (downloadImmediately) {
+        try {
+          await handleDownload(res.invoice.id, 'pdf');
+        } catch (downloadErr: any) {
+          console.warn('[InvoiceList] PDF download warning:', downloadErr);
+        }
+      }
     }
 
     toast({
       title: 'Invoice Created',
-      description: `Invoice ${res.invoice.invoiceNumber} created ${issueImmediately ? 'and issued ' : ''}successfully.`,
+      description: `Invoice ${res.invoice.invoiceNumber} created ${issueImmediately ? 'and issued ' : ''}successfully.${downloadImmediately ? ' Downloading PDF...' : ''}`,
     });
     loadInvoices();
   };
@@ -414,15 +423,30 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
   const handleDownload = async (id: string, format: 'pdf' | 'docx') => {
     try {
       const res = await getInvoiceDownloadUrlAction(id, format);
-      if (res.success && res.url) {
-        window.open(res.url, '_blank');
-      } else {
+      let targetUrl = res.success && res.url ? res.url : null;
+      if (!targetUrl) {
         const genRes = await generateInvoiceDocumentAction(id, format);
         if (genRes.success && genRes.url) {
-          window.open(genRes.url, '_blank');
+          targetUrl = genRes.url;
         } else {
           toast({ title: 'Download Error', description: genRes.error || 'Unable to download file', variant: 'destructive' });
+          return;
         }
+      }
+
+      if (targetUrl) {
+        const link = document.createElement('a');
+        link.href = targetUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.setAttribute('download', `Invoice-${id}.${format}`);
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          try {
+            document.body.removeChild(link);
+          } catch {}
+        }, 300);
       }
     } catch (err: any) {
       toast({ title: 'Download Error', description: err.message, variant: 'destructive' });
