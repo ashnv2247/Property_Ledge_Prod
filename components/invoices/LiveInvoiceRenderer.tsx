@@ -193,9 +193,9 @@ export function LiveInvoiceRenderer({
         address: d.customerAddress || null,
       },
       issuer: {
-        name: d.issuerName || 'Property Ledge Management',
-        email: d.issuerEmail || 'manager@propertyledge.com.au',
-        phone: d.issuerPhone || '+61 2 9000 0000',
+        name: d.issuerName || '',
+        email: d.issuerEmail || null,
+        phone: d.issuerPhone || null,
         address: d.issuerAddress || null,
         taxId: d.issuerTaxId || null,
       },

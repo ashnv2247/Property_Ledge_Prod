@@ -120,13 +120,13 @@ export function CreateInvoiceModal({
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [testSuccess, setTestSuccess] = useState<string | null>(null);
 
-  // Issuer (Issued By) Details - Defaults from workspace / business identity
-  const [isEditingIssuer, setIsEditingIssuer] = useState(true);
-  const [issuerName, setIssuerName] = useState('Property Ledge Management');
-  const [issuerEmail, setIssuerEmail] = useState('billing@propertyledge.com.au');
-  const [issuerPhone, setIssuerPhone] = useState('+61 2 9000 0000');
-  const [issuerAddress, setIssuerAddress] = useState('Suite 400, 100 George Street, Sydney NSW 2000');
-  const [issuerTaxId, setIssuerTaxId] = useState('ABN 51 824 753 556');
+  // Issuer (Issued By) Details - Clean, not prefilled with demo data
+  const [isEditingIssuer, setIsEditingIssuer] = useState(false);
+  const [issuerName, setIssuerName] = useState('');
+  const [issuerEmail, setIssuerEmail] = useState('');
+  const [issuerPhone, setIssuerPhone] = useState('');
+  const [issuerAddress, setIssuerAddress] = useState('');
+  const [issuerTaxId, setIssuerTaxId] = useState('');
 
   // Recipient (Issued To) Details
   const [recipientName, setRecipientName] = useState('');
@@ -246,6 +246,13 @@ export function CreateInvoiceModal({
             }))
           );
         }
+        const issuer = invoiceToEdit.snapshot?.issuer;
+        setIssuerName(issuer?.name || '');
+        setIssuerEmail(issuer?.email || '');
+        setIssuerPhone(issuer?.phone || '');
+        setIssuerAddress(issuer?.address || '');
+        setIssuerTaxId(issuer?.taxId || '');
+        setIsEditingIssuer(Boolean(issuer?.name || issuer?.email || issuer?.taxId));
         setNotes(invoiceToEdit.notes || 'Payment is due within the terms specified on this invoice.');
         setPaymentInstructions(invoiceToEdit.paymentInstructions || 'Bank Transfer: BSB 012-345 | Account 6789 0123');
       } else {
@@ -269,8 +276,14 @@ export function CreateInvoiceModal({
         const dueD = createAuDate(parts.year, parts.month, parts.day + 14);
         setDueDate(formatAuDateIso(dueD));
         setSelectedLeaseId('');
-        setItems([{ description: 'Professional Property Management Services', quantity: 1, unitPrice: 450, taxRate: 10, discount: 0 }]);
+        setItems([{ description: '', quantity: 1, unitPrice: 0, taxRate: 10, discount: 0 }]);
         setSelectedTemplate(getPredefinedTemplateById(initialTemplateId || 'template_classic'));
+        setIssuerName('');
+        setIssuerEmail('');
+        setIssuerPhone('');
+        setIssuerAddress('');
+        setIssuerTaxId('');
+        setIsEditingIssuer(false);
       }
     } else {
       prevModalInvoiceIdRef.current = null;
@@ -1230,6 +1243,7 @@ export function CreateInvoiceModal({
                     <Input
                       label="Business Name"
                       type="text"
+                      placeholder="e.g. Property Ledge Management"
                       value={issuerName}
                       onChange={(e) => setIssuerName(e.target.value)}
                       className="bg-white dark:bg-slate-900 text-xs"
@@ -1237,6 +1251,7 @@ export function CreateInvoiceModal({
                     <Input
                       label="Business Email"
                       type="email"
+                      placeholder="e.g. billing@example.com.au"
                       value={issuerEmail}
                       onChange={(e) => setIssuerEmail(e.target.value)}
                       className="bg-white dark:bg-slate-900 text-xs"
@@ -1244,6 +1259,7 @@ export function CreateInvoiceModal({
                     <Input
                       label="ABN / Tax ID"
                       type="text"
+                      placeholder="e.g. ABN 51 824 753 556"
                       value={issuerTaxId}
                       onChange={(e) => setIssuerTaxId(e.target.value)}
                       className="bg-white dark:bg-slate-900 text-xs"
