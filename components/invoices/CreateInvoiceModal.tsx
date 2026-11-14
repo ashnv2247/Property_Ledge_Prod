@@ -157,14 +157,12 @@ export function CreateInvoiceModal({
     taxRate: number;
     discount?: number;
   }>>([
-    { description: 'Professional Property Management Services', quantity: 1, unitPrice: 450, taxRate: 10, discount: 0 },
+    { description: '', quantity: 1, unitPrice: 0, taxRate: 10, discount: 0 },
   ]);
 
-  // Notes & Payment Instructions
-  const [notes, setNotes] = useState('Payment is due within the terms specified on this invoice. Thank you for your business.');
-  const [paymentInstructions, setPaymentInstructions] = useState(
-    'Bank Transfer: BSB 012-345 | Account 6789 0123 (Property Ledge Trust). Please quote the invoice number as reference.'
-  );
+  // Notes & Payment Instructions (Clean default, not prefilled with demo data)
+  const [notes, setNotes] = useState('');
+  const [paymentInstructions, setPaymentInstructions] = useState('');
 
   // Email template & message body customization
   const [emailSubject, setEmailSubject] = useState('');
@@ -253,8 +251,8 @@ export function CreateInvoiceModal({
         setIssuerAddress(issuer?.address || '');
         setIssuerTaxId(issuer?.taxId || '');
         setIsEditingIssuer(Boolean(issuer?.name || issuer?.email || issuer?.taxId));
-        setNotes(invoiceToEdit.notes || 'Payment is due within the terms specified on this invoice.');
-        setPaymentInstructions(invoiceToEdit.paymentInstructions || 'Bank Transfer: BSB 012-345 | Account 6789 0123');
+        setNotes(invoiceToEdit.notes || '');
+        setPaymentInstructions(invoiceToEdit.paymentInstructions || '');
       } else {
         if (initialPropertyId) {
           setSelectedPropertyId(initialPropertyId);
@@ -284,6 +282,8 @@ export function CreateInvoiceModal({
         setIssuerAddress('');
         setIssuerTaxId('');
         setIsEditingIssuer(false);
+        setNotes('');
+        setPaymentInstructions('');
       }
     } else {
       prevModalInvoiceIdRef.current = null;
@@ -1212,7 +1212,7 @@ export function CreateInvoiceModal({
                     rows={2}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Add special conditions or notes..."
+                    placeholder="e.g. Payment is due within 14 days of invoice date. Thank you for your business."
                     className="bg-white dark:bg-slate-900"
                   />
                   <Textarea
@@ -1220,7 +1220,7 @@ export function CreateInvoiceModal({
                     rows={2}
                     value={paymentInstructions}
                     onChange={(e) => setPaymentInstructions(e.target.value)}
-                    placeholder="Bank Transfer: BSB 012-345 | Account 6789 0123..."
+                    placeholder="e.g. Bank Transfer: BSB 012-345 | Account 6789 0123 (Property Ledge Trust)..."
                     className="bg-white dark:bg-slate-900"
                   />
                 </div>
