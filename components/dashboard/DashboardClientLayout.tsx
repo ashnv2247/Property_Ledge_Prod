@@ -3,27 +3,17 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  SquaresFour,
-  Buildings,
-  Users,
-  FileText,
-  CurrencyDollar,
-  Receipt,
-  CreditCard,
-  Wallet,
-  Wrench,
-  ClipboardText,
-  FolderSimple,
-  CheckSquare,
-  ChartBar,
+  LayoutGrid as SquaresFour,
+  Building2 as Buildings,
+  DollarSign as CurrencyDollar,
+  ClipboardList as ClipboardText,
+  Folder as FolderSimple,
+  BarChart3 as ChartBar,
   UserPlus,
-  ShieldCheck,
-  DotsThree,
+  MoreHorizontal as DotsThree,
   ArrowRight,
-  Lightning,
-  CalendarBlank,
-  Calculator,
-} from '@phosphor-icons/react';
+  Zap as Lightning,
+} from 'lucide-react';
 import { AppShell } from '@/components/shell/AppShell';
 import { AppContextProvider } from '@/components/context/AppContextProvider';
 import { WorkspaceCookieSync } from '@/components/workspace/WorkspaceCookieSync';

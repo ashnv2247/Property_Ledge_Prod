@@ -67,7 +67,7 @@ export async function createScheduleAction(input: CreateExpectedScheduleInput) {
   try {
     const user = await authClient.getCurrentUser();
     const data = await createPaymentSchedule(input, user?.id);
-    serverCache.invalidatePrefix('schedules:');
+    serverCache.invalidatePrefix('workspace:');
     revalidatePath('/dashboard/schedules');
     revalidatePath('/dashboard/money');
     return { success: true, data };
@@ -81,7 +81,7 @@ export async function updateExpectedEntryAction(id: string, input: UpdateExpecte
   try {
     const user = await authClient.getCurrentUser();
     const data = await updateExpectedPaymentEntry(id, input, user?.id);
-    serverCache.invalidatePrefix('schedules:');
+    serverCache.invalidatePrefix('workspace:');
     revalidatePath('/dashboard/schedules');
     revalidatePath('/dashboard/money');
     return { success: true, data };
@@ -95,7 +95,7 @@ export async function deleteExpectedEntryAction(id: string) {
   try {
     const user = await authClient.getCurrentUser();
     await deleteExpectedPaymentEntry(id, user?.id);
-    serverCache.invalidatePrefix('schedules:');
+    serverCache.invalidatePrefix('workspace:');
     revalidatePath('/dashboard/schedules');
     revalidatePath('/dashboard/money');
     return { success: true };

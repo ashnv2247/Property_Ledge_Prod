@@ -3,6 +3,7 @@
 import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import { createClient } from '@/lib/supabase/server';
+import { serverCache } from '@/lib/cache/server-cache';
 import {
   FinanceReportType,
   FinanceReportFilters,
@@ -181,6 +182,10 @@ export async function exportReportPdfAction(
  */
 export async function fetchReportFilterOptionsAction() {
   const { context } = await getAuthContext();
+  const cacheKey = `workspace:${context.workspaceId}:report_filter_options`;
+  const cached = serverCache.get<any>(cacheKey);
+  if (cached) return cached;
+
   const supabase = await createClient();
 
   const [propertiesRes, categoriesRes, taxClassRes] = await Promise.all([
@@ -199,9 +204,12 @@ export async function fetchReportFilterOptionsAction() {
       .order('name', { ascending: true }),
   ]);
 
-  return {
+  const result = {
     properties: propertiesRes.data || [],
     categories: categoriesRes.data || [],
     taxClassifications: taxClassRes.data || [],
   };
+
+  serverCache.set(cacheKey, result, 60_000);
+  return result;
 }

@@ -39,9 +39,14 @@ import {
   fetchInvoiceScheduleDetailsAction,
   triggerProcessDueSchedulesAction,
 } from '@/app/actions/invoice-schedules';
+import dynamic from 'next/dynamic';
 import { formatAuDisplayDate } from '@/lib/format/australian-time';
-import { ScheduleEmailDetailDrawer } from './ScheduleEmailDetailDrawer';
 import { cn } from '@/lib/utils';
+
+const ScheduleEmailDetailDrawer = dynamic(
+  () => import('./ScheduleEmailDetailDrawer').then((mod) => mod.ScheduleEmailDetailDrawer),
+  { ssr: false }
+);
 
 interface ScheduleEmailHistoryClientViewProps {
   initialSchedules: InvoiceEmailScheduleDTO[];
@@ -538,14 +543,16 @@ export function ScheduleEmailHistoryClientView({
       </div>
 
       {/* Schedule Detail Side Drawer */}
-      <ScheduleEmailDetailDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        schedule={selectedSchedule}
-        generatedInvoices={scheduleInvoices}
-        emailJobs={scheduleEmailJobs}
-        onRefresh={loadData}
-      />
+      {isDrawerOpen && (
+        <ScheduleEmailDetailDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          schedule={selectedSchedule}
+          generatedInvoices={scheduleInvoices}
+          emailJobs={scheduleEmailJobs}
+          onRefresh={loadData}
+        />
+      )}
     </ListPage>
   );
 }

@@ -133,6 +133,42 @@ This log documents every architectural and code modification implemented during 
 
 ---
 
+### Layer 9: Recursive Deep-Pass Optimization (Services, Actions, Batching & Icon Consolidation)
+* **Files Modified**:
+  - [lib/dashboard/setupProgress.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/dashboard/setupProgress.ts)
+  - [lib/billing/service.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/billing/service.ts)
+  - [lib/finance/service.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/finance/service.ts)
+  - [lib/finance/expenseService.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/finance/expenseService.ts)
+  - [lib/finance/scheduleService.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/finance/scheduleService.ts)
+  - [lib/finance/reporting-service.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/finance/reporting-service.ts)
+  - [lib/bas/service.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/bas/service.ts)
+  - [lib/invoices/schedule-service.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/invoices/schedule-service.ts)
+  - [app/actions/finance.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/app/actions/finance.ts)
+  - [app/actions/documents.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/app/actions/documents.ts)
+  - [app/actions/condition-reports.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/app/actions/condition-reports.ts)
+  - [app/actions/financial-years.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/app/actions/financial-years.ts)
+  - [app/actions/accountant-reports-hub.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/app/actions/accountant-reports-hub.ts)
+  - [app/actions/bas.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/app/actions/bas.ts)
+  - [app/actions/autopilot.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/app/actions/autopilot.ts)
+  - [app/actions/activities.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/app/actions/activities.ts)
+  - [app/actions/notifications.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/app/actions/notifications.ts)
+  - [app/actions/reports.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/app/actions/reports.ts)
+  - [components/dashboard/DashboardClientLayout.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/dashboard/DashboardClientLayout.tsx)
+  - [components/marketing/Testimonials.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/marketing/Testimonials.tsx)
+  - [components/invoices/ScheduleEmailHistoryClientView.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/invoices/ScheduleEmailHistoryClientView.tsx)
+* **Changes**:
+  - **Dashboard Setup & Billing Caching**: Added `serverCache` to `calculateSetupProgress` (`user:${userId}:setup_progress`, 60s TTL) and `getLatestPaymentForAccount` (`account:${accountId}:latest_payment`, 60s TTL), eliminating 7 database queries per `/dashboard` SSR load.
+  - **Batch Schedule & Invoice Generation**: Replaced the 24+ sequential `for`-loop inserts in `ScheduleEmailService.createSchedule` with a single batch `.insert(invoicePayloads).select(...)` followed by concurrent batch inserts for `invoice_items` and `invoice_scheduled_email_jobs`; replaced the N+1 sequential `getExpectedPaymentScheduleById` loop in `createPaymentSchedule` with a single `.insert(insertPayload).select(...)` returning full relations.
+  - **Multi-Table Action Parallelization**:
+    - Parallelized all 5 table queries in `fetchWorkspaceDocumentsAction` (`app/actions/documents.ts`) via `Promise.all` and fixed a silent column bug (`transactions.date` -> `transaction_date`).
+    - Parallelized all 6 workspace queries in `fetchAutopilotDashboardAction`, 4 queries in `fetchEligiblePropertiesForAutopilotAction`, and 5 queries in `generateSuggestedDraftActivitiesAction` (`app/actions/autopilot.ts`), scoping `leases` strictly to `properties.workspace_id`.
+    - Parallelized `checkActivityPermissions`, `fetchActivitiesAction`, and `fetchActivityDetailAction` (collapsing 8 sequential queries into 2 parallel stages) in `app/actions/activities.ts`.
+    - Parallelized `fetchConditionReportDetailAction` (`app/actions/condition-reports.ts`), `fetchFinancialYearsOverviewAction` (`app/actions/financial-years.ts`), `fetchAccountantBasSummaryAction` (`app/actions/accountant-reports-hub.ts`, bounded by BAS date range), `getScheduleDetails` (`lib/invoices/schedule-service.ts`), `createTransaction` validation (`lib/finance/service.ts`), and `createExpense` validation (`lib/finance/expenseService.ts`).
+  - **Comprehensive Server Caching & Prefix Standardization**: Standardized all workspace cache keys to `workspace:${workspaceId}:*` across `getTransactions`, `getExpenses`, `getExpectedPaymentSchedules`, `getSchedules`, `getScheduleStats`, `getBasPageData`, `ensureDefaultTaxClassifications`, `fetchFilteredTransactions`, `fetchWorkspaceDocumentsAction`, `fetchConditionReportsAction`, `fetchAutopilotDashboardAction`, `fetchAccountantBasSummaryAction`, `fetchFormDropdownOptionsAction`, `fetchReportFilterOptionsAction`, `getWorkspaceActivityLogs`, and `fetchNotifications` (`user:${userId}:notifications`), with automatic invalidation on mutations.
+  - **Icon Library Consolidation & Drawer Code Splitting**: Replaced `@phosphor-icons/react` imports in `DashboardClientLayout.tsx` and `Testimonials.tsx` with `lucide-react` equivalents (zero `@phosphor-icons/react` imports remaining in the codebase) and lazy-loaded `ScheduleEmailDetailDrawer` via `next/dynamic` (`ssr: false`).
+
+---
+
 ## 3. Regression & Test Results
 
 * **TypeScript Compilation**: `npm run typecheck` passed with **0 errors**.

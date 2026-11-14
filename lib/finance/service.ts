@@ -1,4 +1,5 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { serverCache } from '@/lib/cache/server-cache';
 import {
   CategoryDTO,
   TransactionDTO,
@@ -25,6 +26,12 @@ import {
  * Fetch all active financial categories (or filtered by income/expense)
  */
 export async function getCategories(type?: TransactionType): Promise<CategoryDTO[]> {
+  const cacheKey = `global:categories:${type || 'all'}`;
+  const cached = serverCache.get<CategoryDTO[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const supabase = await createClient();
   let query = supabase
     .from('categories')
@@ -42,7 +49,9 @@ export async function getCategories(type?: TransactionType): Promise<CategoryDTO
     throw new Error(`Failed to fetch categories: ${error.message}`);
   }
 
-  return (data || []) as CategoryDTO[];
+  const result = (data || []) as CategoryDTO[];
+  serverCache.set(cacheKey, result, 120_000);
+  return result;
 }
 
 /**
@@ -51,6 +60,26 @@ export async function getCategories(type?: TransactionType): Promise<CategoryDTO
 export async function getTransactions(
   filters: TransactionFilterParams = {}
 ): Promise<TransactionDTO[]> {
+  const isCacheable =
+    Boolean(filters.workspace_id) &&
+    !filters.search_query &&
+    !filters.start_date &&
+    !filters.end_date &&
+    !filters.offset &&
+    !filters.transaction_category_id &&
+    !filters.payment_method &&
+    !filters.tenant_id &&
+    !filters.lease_id &&
+    !filters.invoice_id;
+  const cacheKey = isCacheable
+    ? `workspace:${filters.workspace_id}:transactions:${filters.property_id || 'all'}:${filters.transaction_type || 'all'}:${filters.status || 'all'}:${filters.limit || 100}`
+    : null;
+
+  if (cacheKey) {
+    const cached = serverCache.get<TransactionDTO[]>(cacheKey);
+    if (cached) return cached;
+  }
+
   const supabase = await createClient();
 
   let query = supabase
@@ -146,7 +175,11 @@ export async function getTransactions(
     throw new Error(`Failed to fetch transactions: ${error.message}`);
   }
 
-  return (data || []) as unknown as TransactionDTO[];
+  const result = (data || []) as unknown as TransactionDTO[];
+  if (cacheKey) {
+    serverCache.set(cacheKey, result, 30_000);
+  }
+  return result;
 }
 
 /**
@@ -217,12 +250,19 @@ export async function createTransaction(
   const validated = createTransactionSchema.parse(input);
   const supabase = await createClient();
 
-  // 1. Verify Category exists and matches transaction_type
-  const { data: catData, error: catError } = await supabase
-    .from('categories')
-    .select('id, transaction_type, name, is_active')
-    .eq('id', validated.transaction_category_id)
-    .single();
+  // 1 & 2. Verify Category and Resolve Workspace ID from Property in parallel
+  const [{ data: catData, error: catError }, { data: propData, error: propError }] = await Promise.all([
+    supabase
+      .from('categories')
+      .select('id, transaction_type, name, is_active')
+      .eq('id', validated.transaction_category_id)
+      .single(),
+    supabase
+      .from('properties')
+      .select('id, workspace_id')
+      .eq('id', validated.property_id)
+      .single(),
+  ]);
 
   const category = catData as { id: string; transaction_type: string; name: string; is_active: boolean } | null;
 
@@ -239,13 +279,6 @@ export async function createTransaction(
   if (!category.is_active) {
     throw new Error(`Category "${category.name}" is inactive.`);
   }
-
-  // 2. Resolve Workspace ID from Property if not explicitly passed
-  const { data: propData, error: propError } = await supabase
-    .from('properties')
-    .select('id, workspace_id')
-    .eq('id', validated.property_id)
-    .single();
 
   const property = propData as { id: string; workspace_id: string } | null;
   if (propError || !property) {
@@ -366,6 +399,7 @@ export async function createTransaction(
     console.warn('Could not write to activity log:', logErr);
   }
 
+  serverCache.invalidateWorkspace(workspaceId);
   const createdTx = await getTransactionById(insertedId);
   if (!createdTx) throw new Error('Transaction was created but could not be loaded.');
   return createdTx;
@@ -483,6 +517,9 @@ export async function updateTransaction(
     console.warn('Could not write to activity log:', logErr);
   }
 
+  if (current.workspace_id) {
+    serverCache.invalidateWorkspace(current.workspace_id);
+  }
   const updatedTx = await getTransactionById(id);
   if (!updatedTx) throw new Error('Failed to retrieve updated transaction.');
   return updatedTx;
@@ -523,6 +560,9 @@ export async function deleteTransaction(id: string, userId?: string): Promise<bo
     console.warn('Could not write to activity log:', logErr);
   }
 
+  if (current.workspace_id) {
+    serverCache.invalidateWorkspace(current.workspace_id);
+  }
   return true;
 }
 

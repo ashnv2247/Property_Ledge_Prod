@@ -5,6 +5,7 @@ import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import { getCurrentUser } from '@/lib/auth/queries';
 import { authorizeOrThrow } from '@/lib/auth/authorize';
 import { createAdminClient } from '@/lib/supabase/server';
+import { serverCache } from '@/lib/cache/server-cache';
 import { calculateNextDueDate, calculateOverdueAndLate } from '@/lib/activity/recurrence';
 import type {
   AutopilotConfig,
@@ -87,46 +88,48 @@ export async function fetchEligiblePropertiesForAutopilotAction(): Promise<{
     const { context } = await getContext('activity.view');
     const admin = await createAdminClient();
 
-    // 1. Fetch properties
-    const { data: properties, error: propErr } = await (admin as any)
-      .from('properties')
-      .select('id, name, address_line_1, city, postal_code')
-      .eq('workspace_id', context.workspaceId)
-      .neq('status', 'archived')
-      .order('name');
+    // Run all 4 queries concurrently scoped to workspace
+    const [
+      { data: properties, error: propErr },
+      { data: leases },
+      { data: configs },
+      { data: autoActivities },
+    ] = await Promise.all([
+      (admin as any)
+        .from('properties')
+        .select('id, name, address_line_1, city, postal_code')
+        .eq('workspace_id', context.workspaceId)
+        .neq('status', 'archived')
+        .order('name'),
+      (admin as any)
+        .from('leases')
+        .select(`
+          id, property_id, start_date, end_date, rent_amount, rent_frequency, status,
+          properties!inner(workspace_id),
+          lease_tenants (
+            role, is_primary,
+            tenant:tenants ( id, first_name, last_name, email )
+          )
+        `)
+        .eq('properties.workspace_id', context.workspaceId)
+        .eq('status', 'active'),
+      (admin as any)
+        .from('property_autopilots')
+        .select('*')
+        .eq('workspace_id', context.workspaceId),
+      (admin as any)
+        .from('activities')
+        .select('id, property_id, lifecycle_status, metadata')
+        .eq('workspace_id', context.workspaceId)
+        .neq('lifecycle_status', 'archived'),
+    ]);
 
     if (propErr) throw new Error(propErr.message);
 
-    // 2. Fetch active leases with tenants
-    const { data: leases } = await (admin as any)
-      .from('leases')
-      .select(`
-        id, property_id, start_date, end_date, rent_amount, rent_frequency, status,
-        lease_tenants (
-          role, is_primary,
-          tenant:tenants ( id, first_name, last_name, email )
-        )
-      `)
-      .in('property_id', (properties || []).map((p: any) => p.id))
-      .eq('status', 'active');
-
-    // 3. Try fetching dedicated property_autopilots
-    let configsMap = new Map<string, any>();
-    const { data: configs } = await (admin as any)
-      .from('property_autopilots')
-      .select('*')
-      .eq('workspace_id', context.workspaceId);
-
+    const configsMap = new Map<string, any>();
     if (configs && Array.isArray(configs)) {
       configs.forEach((c: any) => configsMap.set(c.property_id, c));
     }
-
-    // 4. Fetch activities to determine live status
-    const { data: autoActivities } = await (admin as any)
-      .from('activities')
-      .select('id, property_id, lifecycle_status, metadata')
-      .eq('workspace_id', context.workspaceId)
-      .neq('lifecycle_status', 'archived');
 
     const activitiesByProp = new Map<string, any[]>();
     (autoActivities || []).forEach((a: any) => {
@@ -199,52 +202,52 @@ export async function generateSuggestedDraftActivitiesAction(propertyId: string)
     const admin = await createAdminClient();
     const workspaceId = context.workspaceId;
 
-    // 1. Fetch property
-    const { data: property, error: propErr } = await (admin as any)
-      .from('properties')
-      .select('id, name')
-      .eq('id', propertyId)
-      .eq('workspace_id', workspaceId)
-      .single();
+    // Fetch all 5 property baseline inputs concurrently
+    const [
+      { data: property, error: propErr },
+      { data: lease },
+      { data: conditionReport },
+      { data: insuranceDoc },
+      { data: existingActs },
+    ] = await Promise.all([
+      (admin as any)
+        .from('properties')
+        .select('id, name')
+        .eq('id', propertyId)
+        .eq('workspace_id', workspaceId)
+        .single(),
+      (admin as any)
+        .from('leases')
+        .select('id, start_date, end_date, rent_amount, status')
+        .eq('property_id', propertyId)
+        .eq('status', 'active')
+        .maybeSingle(),
+      (admin as any)
+        .from('condition_reports')
+        .select('id, inspection_date, status')
+        .eq('property_id', propertyId)
+        .order('inspection_date', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      (admin as any)
+        .from('documents')
+        .select('id, created_at, title')
+        .eq('property_id', propertyId)
+        .eq('document_type', 'insurance_policy')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      (admin as any)
+        .from('activities')
+        .select('id, activity_type_id, lifecycle_status')
+        .eq('workspace_id', workspaceId)
+        .eq('property_id', propertyId)
+        .in('lifecycle_status', ['draft', 'active']),
+    ]);
 
     if (propErr || !property) {
       return { success: false, draftsCreated: 0, error: 'Property not found' };
     }
-
-    // 2. Fetch active lease
-    const { data: lease } = await (admin as any)
-      .from('leases')
-      .select('id, start_date, end_date, rent_amount, status')
-      .eq('property_id', propertyId)
-      .eq('status', 'active')
-      .maybeSingle();
-
-    // 3. Fetch latest condition report
-    const { data: conditionReport } = await (admin as any)
-      .from('condition_reports')
-      .select('id, inspection_date, status')
-      .eq('property_id', propertyId)
-      .order('inspection_date', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // 4. Fetch insurance policy document
-    const { data: insuranceDoc } = await (admin as any)
-      .from('documents')
-      .select('id, created_at, title')
-      .eq('property_id', propertyId)
-      .eq('document_type', 'insurance_policy')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // 5. Existing activities for this property to avoid duplicate drafts
-    const { data: existingActs } = await (admin as any)
-      .from('activities')
-      .select('id, activity_type_id, lifecycle_status')
-      .eq('workspace_id', workspaceId)
-      .eq('property_id', propertyId)
-      .in('lifecycle_status', ['draft', 'active']);
 
     const existingTypes = new Set((existingActs || []).map((a: any) => a.activity_type_id));
     let createdCount = 0;
@@ -466,6 +469,7 @@ export async function generateSuggestedDraftActivitiesAction(propertyId: string)
       }
     }
 
+    serverCache.invalidateWorkspace(workspaceId);
     revalidatePath('/dashboard/autopilot');
     revalidatePath('/dashboard/autopilot/create');
     revalidatePath('/dashboard/autopilot/manage');
@@ -652,6 +656,7 @@ export async function saveDraftActivitiesAction(input: {
       });
     }
 
+    serverCache.invalidateWorkspace(workspaceId);
     revalidatePath('/dashboard/autopilot');
     revalidatePath('/dashboard/autopilot/create');
     revalidatePath('/dashboard/autopilot/manage');
@@ -746,6 +751,7 @@ export async function makeActivityLiveAction(activityId: string): Promise<{
       },
     });
 
+    serverCache.invalidateWorkspace(workspaceId);
     revalidatePath('/dashboard/autopilot');
     revalidatePath('/dashboard/autopilot/create');
     revalidatePath('/dashboard/autopilot/manage');
@@ -890,6 +896,7 @@ export async function completeAutopilotActivityAction(input: {
       }
     }
 
+    serverCache.invalidateWorkspace(workspaceId);
     revalidatePath('/dashboard/autopilot');
     revalidatePath('/dashboard/activity');
     revalidatePath('/dashboard/tasks');
@@ -914,35 +921,22 @@ export async function fetchAutopilotDashboardAction(filters?: {
 }): Promise<{ success: boolean; data?: AutopilotDashboardData; error?: string }> {
   try {
     const { context } = await getContext('activity.view');
-    const admin = await createAdminClient();
     const workspaceId = context.workspaceId;
 
-    // 1. Fetch properties
-    const { data: properties } = await (admin as any)
-      .from('properties')
-      .select('id, name, address_line_1, city, postal_code')
-      .eq('workspace_id', workspaceId)
-      .neq('status', 'archived')
-      .order('name');
+    const isCacheable = !filters?.search;
+    const cacheKey = isCacheable
+      ? `workspace:${workspaceId}:autopilot_dashboard:${filters?.propertyId || 'all'}:${filters?.activityTypeId || 'all'}:${filters?.status || 'all'}:${filters?.assignedTo || 'all'}`
+      : null;
 
-    const propertiesList = (properties || []).map((p: any) => ({
-      id: p.id,
-      name: p.name || 'Property',
-    }));
+    if (cacheKey) {
+      const cached = serverCache.get<AutopilotDashboardData>(cacheKey);
+      if (cached) {
+        return { success: true, data: cached };
+      }
+    }
 
-    // 2. Fetch active leases with tenants
-    const { data: leases } = await (admin as any)
-      .from('leases')
-      .select(`
-        id, property_id, start_date, end_date, rent_amount, rent_frequency, status,
-        lease_tenants (
-          role, is_primary,
-          tenant:tenants ( id, first_name, last_name, email )
-        )
-      `)
-      .eq('status', 'active');
+    const admin = await createAdminClient();
 
-    // 3. Fetch activities
     let actQuery = (admin as any)
       .from('activities')
       .select(`
@@ -961,12 +955,6 @@ export async function fetchAutopilotDashboardAction(filters?: {
       actQuery = actQuery.eq('activity_type_id', filters.activityTypeId);
     }
 
-    const { data: rawActivities } = await actQuery;
-    const activities = rawActivities || [];
-    const activitiesMap = new Map<string, any>(activities.map((a: any) => [a.id, a]));
-
-    // 4. Fetch occurrences
-    const actIds = activities.map((a: any) => a.id);
     let occQuery = (admin as any)
       .from('activity_occurrences')
       .select(`
@@ -975,27 +963,65 @@ export async function fetchAutopilotDashboardAction(filters?: {
       `)
       .eq('workspace_id', workspaceId);
 
-    if (actIds.length > 0) {
-      occQuery = occQuery.in('activity_id', actIds);
+    if (filters?.propertyId && filters.propertyId !== 'all') {
+      occQuery = occQuery.eq('property_id', filters.propertyId);
     }
-
     if (filters?.assignedTo && filters.assignedTo !== 'all') {
       occQuery = occQuery.eq('assigned_to', filters.assignedTo);
     }
 
-    const { data: rawOccurrences } = await occQuery;
-    const occurrences = rawOccurrences || [];
+    // Run all 6 workspace queries concurrently
+    const [
+      { data: properties },
+      { data: leases },
+      { data: rawActivities },
+      { data: rawOccurrences },
+      { data: rawJournal },
+      { data: teamMembers },
+    ] = await Promise.all([
+      (admin as any)
+        .from('properties')
+        .select('id, name, address_line_1, city, postal_code')
+        .eq('workspace_id', workspaceId)
+        .neq('status', 'archived')
+        .order('name'),
+      (admin as any)
+        .from('leases')
+        .select(`
+          id, property_id, start_date, end_date, rent_amount, rent_frequency, status,
+          properties!inner(workspace_id),
+          lease_tenants (
+            role, is_primary,
+            tenant:tenants ( id, first_name, last_name, email )
+          )
+        `)
+        .eq('properties.workspace_id', workspaceId)
+        .eq('status', 'active'),
+      actQuery,
+      occQuery,
+      (admin as any)
+        .from('activity_journal')
+        .select(`
+          id, activity_id, occurrence_id, event_type, actor_id, metadata, created_at,
+          actor:users ( id, full_name, email )
+        `)
+        .eq('workspace_id', workspaceId)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      (admin as any)
+        .from('workspace_members')
+        .select('user_id, profile:users(id, full_name, email)')
+        .eq('workspace_id', workspaceId),
+    ]);
 
-    // 5. Fetch recent activity journal logs
-    const { data: rawJournal } = await (admin as any)
-      .from('activity_journal')
-      .select(`
-        id, activity_id, occurrence_id, event_type, actor_id, metadata, created_at,
-        actor:users ( id, full_name, email )
-      `)
-      .eq('workspace_id', workspaceId)
-      .order('created_at', { ascending: false })
-      .limit(20);
+    const propertiesList = (properties || []).map((p: any) => ({
+      id: p.id,
+      name: p.name || 'Property',
+    }));
+
+    const activities = rawActivities || [];
+    const activitiesMap = new Map<string, any>(activities.map((a: any) => [a.id, a]));
+    const occurrences = (rawOccurrences || []).filter((o: any) => activitiesMap.has(o.activity_id));
 
     const journalFeed: ActivityJournalFeedItem[] = (rawJournal || []).map((j: any) => {
       const act = activitiesMap.get(j.activity_id);
@@ -1088,12 +1114,6 @@ export async function fetchAutopilotDashboardAction(filters?: {
     });
 
     const avgDaysLate = completedLateCount > 0 ? Math.round((totalDaysLate / completedLateCount) * 10) / 10 : 0;
-
-    // Fetch team member names for performance
-    const { data: teamMembers } = await (admin as any)
-      .from('workspace_members')
-      .select('user_id, profile:users(id, full_name, email)')
-      .eq('workspace_id', workspaceId);
 
     const memberNameMap = new Map<string, string>();
     (teamMembers || []).forEach((m: any) => {
@@ -1266,17 +1286,23 @@ export async function fetchAutopilotDashboardAction(filters?: {
       performanceByAssignee,
     };
 
+    const dashboardData: AutopilotDashboardData = {
+      stats,
+      autopilotSummaries,
+      upcomingActivities,
+      recentActivity: [],
+      journalFeed,
+      needsAttentionItems: attentionItems,
+      propertiesList,
+    };
+
+    if (cacheKey) {
+      serverCache.set(cacheKey, dashboardData, 30_000);
+    }
+
     return {
       success: true,
-      data: {
-        stats,
-        autopilotSummaries,
-        upcomingActivities,
-        recentActivity: [],
-        journalFeed,
-        needsAttentionItems: attentionItems,
-        propertiesList,
-      },
+      data: dashboardData,
     };
   } catch (error: any) {
     console.error('[fetchAutopilotDashboardAction] Error:', error);
@@ -1393,6 +1419,7 @@ export async function pauseAutopilotAction(autopilotIdOrPropId: string): Promise
       metadata: { property_id: propId },
     });
 
+    serverCache.invalidateWorkspace(context.workspaceId);
     revalidatePath('/dashboard/autopilot');
     return { success: true };
   } catch (error: any) {
@@ -1425,6 +1452,7 @@ export async function resumeAutopilotAction(autopilotIdOrPropId: string): Promis
       metadata: { property_id: propId },
     });
 
+    serverCache.invalidateWorkspace(context.workspaceId);
     revalidatePath('/dashboard/autopilot');
     return { success: true };
   } catch (error: any) {
@@ -1523,6 +1551,7 @@ export async function updateAutopilotActivitiesAction(input: UpdateAutopilotConf
       .eq('property_id', propertyId)
       .eq('workspace_id', workspaceId);
 
+    serverCache.invalidateWorkspace(workspaceId);
     revalidatePath('/dashboard/autopilot');
     revalidatePath('/dashboard/autopilot/manage');
     revalidatePath('/dashboard/activity');

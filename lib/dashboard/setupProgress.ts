@@ -21,8 +21,15 @@ export interface SetupProgress {
 
 import { cache } from 'react';
 import { getCurrentUser } from '@/lib/auth/queries';
+import { serverCache } from '@/lib/cache/server-cache';
 
 export const getSetupProgress = cache(async function getSetupProgress(userId: string): Promise<SetupProgress> {
+  const cacheKey = `user:${userId}:setup_progress`;
+  const cached = serverCache.get<SetupProgress>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const authUser = await getCurrentUser();
   const onboardingMeta = authUser?.user_metadata?.onboarding as
     | { data?: { setupChecklistDismissed?: boolean } }
@@ -30,7 +37,7 @@ export const getSetupProgress = cache(async function getSetupProgress(userId: st
 
   const isDismissed = !!onboardingMeta?.data?.setupChecklistDismissed;
   if (isDismissed) {
-    return {
+    const dismissedRes: SetupProgress = {
       tasks: [],
       completedCount: 7,
       totalCount: 7,
@@ -38,6 +45,8 @@ export const getSetupProgress = cache(async function getSetupProgress(userId: st
       allComplete: true,
       dismissed: true,
     };
+    serverCache.set(cacheKey, dismissedRes, 60_000);
+    return dismissedRes;
   }
 
   const supabase = await createClient();
@@ -132,7 +141,7 @@ export const getSetupProgress = cache(async function getSetupProgress(userId: st
   const totalCount = tasks.length;
   const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  return {
+  const result: SetupProgress = {
     tasks,
     completedCount,
     totalCount,
@@ -140,4 +149,6 @@ export const getSetupProgress = cache(async function getSetupProgress(userId: st
     allComplete: completedCount === totalCount,
     dismissed: !!onboardingMeta?.data?.setupChecklistDismissed,
   };
+  serverCache.set(cacheKey, result, 60_000);
+  return result;
 });

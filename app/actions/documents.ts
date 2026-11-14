@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
+import { serverCache } from '@/lib/cache/server-cache';
 import {
   UnifiedDocument,
   DocumentStats,
@@ -26,348 +27,332 @@ export async function fetchWorkspaceDocumentsAction(filters?: {
   error?: string;
 }> {
   try {
-    const user = await getCurrentUser();
+    const [user, context] = await Promise.all([
+      getCurrentUser(),
+      resolveWorkspaceContext(),
+    ]);
     if (!user) return { success: false, error: 'Unauthorized' };
-
-    const context = await resolveWorkspaceContext();
     if (!context?.workspaceId)
       return { success: false, error: 'No active workspace' };
 
-    const supabase = await createClient();
     const workspaceId = context.workspaceId;
+    const cacheKey = `workspace:${workspaceId}:documents:${filters?.propertyId || 'all'}`;
+    const cached = serverCache.get<{ list: UnifiedDocument[]; stats: DocumentStats }>(cacheKey);
+    if (cached) {
+      const filtered =
+        filters?.category && filters.category !== 'all'
+          ? cached.list.filter((item) => item.category === filters.category)
+          : cached.list;
+      return {
+        success: true,
+        data: filtered,
+        stats: cached.stats,
+      };
+    }
 
+    const supabase = await createClient();
     const unifiedList: UnifiedDocument[] = [];
 
-    // 1. Fetch General Documents from public.documents
-    try {
-      let docQuery = (supabase as any)
-        .from('documents')
-        .select(
-          `
-          id,
-          title,
-          document_type,
-          file_name,
-          file_url,
-          blob_path,
-          file_size,
-          mime_type,
-          description,
-          tags,
-          created_at,
-          property_id,
-          properties (id, name, address_line_1)
+    let docQuery = (supabase as any)
+      .from('documents')
+      .select(
         `
-        )
-        .eq('workspace_id', workspaceId)
-        .order('created_at', { ascending: false });
+        id,
+        title,
+        document_type,
+        file_name,
+        file_url,
+        blob_path,
+        file_size,
+        mime_type,
+        description,
+        tags,
+        created_at,
+        property_id,
+        properties (id, name, address_line_1)
+      `
+      )
+      .eq('workspace_id', workspaceId)
+      .order('created_at', { ascending: false });
 
-      if (filters?.propertyId) {
-        docQuery = docQuery.eq('property_id', filters.propertyId);
-      }
+    let txQuery = (supabase as any)
+      .from('transactions')
+      .select(
+        `
+        id,
+        description,
+        amount,
+        transaction_date,
+        receipt_url,
+        receipt_file_name,
+        receipt_file_size,
+        receipt_mime_type,
+        receipt_uploaded_at,
+        property_id,
+        properties (id, name, address_line_1),
+        categories (id, name)
+      `
+      )
+      .eq('workspace_id', workspaceId)
+      .not('receipt_url', 'is', null)
+      .order('transaction_date', { ascending: false });
 
-      const { data: docData, error: docError } = await docQuery;
-      if (!docError && Array.isArray(docData)) {
-        for (const doc of docData) {
-          let cat: DocumentCategory = 'other';
-          if (doc.document_type === 'receipt') cat = 'receipt';
-          else if (doc.document_type === 'lease_agreement') cat = 'lease_agreement';
-          else if (
-            doc.document_type === 'insurance_policy' ||
-            doc.document_type === 'compliance_certificate'
-          )
-            cat = 'compliance_insurance';
-          else if (
-            doc.document_type === 'strata_notice' ||
-            doc.document_type === 'council_notice'
-          )
-            cat = 'strata_council';
-          else if (doc.document_type === 'photo') cat = 'inspection_photo';
-          else if (doc.document_type === 'condition_report') cat = 'condition_report';
-
-          unifiedList.push({
-            id: `doc-${doc.id}`,
-            title: doc.title || doc.file_name,
-            fileName: doc.file_name,
-            fileUrl: doc.file_url,
-            blobPath: doc.blob_path,
-            fileSize: doc.file_size ? Number(doc.file_size) : null,
-            mimeType: doc.mime_type || 'application/pdf',
-            category: cat,
-            propertyId: doc.property_id,
-            propertyName: doc.properties?.name || null,
-            propertyAddress: doc.properties?.address_line_1 || null,
-            linkedEntityId: doc.id,
-            linkedEntityType: 'custom',
-            linkedEntityLabel: doc.document_type.replace(/_/g, ' '),
-            uploadedAt: doc.created_at,
-            notes: doc.description,
-            source: 'database_document',
-            tags: doc.tags || [],
-            isVercelBlob: Boolean(
-              doc.file_url?.includes('vercel-storage.com') || doc.blob_path
-            ),
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('[DOCUMENTS_FETCH_DOCS_TABLE_WARN]', e);
-    }
-
-    // 2. Fetch Transaction Receipts (from public.transactions)
-    try {
-      let txQuery = (supabase as any)
-        .from('transactions')
-        .select(
-          `
+    let attQuery = (supabase as any)
+      .from('transaction_attachments')
+      .select(
+        `
+        id,
+        transaction_id,
+        blob_url,
+        blob_path,
+        file_name,
+        mime_type,
+        file_size,
+        created_at,
+        transactions!inner (
           id,
+          property_id,
           description,
           amount,
-          date,
-          receipt_url,
-          receipt_file_name,
-          receipt_file_size,
-          receipt_mime_type,
-          receipt_uploaded_at,
-          property_id,
-          properties (id, name, address_line_1),
-          categories (id, name)
-        `
+          properties (id, name, address_line_1)
         )
-        .eq('workspace_id', workspaceId)
-        .not('receipt_url', 'is', null)
-        .order('date', { ascending: false });
+      `
+      )
+      .eq('workspace_id', workspaceId)
+      .order('created_at', { ascending: false });
 
-      if (filters?.propertyId) {
-        txQuery = txQuery.eq('property_id', filters.propertyId);
-      }
-
-      const { data: txData, error: txError } = await txQuery;
-      if (!txError && Array.isArray(txData)) {
-        for (const tx of txData) {
-          if (!tx.receipt_url) continue;
-          const propName = tx.properties?.name || 'General Workspace';
-          const catName = tx.categories?.name || 'Expense';
-          const formattedAmount = `$${Number(tx.amount || 0).toFixed(2)}`;
-
-          unifiedList.push({
-            id: `receipt-tx-${tx.id}`,
-            title: `Receipt: ${tx.description || catName}`,
-            fileName: tx.receipt_file_name || 'receipt.pdf',
-            fileUrl: tx.receipt_url,
-            blobPath: null,
-            fileSize: tx.receipt_file_size ? Number(tx.receipt_file_size) : null,
-            mimeType: tx.receipt_mime_type || 'application/pdf',
-            category: 'receipt',
-            propertyId: tx.property_id,
-            propertyName: propName,
-            propertyAddress: tx.properties?.address_line_1 || null,
-            linkedEntityId: tx.id,
-            linkedEntityType: 'transaction',
-            linkedEntityLabel: `${formattedAmount} - ${catName}`,
-            uploadedAt: tx.receipt_uploaded_at || tx.date || new Date().toISOString(),
-            notes: tx.description,
-            source: 'transaction_receipt',
-            tags: ['Receipt', catName],
-            isVercelBlob: Boolean(tx.receipt_url?.includes('vercel-storage.com')),
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('[DOCUMENTS_FETCH_TX_RECEIPTS_WARN]', e);
-    }
-
-    // 3. Fetch Transaction Attachments (from public.transaction_attachments)
-    try {
-      let attQuery = (supabase as any)
-        .from('transaction_attachments')
-        .select(
-          `
+    let photoQuery = (supabase as any)
+      .from('inspection_photos')
+      .select(
+        `
+        id,
+        photo_url,
+        caption,
+        file_name,
+        file_size,
+        mime_type,
+        created_at,
+        inspection_rooms!inner (
           id,
-          transaction_id,
-          blob_url,
-          blob_path,
-          file_name,
-          mime_type,
-          file_size,
-          created_at,
-          transactions!inner (
+          name,
+          report_id,
+          condition_reports!inner (
             id,
+            workspace_id,
             property_id,
-            description,
-            amount,
+            inspection_type,
+            inspection_date,
             properties (id, name, address_line_1)
           )
-        `
         )
-        .eq('workspace_id', workspaceId)
-        .order('created_at', { ascending: false });
+      `
+      )
+      .eq('inspection_rooms.condition_reports.workspace_id', workspaceId)
+      .order('created_at', { ascending: false });
 
-      if (filters?.propertyId) {
-        attQuery = attQuery.eq('transactions.property_id', filters.propertyId);
-      }
+    let repQuery = (supabase as any)
+      .from('condition_reports')
+      .select(
+        `
+        id,
+        inspection_type,
+        inspection_date,
+        status,
+        inspector_name,
+        created_at,
+        property_id,
+        properties (id, name, address_line_1)
+      `
+      )
+      .eq('workspace_id', workspaceId)
+      .order('inspection_date', { ascending: false });
 
-      const { data: attData, error: attError } = await attQuery;
-      if (!attError && Array.isArray(attData)) {
-        for (const att of attData) {
-          const tx = att.transactions;
-          // Avoid duplicate entry if same as primary receipt_url
-          if (unifiedList.some((item) => item.fileUrl === att.blob_url)) continue;
-
-          unifiedList.push({
-            id: `att-${att.id}`,
-            title: `Attachment: ${att.file_name}`,
-            fileName: att.file_name,
-            fileUrl: att.blob_url,
-            blobPath: att.blob_path,
-            fileSize: att.file_size ? Number(att.file_size) : null,
-            mimeType: att.mime_type || 'application/octet-stream',
-            category: 'receipt',
-            propertyId: tx?.property_id,
-            propertyName: tx?.properties?.name || 'General Workspace',
-            propertyAddress: tx?.properties?.address_line_1 || null,
-            linkedEntityId: att.transaction_id,
-            linkedEntityType: 'transaction',
-            linkedEntityLabel: tx?.description || 'Transaction Attachment',
-            uploadedAt: att.created_at,
-            notes: null,
-            source: 'transaction_receipt',
-            tags: ['Attachment', 'Expense'],
-            isVercelBlob: Boolean(att.blob_url?.includes('vercel-storage.com')),
-          });
-        }
-      }
-    } catch (e) {
-      // Table might not have records yet, gracefully ignore
+    if (filters?.propertyId) {
+      docQuery = docQuery.eq('property_id', filters.propertyId);
+      txQuery = txQuery.eq('property_id', filters.propertyId);
+      attQuery = attQuery.eq('transactions.property_id', filters.propertyId);
+      photoQuery = photoQuery.eq(
+        'inspection_rooms.condition_reports.property_id',
+        filters.propertyId
+      );
+      repQuery = repQuery.eq('property_id', filters.propertyId);
     }
 
-    // 4. Fetch Inspection Photos (from public.inspection_photos)
-    try {
-      let photoQuery = (supabase as any)
-        .from('inspection_photos')
-        .select(
-          `
-          id,
-          photo_url,
-          caption,
-          file_name,
-          file_size,
-          mime_type,
-          created_at,
-          inspection_rooms!inner (
-            id,
-            name,
-            report_id,
-            condition_reports!inner (
-              id,
-              workspace_id,
-              property_id,
-              inspection_type,
-              inspection_date,
-              properties (id, name, address_line_1)
-            )
-          )
-        `
+    const [docRes, txRes, attRes, photoRes, repRes] = await Promise.all([
+      Promise.resolve(docQuery).catch(() => ({ data: null, error: true })),
+      Promise.resolve(txQuery).catch(() => ({ data: null, error: true })),
+      Promise.resolve(attQuery).catch(() => ({ data: null, error: true })),
+      Promise.resolve(photoQuery).catch(() => ({ data: null, error: true })),
+      Promise.resolve(repQuery).catch(() => ({ data: null, error: true })),
+    ]);
+
+    // 1. General Documents from public.documents
+    if (!docRes.error && Array.isArray(docRes.data)) {
+      for (const doc of docRes.data) {
+        let cat: DocumentCategory = 'other';
+        if (doc.document_type === 'receipt') cat = 'receipt';
+        else if (doc.document_type === 'lease_agreement') cat = 'lease_agreement';
+        else if (
+          doc.document_type === 'insurance_policy' ||
+          doc.document_type === 'compliance_certificate'
         )
-        .eq('inspection_rooms.condition_reports.workspace_id', workspaceId)
-        .order('created_at', { ascending: false });
+          cat = 'compliance_insurance';
+        else if (
+          doc.document_type === 'strata_notice' ||
+          doc.document_type === 'council_notice'
+        )
+          cat = 'strata_council';
+        else if (doc.document_type === 'photo') cat = 'inspection_photo';
+        else if (doc.document_type === 'condition_report') cat = 'condition_report';
 
-      if (filters?.propertyId) {
-        photoQuery = photoQuery.eq(
-          'inspection_rooms.condition_reports.property_id',
-          filters.propertyId
-        );
+        unifiedList.push({
+          id: `doc-${doc.id}`,
+          title: doc.title || doc.file_name,
+          fileName: doc.file_name,
+          fileUrl: doc.file_url,
+          blobPath: doc.blob_path,
+          fileSize: doc.file_size ? Number(doc.file_size) : null,
+          mimeType: doc.mime_type || 'application/pdf',
+          category: cat,
+          propertyId: doc.property_id,
+          propertyName: doc.properties?.name || null,
+          propertyAddress: doc.properties?.address_line_1 || null,
+          linkedEntityId: doc.id,
+          linkedEntityType: 'custom',
+          linkedEntityLabel: doc.document_type.replace(/_/g, ' '),
+          uploadedAt: doc.created_at,
+          notes: doc.description,
+          source: 'database_document',
+          tags: doc.tags || [],
+          isVercelBlob: Boolean(
+            doc.file_url?.includes('vercel-storage.com') || doc.blob_path
+          ),
+        });
       }
-
-      const { data: photoData, error: photoError } = await photoQuery;
-      if (!photoError && Array.isArray(photoData)) {
-        for (const p of photoData) {
-          const report = p.inspection_rooms?.condition_reports;
-          const roomName = p.inspection_rooms?.name || 'Room';
-          const propName = report?.properties?.name || 'Property';
-
-          unifiedList.push({
-            id: `photo-${p.id}`,
-            title: p.caption ? `${roomName}: ${p.caption}` : `${roomName} Photo`,
-            fileName: p.file_name || `${roomName.toLowerCase().replace(/\s+/g, '-')}-photo.jpg`,
-            fileUrl: p.photo_url,
-            blobPath: null,
-            fileSize: p.file_size ? Number(p.file_size) : null,
-            mimeType: p.mime_type || 'image/jpeg',
-            category: 'inspection_photo',
-            propertyId: report?.property_id,
-            propertyName: propName,
-            propertyAddress: report?.properties?.address_line_1 || null,
-            linkedEntityId: report?.id,
-            linkedEntityType: 'inspection',
-            linkedEntityLabel: `${roomName} — ${report?.inspection_type || 'Inspection'}`,
-            uploadedAt: p.created_at,
-            notes: p.caption,
-            source: 'inspection_photo',
-            tags: ['Inspection Photo', roomName],
-            isVercelBlob: Boolean(p.photo_url?.includes('vercel-storage.com')),
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('[DOCUMENTS_FETCH_INSPECTION_PHOTOS_WARN]', e);
     }
 
-    // 5. Fetch Completed Condition Reports as official Document entries
-    try {
-      let repQuery = (supabase as any)
-        .from('condition_reports')
-        .select(
-          `
-          id,
-          inspection_type,
-          inspection_date,
-          status,
-          inspector_name,
-          created_at,
-          property_id,
-          properties (id, name, address_line_1)
-        `
-        )
-        .eq('workspace_id', workspaceId)
-        .order('inspection_date', { ascending: false });
+    // 2. Transaction Receipts (from public.transactions)
+    if (!txRes.error && Array.isArray(txRes.data)) {
+      for (const tx of txRes.data) {
+        if (!tx.receipt_url) continue;
+        const propName = tx.properties?.name || 'General Workspace';
+        const catName = tx.categories?.name || 'Expense';
+        const formattedAmount = `$${Number(tx.amount || 0).toFixed(2)}`;
 
-      if (filters?.propertyId) {
-        repQuery = repQuery.eq('property_id', filters.propertyId);
+        unifiedList.push({
+          id: `receipt-tx-${tx.id}`,
+          title: `Receipt: ${tx.description || catName}`,
+          fileName: tx.receipt_file_name || 'receipt.pdf',
+          fileUrl: tx.receipt_url,
+          blobPath: null,
+          fileSize: tx.receipt_file_size ? Number(tx.receipt_file_size) : null,
+          mimeType: tx.receipt_mime_type || 'application/pdf',
+          category: 'receipt',
+          propertyId: tx.property_id,
+          propertyName: propName,
+          propertyAddress: tx.properties?.address_line_1 || null,
+          linkedEntityId: tx.id,
+          linkedEntityType: 'transaction',
+          linkedEntityLabel: `${formattedAmount} - ${catName}`,
+          uploadedAt: tx.receipt_uploaded_at || tx.transaction_date || new Date().toISOString(),
+          notes: tx.description,
+          source: 'transaction_receipt',
+          tags: ['Receipt', catName],
+          isVercelBlob: Boolean(tx.receipt_url?.includes('vercel-storage.com')),
+        });
       }
+    }
 
-      const { data: repData, error: repError } = await repQuery;
-      if (!repError && Array.isArray(repData)) {
-        for (const rep of repData) {
-          const propName = rep.properties?.name || 'Property';
-          const title = `${rep.inspection_type} Condition Report — ${propName}`;
-          const dateStr = rep.inspection_date || rep.created_at;
+    // 3. Transaction Attachments (from public.transaction_attachments)
+    if (!attRes.error && Array.isArray(attRes.data)) {
+      for (const att of attRes.data) {
+        const tx = att.transactions;
+        if (unifiedList.some((item) => item.fileUrl === att.blob_url)) continue;
 
-          unifiedList.push({
-            id: `report-${rep.id}`,
-            title,
-            fileName: `Condition-Report-${propName.replace(/[^a-zA-Z0-9]/g, '-')}-${rep.inspection_type}.pdf`,
-            fileUrl: `/dashboard/inspections/${rep.id}`, // Navigates to report & PDF download
-            blobPath: null,
-            fileSize: null,
-            mimeType: 'application/pdf',
-            category: 'condition_report',
-            propertyId: rep.property_id,
-            propertyName: propName,
-            propertyAddress: rep.properties?.address_line_1 || null,
-            linkedEntityId: rep.id,
-            linkedEntityType: 'inspection',
-            linkedEntityLabel: `${rep.status} (${rep.inspector_name || 'Inspector'})`,
-            uploadedAt: dateStr,
-            notes: `Status: ${rep.status}`,
-            source: 'condition_report_pdf',
-            tags: ['Condition Report', rep.status],
-            isVercelBlob: false,
-          });
-        }
+        unifiedList.push({
+          id: `att-${att.id}`,
+          title: `Attachment: ${att.file_name}`,
+          fileName: att.file_name,
+          fileUrl: att.blob_url,
+          blobPath: att.blob_path,
+          fileSize: att.file_size ? Number(att.file_size) : null,
+          mimeType: att.mime_type || 'application/octet-stream',
+          category: 'receipt',
+          propertyId: tx?.property_id,
+          propertyName: tx?.properties?.name || 'General Workspace',
+          propertyAddress: tx?.properties?.address_line_1 || null,
+          linkedEntityId: att.transaction_id,
+          linkedEntityType: 'transaction',
+          linkedEntityLabel: tx?.description || 'Transaction Attachment',
+          uploadedAt: att.created_at,
+          notes: null,
+          source: 'transaction_receipt',
+          tags: ['Attachment', 'Expense'],
+          isVercelBlob: Boolean(att.blob_url?.includes('vercel-storage.com')),
+        });
       }
-    } catch (e) {
-      console.warn('[DOCUMENTS_FETCH_REPORTS_WARN]', e);
+    }
+
+    // 4. Inspection Photos (from public.inspection_photos)
+    if (!photoRes.error && Array.isArray(photoRes.data)) {
+      for (const p of photoRes.data) {
+        const report = p.inspection_rooms?.condition_reports;
+        const roomName = p.inspection_rooms?.name || 'Room';
+        const propName = report?.properties?.name || 'Property';
+
+        unifiedList.push({
+          id: `photo-${p.id}`,
+          title: p.caption ? `${roomName}: ${p.caption}` : `${roomName} Photo`,
+          fileName: p.file_name || `${roomName.toLowerCase().replace(/\s+/g, '-')}-photo.jpg`,
+          fileUrl: p.photo_url,
+          blobPath: null,
+          fileSize: p.file_size ? Number(p.file_size) : null,
+          mimeType: p.mime_type || 'image/jpeg',
+          category: 'inspection_photo',
+          propertyId: report?.property_id,
+          propertyName: propName,
+          propertyAddress: report?.properties?.address_line_1 || null,
+          linkedEntityId: report?.id,
+          linkedEntityType: 'inspection',
+          linkedEntityLabel: `${roomName} — ${report?.inspection_type || 'Inspection'}`,
+          uploadedAt: p.created_at,
+          notes: p.caption,
+          source: 'inspection_photo',
+          tags: ['Inspection Photo', roomName],
+          isVercelBlob: Boolean(p.photo_url?.includes('vercel-storage.com')),
+        });
+      }
+    }
+
+    // 5. Completed Condition Reports
+    if (!repRes.error && Array.isArray(repRes.data)) {
+      for (const rep of repRes.data) {
+        const propName = rep.properties?.name || 'Property';
+        const title = `${rep.inspection_type} Condition Report — ${propName}`;
+        const dateStr = rep.inspection_date || rep.created_at;
+
+        unifiedList.push({
+          id: `report-${rep.id}`,
+          title,
+          fileName: `Condition-Report-${propName.replace(/[^a-zA-Z0-9]/g, '-')}-${rep.inspection_type}.pdf`,
+          fileUrl: `/dashboard/inspections/${rep.id}`,
+          blobPath: null,
+          fileSize: null,
+          mimeType: 'application/pdf',
+          category: 'condition_report',
+          propertyId: rep.property_id,
+          propertyName: propName,
+          propertyAddress: rep.properties?.address_line_1 || null,
+          linkedEntityId: rep.id,
+          linkedEntityType: 'inspection',
+          linkedEntityLabel: `${rep.status} (${rep.inspector_name || 'Inspector'})`,
+          uploadedAt: dateStr,
+          notes: `Status: ${rep.status}`,
+          source: 'condition_report_pdf',
+          tags: ['Condition Report', rep.status],
+          isVercelBlob: false,
+        });
+      }
     }
 
     // Sort all items newest first
@@ -408,6 +393,8 @@ export async function fetchWorkspaceDocumentsAction(filters?: {
       complianceCount,
       otherCount,
     };
+
+    serverCache.set(cacheKey, { list: unifiedList, stats }, 30_000);
 
     // Filter if category requested
     let finalData = unifiedList;
@@ -509,6 +496,7 @@ export async function uploadWorkspaceDocumentAction(
       // Activity log is non-blocking
     }
 
+    serverCache.invalidateWorkspace(context.workspaceId);
     revalidatePath('/dashboard/documents');
 
     return {
@@ -622,6 +610,7 @@ export async function deleteWorkspaceDocumentAction(
       }
     }
 
+    serverCache.invalidateWorkspace(context.workspaceId);
     revalidatePath('/dashboard/documents');
     return { success: true };
   } catch (err: any) {

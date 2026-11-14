@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import { getEffectiveWorkspacePermissions } from '@/lib/auth/authorization';
 import { calculateNextDueDate, calculateOverdueAndLate } from '@/lib/activity/recurrence';
+import { serverCache } from '@/lib/cache/server-cache';
 import type {
   ActivityBoardItem,
   ActivityDetailData,
@@ -20,13 +21,15 @@ import type {
 } from '@/types/activity';
 
 export async function checkActivityPermissions(workspaceId: string, userId: string) {
-  const permissions = await getEffectiveWorkspacePermissions(workspaceId, userId);
   const admin = await createAdminClient();
-  const { data: ws } = await (admin as any)
-    .from('workspaces')
-    .select('owner_id')
-    .eq('id', workspaceId)
-    .single();
+  const [permissions, { data: ws }] = await Promise.all([
+    getEffectiveWorkspacePermissions(workspaceId, userId),
+    (admin as any)
+      .from('workspaces')
+      .select('owner_id')
+      .eq('id', workspaceId)
+      .single(),
+  ]);
   const isOwner = ws?.owner_id === userId;
 
   const canViewAll = isOwner || permissions.includes('activity.view') || permissions.includes('task.manage');
@@ -60,10 +63,8 @@ export async function fetchActivitiesAction(filters?: ActivityFilters): Promise<
   error?: string;
 }> {
   try {
-    const user = await getCurrentUser();
+    const [user, context] = await Promise.all([getCurrentUser(), resolveWorkspaceContext()]);
     if (!user) return { success: false, error: 'Unauthorized' };
-
-    const context = await resolveWorkspaceContext();
     if (!context?.workspaceId) return { success: false, error: 'No active workspace' };
 
     const workspaceId = context.workspaceId;
@@ -155,40 +156,34 @@ export async function fetchActivitiesAction(filters?: ActivityFilters): Promise<
       };
     }
 
-    // 2. Fetch profiles for assignees to enrich names and avatars
+    // 2. Fetch profiles and comment counts concurrently
     const userIds = new Set<string>();
     (rawOccurrences || []).forEach((row: any) => {
       if (row.assigned_to) userIds.add(row.assigned_to);
       if (row.completed_by) userIds.add(row.completed_by);
     });
 
-    let profilesMap = new Map<string, { full_name: string | null; avatar_url: string | null }>();
-    if (userIds.size > 0) {
-      const { data: profiles } = await admin
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', Array.from(userIds));
-
-      (profiles || []).forEach((p: any) => {
-        profilesMap.set(p.id, { full_name: p.full_name, avatar_url: p.avatar_url });
-      });
-    }
-
-    // 3. Fetch comment counts per occurrence
     const occurrenceIds = (rawOccurrences || []).map((o: any) => o.id);
-    let commentCountsMap = new Map<string, number>();
-    if (occurrenceIds.length > 0) {
-      const { data: commentCounts } = await admin
-        .from('activity_comments')
-        .select('occurrence_id, activity_id')
-        .eq('workspace_id', workspaceId);
+    const [profilesRes, commentCountsRes] = await Promise.all([
+      userIds.size > 0
+        ? admin.from('profiles').select('id, full_name, avatar_url').in('id', Array.from(userIds))
+        : Promise.resolve({ data: [] }),
+      occurrenceIds.length > 0
+        ? admin.from('activity_comments').select('occurrence_id, activity_id').eq('workspace_id', workspaceId)
+        : Promise.resolve({ data: [] }),
+    ]);
 
-      (commentCounts || []).forEach((c: any) => {
-        if (c.occurrence_id) {
-          commentCountsMap.set(c.occurrence_id, (commentCountsMap.get(c.occurrence_id) || 0) + 1);
-        }
-      });
-    }
+    const profilesMap = new Map<string, { full_name: string | null; avatar_url: string | null }>();
+    (profilesRes.data || []).forEach((p: any) => {
+      profilesMap.set(p.id, { full_name: p.full_name, avatar_url: p.avatar_url });
+    });
+
+    const commentCountsMap = new Map<string, number>();
+    (commentCountsRes.data || []).forEach((c: any) => {
+      if (c.occurrence_id) {
+        commentCountsMap.set(c.occurrence_id, (commentCountsMap.get(c.occurrence_id) || 0) + 1);
+      }
+    });
 
     // 4. Transform into unified ActivityBoardItem
     const today = new Date();
@@ -384,37 +379,49 @@ export async function fetchActivityDetailAction(
   error?: string;
 }> {
   try {
-    const user = await getCurrentUser();
+    const [user, context] = await Promise.all([getCurrentUser(), resolveWorkspaceContext()]);
     if (!user) return { success: false, error: 'Unauthorized' };
-
-    const context = await resolveWorkspaceContext();
     if (!context?.workspaceId) return { success: false, error: 'No active workspace' };
 
     const workspaceId = context.workspaceId;
     const admin = await createAdminClient();
 
-    // Check workspace permissions
-    const { canViewAll } = await checkActivityPermissions(workspaceId, user.id);
-
-    // 1. Fetch Activity
-    const { data: rawActivity, error: actError } = await (admin as any)
-      .from('activities')
-      .select('*')
-      .eq('id', activityId)
-      .eq('workspace_id', workspaceId)
-      .single();
+    // Run permissions, activity, occurrences, comments, and journal concurrently
+    const [
+      { canViewAll },
+      { data: rawActivity, error: actError },
+      { data: occurrences },
+      { data: rawComments },
+      { data: rawJournal },
+    ] = await Promise.all([
+      checkActivityPermissions(workspaceId, user.id),
+      (admin as any)
+        .from('activities')
+        .select('*')
+        .eq('id', activityId)
+        .eq('workspace_id', workspaceId)
+        .single(),
+      (admin as any)
+        .from('activity_occurrences')
+        .select('*')
+        .eq('activity_id', activityId)
+        .order('sequence_number', { ascending: false }),
+      (admin as any)
+        .from('activity_comments')
+        .select('*')
+        .eq('activity_id', activityId)
+        .order('created_at', { ascending: true }),
+      (admin as any)
+        .from('activity_journal')
+        .select('*')
+        .eq('activity_id', activityId)
+        .order('created_at', { ascending: false }),
+    ]);
 
     if (actError || !rawActivity) {
       return { success: false, error: 'Activity not found' };
     }
     const activity = rawActivity as any;
-
-    // 2. Fetch Occurrences for this activity
-    const { data: occurrences } = await (admin as any)
-      .from('activity_occurrences')
-      .select('*')
-      .eq('activity_id', activityId)
-      .order('sequence_number', { ascending: false });
 
     // If user does not have permission to view all workspace activities, verify assignment/creation
     if (!canViewAll) {
@@ -451,49 +458,30 @@ export async function fetchActivityDetailAction(
       return { success: false, error: 'No occurrences found for this activity' };
     }
 
-    // 3. Fetch Property
-    const { data: property } = await (admin as any)
-      .from('properties')
-      .select('id, name, address_line_1, city, state, postal_code')
-      .eq('id', activity.property_id)
-      .single();
-
-    // 4. Fetch Profiles for assignees / actors
+    // Collect profile IDs and fetch property + profiles concurrently
     const userIds = new Set<string>();
     if (currentOccurrence.assignedTo) userIds.add(currentOccurrence.assignedTo);
     if (currentOccurrence.completedBy) userIds.add(currentOccurrence.completedBy);
-
-    // 5. Fetch Comments
-    const { data: rawComments } = await (admin as any)
-      .from('activity_comments')
-      .select('*')
-      .eq('activity_id', activityId)
-      .order('created_at', { ascending: true });
-
     (rawComments || []).forEach((c: any) => userIds.add(c.user_id));
-
-    // 6. Fetch Journal Events
-    const { data: rawJournal } = await (admin as any)
-      .from('activity_journal')
-      .select('*')
-      .eq('activity_id', activityId)
-      .order('created_at', { ascending: false });
-
     (rawJournal || []).forEach((j: any) => {
       if (j.actor_id) userIds.add(j.actor_id);
     });
 
-    let profilesMap = new Map<string, { full_name: string | null; avatar_url: string | null }>();
-    if (userIds.size > 0) {
-      const { data: profiles } = await (admin as any)
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .in('id', Array.from(userIds));
+    const [{ data: property }, profilesRes] = await Promise.all([
+      (admin as any)
+        .from('properties')
+        .select('id, name, address_line_1, city, state, postal_code')
+        .eq('id', activity.property_id)
+        .single(),
+      userIds.size > 0
+        ? (admin as any).from('profiles').select('id, full_name, avatar_url').in('id', Array.from(userIds))
+        : Promise.resolve({ data: [] }),
+    ]);
 
-      (profiles || []).forEach((p: any) => {
-        profilesMap.set(p.id, { full_name: p.full_name, avatar_url: p.avatar_url });
-      });
-    }
+    const profilesMap = new Map<string, { full_name: string | null; avatar_url: string | null }>();
+    (profilesRes.data || []).forEach((p: any) => {
+      profilesMap.set(p.id, { full_name: p.full_name, avatar_url: p.avatar_url });
+    });
 
     const comments: ActivityComment[] = (rawComments || []).map((c: any) => ({
       id: c.id,

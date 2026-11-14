@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import { createClient } from '@/lib/supabase/server';
+import { serverCache } from '@/lib/cache/server-cache';
 import * as financeService from '@/lib/finance/service';
 import {
   CategoryDTO,
@@ -42,6 +43,18 @@ function revalidateFinancialPaths() {
 export async function fetchFormDropdownOptionsAction() {
   try {
     const { context } = await getAuthContext();
+    const cacheKey = `workspace:${context.workspaceId}:form_dropdown_options`;
+    const cached = serverCache.get<{
+      categories: CategoryDTO[];
+      properties: any[];
+      leases: any[];
+      tenants: any[];
+      taxClassifications: any[];
+    }>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const supabase = await createClient();
 
     const [categoriesRes, propertiesRes, leasesRes, tenantsRes, taxClassificationsRes] = await Promise.all([
@@ -105,13 +118,15 @@ export async function fetchFormDropdownOptionsAction() {
       tenant: l.lease_tenants?.[0]?.tenant || null,
     }));
 
-    return {
+    const result = {
       categories: (categoriesRes.data || []) as CategoryDTO[],
       properties: propertiesRes.data || [],
       leases: formattedLeases,
       tenants: tenantsRes.data || [],
       taxClassifications: taxClassificationsRes.data || [],
     };
+    serverCache.set(cacheKey, result, 30_000);
+    return result;
   } catch (err) {
     console.error('Error in fetchFormDropdownOptionsAction:', err);
     return {

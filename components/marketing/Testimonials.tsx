@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import { Star, Quotes as Quote } from "@phosphor-icons/react";
-import { CheckCircle2, ShieldCheck, Sparkles } from "lucide-react";
+import { Star, CheckCircle2, ShieldCheck, Sparkles } from "lucide-react";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { Reveal, StaggerContainer, StaggerItem } from "@/components/ui/Reveal";
 
@@ -62,7 +61,7 @@ export function Testimonials() {
                   <div className="flex items-center justify-between">
                     <div className="flex text-amber-500 dark:text-amber-400 gap-1">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} weight="fill" className="w-4 h-4" />
+                        <Star key={i} className="w-4 h-4 fill-current" />
                       ))}
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-[#008F83]/15 text-[#00A99D] border border-[#008F83]/25 font-mono">

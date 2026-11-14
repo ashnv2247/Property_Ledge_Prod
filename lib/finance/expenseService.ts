@@ -1,4 +1,5 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { serverCache } from '@/lib/cache/server-cache';
 import {
   ExpenseDTO,
   CreateExpenseInput,
@@ -19,6 +20,21 @@ import {
 export async function getExpenses(
   filters: ExpenseFilterParams = {}
 ): Promise<ExpenseDTO[]> {
+  const isCacheable =
+    Boolean(filters.workspace_id) &&
+    !filters.search_query &&
+    !filters.start_date &&
+    !filters.end_date &&
+    !filters.offset;
+  const cacheKey = isCacheable
+    ? `workspace:${filters.workspace_id}:expenses:${filters.property_id || 'all'}:${filters.lease_id || 'all'}:${filters.transaction_category_id || 'all'}:${filters.tax_classification_id || 'all'}:${filters.status || 'all'}:${filters.limit || 100}`
+    : null;
+
+  if (cacheKey) {
+    const cached = serverCache.get<ExpenseDTO[]>(cacheKey);
+    if (cached) return cached;
+  }
+
   const supabase = await createClient();
 
   const buildQuery = (client: any) => {
@@ -168,6 +184,10 @@ export async function getExpenses(
     });
   }
 
+  if (cacheKey) {
+    serverCache.set(cacheKey, results, 30_000);
+  }
+
   return results;
 }
 
@@ -307,12 +327,38 @@ export async function createExpense(
   const validated = createExpenseSchema.parse(input);
   const supabase = await createClient();
 
-  // 1. Resolve Workspace ID from Property
-  const { data: propData, error: propError } = await supabase
-    .from('properties')
-    .select('id, workspace_id')
-    .eq('id', validated.property_id)
-    .single();
+  // 1, 2 & 3. Resolve Property, Category, and Lease in parallel
+  const [
+    { data: propData, error: propError },
+    catResult,
+    leaseResult,
+  ] = await Promise.all([
+    supabase
+      .from('properties')
+      .select('id, workspace_id')
+      .eq('id', validated.property_id)
+      .single(),
+    validated.transaction_category_id
+      ? supabase
+          .from('categories')
+          .select('id, transaction_type, name, is_active')
+          .eq('id', validated.transaction_category_id)
+          .single()
+      : supabase
+          .from('categories')
+          .select('id, transaction_type, name, is_active')
+          .eq('transaction_type', 'expense')
+          .eq('is_active', true)
+          .limit(1)
+          .single(),
+    validated.lease_id
+      ? supabase
+          .from('leases')
+          .select('id, property_id')
+          .eq('id', validated.lease_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
 
   const property = propData as { id: string; workspace_id: string } | null;
   if (propError || !property) {
@@ -321,50 +367,30 @@ export async function createExpense(
   const workspaceId = property.workspace_id;
   if (validated.workspace_id) assertPropertyWorkspaceMatch(validated.workspace_id, workspaceId);
 
-  // 2. Validate Category if provided
+  const catData = (catResult as { data?: unknown; error?: unknown }).data as {
+    id: string;
+    transaction_type: string;
+    name: string;
+    is_active: boolean;
+  } | null;
   let effectiveCategoryId = validated.transaction_category_id;
   if (effectiveCategoryId) {
-    const { data: catData, error: catError } = await supabase
-      .from('categories')
-      .select('id, transaction_type, name, is_active')
-      .eq('id', effectiveCategoryId)
-      .single();
-
-    const category = catData as { id: string; transaction_type: string; name: string; is_active: boolean } | null;
-    if (catError || !category) {
+    if (catResult.error || !catData) {
       throw new Error('Selected category was not found.');
     }
-    if (category.transaction_type !== 'expense') {
-      throw new Error(`Category "${category.name}" is not an expense category.`);
+    if (catData.transaction_type !== 'expense') {
+      throw new Error(`Category "${catData.name}" is not an expense category.`);
     }
-    if (!category.is_active) {
-      throw new Error(`Category "${category.name}" is inactive.`);
+    if (!catData.is_active) {
+      throw new Error(`Category "${catData.name}" is inactive.`);
     }
-  } else {
-    // Pick first active expense category fallback
-    const { data: fallbackCat } = await supabase
-      .from('categories')
-      .select('id')
-      .eq('transaction_type', 'expense')
-      .eq('is_active', true)
-      .limit(1)
-      .single();
-
-    if (fallbackCat) {
-      effectiveCategoryId = (fallbackCat as { id: string }).id;
-    }
+  } else if (catData) {
+    effectiveCategoryId = catData.id;
   }
 
-  // 3. Validate Lease if provided
   if (validated.lease_id) {
-    const { data: leaseData, error: leaseError } = await supabase
-      .from('leases')
-      .select('id, property_id')
-      .eq('id', validated.lease_id)
-      .maybeSingle();
-
-    const lease = leaseData as { id: string; property_id: string } | null;
-    if (leaseError || !lease) {
+    const lease = leaseResult.data as { id: string; property_id: string } | null;
+    if (leaseResult.error || !lease) {
       throw new Error('Selected lease was not found.');
     }
     if (lease.property_id !== validated.property_id) {
@@ -456,6 +482,7 @@ export async function createExpense(
     console.warn('Could not write to activity log:', logErr);
   }
 
+  serverCache.invalidateWorkspace(workspaceId);
   const createdExpense = await getExpenseById(transactionId);
   if (!createdExpense) {
     throw new Error('Expense was created but could not be re-loaded.');
@@ -574,6 +601,9 @@ export async function updateExpense(
     console.warn('Could not write to activity log:', logErr);
   }
 
+  if (current.workspace_id) {
+    serverCache.invalidateWorkspace(current.workspace_id);
+  }
   const updatedExpense = await getExpenseById(id);
   if (!updatedExpense) {
     throw new Error('Expense was updated but could not be reloaded.');
@@ -602,6 +632,10 @@ export async function deleteExpense(id: string, userId?: string): Promise<void> 
   if (error) {
     console.error('Error deleting expense transaction:', error);
     throw new Error(`Failed to delete expense: ${error.message}`);
+  }
+
+  if (current.workspace_id) {
+    serverCache.invalidateWorkspace(current.workspace_id);
   }
 
   // Log activity

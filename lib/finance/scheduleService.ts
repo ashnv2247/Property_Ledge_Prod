@@ -32,7 +32,7 @@ export async function getExpectedPaymentSchedules(
     !filters.end_date &&
     !filters.offset;
   const cacheKey = isCacheable
-    ? `schedules:${filters.workspace_id}:${filters.property_id || 'all'}:${filters.lease_id || 'all'}:${filters.schedule_type || 'all'}:${filters.status || 'all'}:${filters.limit || 100}`
+    ? `workspace:${filters.workspace_id}:schedules:${filters.property_id || 'all'}:${filters.lease_id || 'all'}:${filters.schedule_type || 'all'}:${filters.status || 'all'}:${filters.limit || 100}`
     : null;
 
   if (cacheKey) {
@@ -334,34 +334,36 @@ export async function createPaymentSchedule(
   let workspaceId = input.workspace_id;
 
   if (input.lease_id) {
-    const { data: lease } = await supabase
-      .from('leases')
-      .select('id, property_id, properties!inner(workspace_id)')
-      .eq('id', input.lease_id)
-      .maybeSingle();
+    const [leaseRes, ltRes] = await Promise.all([
+      supabase
+        .from('leases')
+        .select('id, property_id, properties!inner(workspace_id)')
+        .eq('id', input.lease_id)
+        .maybeSingle(),
+      !input.tenant_id
+        ? supabase
+            .from('lease_tenants')
+            .select('tenant_id, is_primary')
+            .eq('lease_id', input.lease_id)
+            .order('is_primary', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
 
+    const lease = leaseRes.data as any;
     if (lease) {
-      const leaseObj = lease as any;
-      if (!workspaceId && leaseObj.properties?.workspace_id) {
-        workspaceId = leaseObj.properties.workspace_id;
+      if (!workspaceId && lease.properties?.workspace_id) {
+        workspaceId = lease.properties.workspace_id;
       }
-      if (!input.property_id && leaseObj.property_id) {
-        input.property_id = leaseObj.property_id;
+      if (!input.property_id && lease.property_id) {
+        input.property_id = lease.property_id;
       }
     }
 
-    if (!input.tenant_id) {
-      const { data: lt } = await supabase
-        .from('lease_tenants')
-        .select('tenant_id, is_primary')
-        .eq('lease_id', input.lease_id)
-        .order('is_primary', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (lt && (lt as any).tenant_id) {
-        input.tenant_id = (lt as any).tenant_id;
-      }
+    const lt = ltRes.data as any;
+    if (!input.tenant_id && lt?.tenant_id) {
+      input.tenant_id = lt.tenant_id;
     }
   }
 
@@ -412,22 +414,59 @@ export async function createPaymentSchedule(
   const { data, error } = await supabase
     .from('expected_payment_schedule')
     .insert(insertPayload as never)
-    .select('id');
+    .select(`
+      id,
+      workspace_id,
+      property_id,
+      lease_id,
+      tenant_id,
+      transaction_category_id,
+      schedule_name,
+      schedule_type,
+      amount,
+      due_date,
+      frequency,
+      status,
+      start_date,
+      end_date,
+      notes,
+      created_by,
+      created_at,
+      updated_at,
+      gst_inclusive,
+      gst_amount,
+      tax_classification_id,
+      category:categories(id, transaction_type, name, description, is_active, category_group_id, default_tax_classification_id, created_at, updated_at),
+      tax_classification:tax_classifications(id, name, bas_code, description, is_active, applies_to),
+      property:properties(id, name, address_line_1, city, state, gst_enabled),
+      lease:leases(id, start_date, end_date, rent_amount, status),
+      tenant:tenants(id, first_name, last_name, email)
+    `);
 
   if (error) {
     console.error('Error creating payment schedule entries:', error);
     throw new Error(`Failed to create payment schedule: ${error.message}`);
   }
 
-  const insertedIds = (data || []).map((d: { id: string }) => d.id);
-  const result: ExpectedPaymentScheduleDTO[] = [];
+  serverCache.invalidateWorkspace(workspaceId);
 
-  for (const id of insertedIds) {
-    const fetched = await getExpectedPaymentScheduleById(id);
-    if (fetched) result.push(fetched);
-  }
-
-  return result;
+  const insertedRows = (data || []) as unknown as ExpectedPaymentScheduleDTO[];
+  return insertedRows.map((entry) => {
+    const calculated = calculateExpectedPaymentStatus(
+      Number(entry.amount),
+      [],
+      entry.status,
+      entry.due_date
+    );
+    return {
+      ...entry,
+      amount: Number(entry.amount),
+      allocations: [],
+      total_allocated: calculated.total_allocated,
+      remaining_amount: calculated.remaining_amount,
+      status: calculated.status,
+    };
+  });
 }
 
 /**

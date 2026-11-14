@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { serverCache } from '@/lib/cache/server-cache';
 import {
   TransactionDTO,
   BasPeriod,
@@ -62,14 +63,23 @@ export const DEFAULT_TAX_CLASSIFICATIONS = [
  * Automatically seeds standard Australian ATO tax classifications if empty.
  */
 export async function ensureDefaultTaxClassifications(workspaceId: string): Promise<void> {
+  const seedCacheKey = `workspace:${workspaceId}:tax_defaults_seeded`;
+  if (serverCache.get<boolean>(seedCacheKey)) {
+    return;
+  }
+
   try {
     const supabase = await createClient();
 
-    const { data: existingGroups, error: groupErr } = await supabase
-      .from('category_groups')
-      .select('id')
-      .eq('workspace_id', workspaceId)
-      .limit(1);
+    const [
+      { data: existingGroups, error: groupErr },
+      { data: existingClassifications, error: classErr },
+    ] = await Promise.all([
+      supabase.from('category_groups').select('id').eq('workspace_id', workspaceId).limit(1),
+      supabase.from('tax_classifications').select('id').eq('workspace_id', workspaceId).limit(1),
+    ]);
+
+    const inserts: Promise<unknown>[] = [];
 
     if (!groupErr && (!existingGroups || existingGroups.length === 0)) {
       const defaultGroups = DEFAULT_CATEGORY_GROUPS.map((g) => ({
@@ -77,14 +87,8 @@ export async function ensureDefaultTaxClassifications(workspaceId: string): Prom
         name: g.name,
         description: g.description,
       }));
-      await supabase.from('category_groups').insert(defaultGroups as never);
+      inserts.push(Promise.resolve(supabase.from('category_groups').insert(defaultGroups as never)));
     }
-
-    const { data: existingClassifications, error: classErr } = await supabase
-      .from('tax_classifications')
-      .select('id')
-      .eq('workspace_id', workspaceId)
-      .limit(1);
 
     if (!classErr && (!existingClassifications || existingClassifications.length === 0)) {
       const defaultClassifications = DEFAULT_TAX_CLASSIFICATIONS.map((t) => ({
@@ -95,8 +99,14 @@ export async function ensureDefaultTaxClassifications(workspaceId: string): Prom
         applies_to: t.applies_to,
         is_active: true,
       }));
-      await supabase.from('tax_classifications').insert(defaultClassifications as never);
+      inserts.push(Promise.resolve(supabase.from('tax_classifications').insert(defaultClassifications as never)));
     }
+
+    if (inserts.length > 0) {
+      await Promise.all(inserts);
+    }
+
+    serverCache.set(seedCacheKey, true, 600_000);
   } catch (err) {
     console.warn('Silent fallback: Database table migration may still be applying:', err);
   }
@@ -379,6 +389,11 @@ export async function getBasPageData(params: {
   period: BasPeriod;
 }): Promise<BasPageData> {
   const { workspaceId, propertyId, financialYear, period } = params;
+  const cacheKey = `workspace:${workspaceId}:bas_page:${propertyId || 'all'}:${financialYear}:${period}`;
+  const cached = serverCache.get<BasPageData>(cacheKey);
+  if (cached) {
+    return cached;
+  }
 
   // Auto-seed defaults if needed
   await ensureDefaultTaxClassifications(workspaceId);
@@ -417,7 +432,7 @@ export async function getBasPageData(params: {
   const currentFY = currentMonth >= 7 ? currentCalYear + 1 : currentCalYear;
   const availableYears = [currentFY + 1, currentFY, currentFY - 1, currentFY - 2];
 
-  return {
+  const result: BasPageData = {
     worksheet,
     details,
     guidance,
@@ -426,4 +441,7 @@ export async function getBasPageData(params: {
     categoryGroups,
     availableYears,
   };
+
+  serverCache.set(cacheKey, result, 30_000);
+  return result;
 }

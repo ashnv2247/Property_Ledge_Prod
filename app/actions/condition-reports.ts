@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
+import { serverCache } from '@/lib/cache/server-cache';
 import {
   ConditionReport,
   FullConditionReportData,
@@ -26,12 +27,19 @@ export async function fetchConditionReportsAction(
   propertyId?: string
 ): Promise<{ success: boolean; data?: ConditionReport[]; error?: string }> {
   try {
-    const user = await getCurrentUser();
+    const [user, context] = await Promise.all([
+      getCurrentUser(),
+      resolveWorkspaceContext(),
+    ]);
     if (!user) return { success: false, error: 'Unauthorized' };
-
-    const context = await resolveWorkspaceContext();
     if (!context?.workspaceId)
       return { success: false, error: 'No active workspace' };
+
+    const cacheKey = `workspace:${context.workspaceId}:condition_reports:${propertyId || 'all'}`;
+    const cached = serverCache.get<ConditionReport[]>(cacheKey);
+    if (cached) {
+      return { success: true, data: cached };
+    }
 
     const supabase = await createClient();
 
@@ -55,7 +63,9 @@ export async function fetchConditionReportsAction(
     const { data, error } = await query;
     if (error) throw error;
 
-    return { success: true, data: (data as ConditionReport[]) || [] };
+    const result = (data as ConditionReport[]) || [];
+    serverCache.set(cacheKey, result, 30_000);
+    return { success: true, data: result };
   } catch (err: any) {
     console.error('[FETCH_CONDITION_REPORTS_ERROR]', err);
     return {
@@ -73,28 +83,39 @@ export async function fetchConditionReportDetailAction(
   reportId: string
 ): Promise<{ success: boolean; data?: FullConditionReportData; error?: string }> {
   try {
-    const user = await getCurrentUser();
+    const [user, context] = await Promise.all([
+      getCurrentUser(),
+      resolveWorkspaceContext(),
+    ]);
     if (!user) return { success: false, error: 'Unauthorized' };
-
-    const context = await resolveWorkspaceContext();
     if (!context?.workspaceId)
       return { success: false, error: 'No active workspace' };
 
     const supabase = await createClient();
 
-    // 1. Fetch report header and verify workspace isolation
-    const { data: report, error: reportErr } = await (supabase as any)
-      .from('condition_reports')
-      .select(
+    // 1 & 2. Fetch report header and rooms in parallel
+    const [
+      { data: report, error: reportErr },
+      { data: rooms, error: roomsErr },
+    ] = await Promise.all([
+      (supabase as any)
+        .from('condition_reports')
+        .select(
+          `
+          *,
+          properties (id, name, address_line_1, city, state, postal_code),
+          leases (id, start_date, end_date, status)
         `
-        *,
-        properties (id, name, address_line_1, city, state, postal_code),
-        leases (id, start_date, end_date, status)
-      `
-      )
-      .eq('id', reportId)
-      .eq('workspace_id', context.workspaceId)
-      .single();
+        )
+        .eq('id', reportId)
+        .eq('workspace_id', context.workspaceId)
+        .single(),
+      (supabase as any)
+        .from('inspection_rooms')
+        .select('*')
+        .eq('report_id', reportId)
+        .order('room_order', { ascending: true }),
+    ]);
 
     if (reportErr || !report) {
       return {
@@ -102,13 +123,6 @@ export async function fetchConditionReportDetailAction(
         error: reportErr?.message || 'Condition report not found or access denied',
       };
     }
-
-    // 2. Fetch rooms
-    const { data: rooms, error: roomsErr } = await (supabase as any)
-      .from('inspection_rooms')
-      .select('*')
-      .eq('report_id', reportId)
-      .order('room_order', { ascending: true });
 
     if (roomsErr) throw roomsErr;
 
@@ -410,6 +424,7 @@ export async function createConditionReportAction(
       }
     }
 
+    serverCache.invalidateWorkspace(context.workspaceId);
     revalidatePath('/dashboard/inspections');
     revalidatePath('/dashboard/condition-reports');
     return { success: true, reportId: newReport.id };
@@ -810,6 +825,7 @@ export async function finalizeConditionReportAction(
 
     if (error) throw error;
 
+    serverCache.invalidateWorkspace(context.workspaceId);
     revalidatePath('/dashboard/inspections');
     revalidatePath('/dashboard/condition-reports');
     return { success: true };
@@ -842,6 +858,7 @@ export async function deleteConditionReportAction(
 
     if (error) throw error;
 
+    serverCache.invalidateWorkspace(context.workspaceId);
     revalidatePath('/dashboard/inspections');
     revalidatePath('/dashboard/condition-reports');
     return { success: true };

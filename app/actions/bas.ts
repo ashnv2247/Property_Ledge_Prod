@@ -7,6 +7,7 @@ import { BasPeriod } from '@/modules/finance/domain/types';
 import * as basService from '@/lib/bas/service';
 import { PdfBasReportAdapter } from '@/lib/pdf/pdf-bas-report-adapter';
 import { revalidatePath } from 'next/cache';
+import { serverCache } from '@/lib/cache/server-cache';
 
 async function getAuthContext() {
   const [user, context] = await Promise.all([
@@ -100,6 +101,7 @@ export async function updatePropertyGstSettingAction(propertyId: string, gstEnab
     throw new Error(`Failed to update GST setting: ${error.message}`);
   }
 
+  serverCache.invalidateWorkspace(context.workspaceId);
   revalidatePath('/dashboard/bas');
   revalidatePath('/dashboard/properties');
   revalidatePath('/dashboard/money');

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/queries';
+import { serverCache } from '@/lib/cache/server-cache';
 import type { Database } from '@/types/database';
 
 export type NotificationRow = Database['public']['Tables']['notifications']['Row'];
@@ -14,6 +15,10 @@ export interface NotificationItem extends NotificationRow {
 export async function fetchNotifications(limit = 20): Promise<NotificationItem[]> {
   const user = await getCurrentUser();
   if (!user) return [];
+
+  const cacheKey = `user:${user.id}:notifications:${limit}`;
+  const cached = serverCache.get<NotificationItem[]>(cacheKey);
+  if (cached) return cached;
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -28,13 +33,16 @@ export async function fetchNotifications(limit = 20): Promise<NotificationItem[]
     return [];
   }
 
-  return (data || []).map((n) => {
+  const result = (data || []).map((n) => {
     const row = n as NotificationRow;
     return {
       ...row,
       isUnread: !row.read_at,
     };
   });
+
+  serverCache.set(cacheKey, result, 15_000);
+  return result;
 }
 
 export async function markNotificationRead(notificationId: string): Promise<{ success: boolean }> {
@@ -53,6 +61,7 @@ export async function markNotificationRead(notificationId: string): Promise<{ su
     return { success: false };
   }
 
+  serverCache.invalidateUser(user.id);
   revalidatePath('/dashboard');
   return { success: true };
 }
@@ -74,6 +83,7 @@ export async function markAllNotificationsRead(): Promise<{ success: boolean; co
     return { success: false, count: 0 };
   }
 
+  serverCache.invalidateUser(user.id);
   revalidatePath('/dashboard');
   return { success: true, count: data?.length ?? 0 };
 }

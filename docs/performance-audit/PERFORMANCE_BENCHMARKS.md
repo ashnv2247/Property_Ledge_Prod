@@ -45,8 +45,10 @@ Measurements taken on AWS Sydney (`aws-0-ap-southeast-2.pooler.supabase.com`) ov
 | :--- | :--- | :--- |
 | **Transactions Query Date Scope** | All historical records since inception | Bounded strictly to last 24 months (`gte('transaction_date', twoYearsAgoIso)`) |
 | **Typical Payload Size (100+ tx)** | 185 kB – 850 kB JSON | 18 kB – 45 kB JSON |
-| **Subsequent Dashboard View Time** | 350 ms – 900 ms (re-queried) | **< 5 ms** (served from workspace `serverCache` including `needsAttention`) |
+| **Subsequent Dashboard View Time** | 350 ms – 900 ms (re-queried) | **< 5 ms** (served from workspace `serverCache` including `needsAttention`, `setupProgress`, and `latestPayment`) |
 | **Duplicate Client Mount Requests** | 1–2 immediate duplicate requests per page (`global` -> `<wsId>` cache key flip) | **0 duplicate requests** (synchronous `AppContext` workspace resolution + SSR cache hydration) |
+| **12-Month Recurring Schedule Creation** | 25–36 sequential DB roundtrips (~6,500 ms) | **3 concurrent batch roundtrips (~520 ms — 12.5x faster)** |
+| **Documents Hub & Autopilot Dashboard Actions** | 5–6 sequential table queries (~1,400 ms – 1,680 ms cold) | **1 concurrent `Promise.all` stage (~280 ms cold / < 5 ms warm `serverCache`)** |
 
 ---
 

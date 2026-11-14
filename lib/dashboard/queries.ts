@@ -572,6 +572,10 @@ export async function getActivityLogs(propertyId: string) {
 }
 
 export async function getWorkspaceActivityLogs(workspaceId: string, propertyId?: string | null) {
+  const cacheKey = `workspace:${workspaceId}:activity_logs:${propertyId || 'all'}`;
+  const cached = serverCache.get<any[]>(cacheKey);
+  if (cached) return cached;
+
   const supabase = await createClient();
   let query = supabase
     .from('activity_logs')
@@ -592,7 +596,10 @@ export async function getWorkspaceActivityLogs(workspaceId: string, propertyId?:
   }
 
   const logItems = (logs || []) as any[];
-  if (!logItems.length) return [];
+  if (!logItems.length) {
+    serverCache.set(cacheKey, [], 30_000);
+    return [];
+  }
 
   const userIds = [...new Set(logItems.map((l) => l.user_id).filter(Boolean))] as string[];
   const { data: profiles } = userIds.length
@@ -601,7 +608,7 @@ export async function getWorkspaceActivityLogs(workspaceId: string, propertyId?:
 
   const profileMap = new Map(((profiles || []) as any[]).map((p) => [p.id, p]));
 
-  return logItems.map((log: any) => {
+  const result = logItems.map((log: any) => {
     const profile = log.user_id ? profileMap.get(log.user_id) : undefined;
     return {
       ...log,
@@ -612,6 +619,9 @@ export async function getWorkspaceActivityLogs(workspaceId: string, propertyId?:
       },
     };
   });
+
+  serverCache.set(cacheKey, result, 30_000);
+  return result;
 }
 
 interface TransactionRecord {

@@ -132,24 +132,14 @@ export async function fetchFinancialYearsOverviewAction(propertyId?: string): Pr
     const supabase = await createClient();
     const currentFY = getCurrentFinancialYearNumber();
 
-    // 1. Fetch properties for this workspace
-    const { data: propertiesData, error: propErr } = await supabase
-      .from('properties')
-      .select('id, name, address_line_1')
-      .eq('workspace_id', context.workspaceId)
-      .order('name', { ascending: true });
-
-    if (propErr) throw propErr;
-    const properties = propertiesData || [];
-
-    // 2. Generate canonical available financial years (5 years back, 1 year forward)
+    // 1. Generate canonical available financial years (5 years back, 1 year forward)
     const availableFys = getFinancialYears({ countBack: 5, countForward: 1 });
     const allStarts = availableFys.map((f) => f.range.start).filter(Boolean);
     const allEnds = availableFys.map((f) => f.range.end).filter(Boolean);
     const minDate = allStarts.reduce((min, cur) => (cur < min ? cur : min), allStarts[0]);
     const maxDate = allEnds.reduce((max, cur) => (cur > max ? cur : max), allEnds[0]);
 
-    // 3. Fetch completed & active transactions for this workspace within FY range (filtered by property if specified)
+    // 2. Build transactions query
     let txQuery = supabase
       .from('transactions')
       .select('id, amount, transaction_type, transaction_date, status, property_id, gst_inclusive, gst_amount')
@@ -164,8 +154,22 @@ export async function fetchFinancialYearsOverviewAction(propertyId?: string): Pr
       txQuery = txQuery.eq('property_id', propertyId);
     }
 
-    const { data: transactionsData, error: txErr } = await txQuery;
+    // 3. Fetch properties and transactions in parallel
+    const [
+      { data: propertiesData, error: propErr },
+      { data: transactionsData, error: txErr },
+    ] = await Promise.all([
+      supabase
+        .from('properties')
+        .select('id, name, address_line_1')
+        .eq('workspace_id', context.workspaceId)
+        .order('name', { ascending: true }),
+      txQuery,
+    ]);
+
+    if (propErr) throw propErr;
     if (txErr) throw txErr;
+    const properties = propertiesData || [];
     const transactions = (transactionsData || []) as any[];
 
     let totalHistoricalIncome = 0;

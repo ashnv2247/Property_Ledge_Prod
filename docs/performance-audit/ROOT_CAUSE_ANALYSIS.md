@@ -112,6 +112,25 @@ PropertyLedge was experiencing noticeable latency across route transitions, dash
 
 ---
 
+### Root Cause 9: N+1 Batch Loops & Multi-Table Sequential Waterfalls Across Server Actions & Services
+* **Location**: `lib/dashboard/setupProgress.ts`, `lib/billing/service.ts`, `lib/invoices/schedule-service.ts`, `lib/finance/scheduleService.ts`, `lib/finance/service.ts`, `lib/finance/expenseService.ts`, `lib/bas/service.ts`, `lib/finance/reporting-service.ts`, `app/actions/documents.ts`, `app/actions/condition-reports.ts`, `app/actions/autopilot.ts`, `app/actions/activities.ts`, `app/actions/accountant-reports-hub.ts`, `app/actions/financial-years.ts`, `app/actions/notifications.ts`.
+* **Mechanism**:
+  1. **Dashboard Setup & Billing**: `calculateSetupProgress` executed a 2-stage, 6-query waterfall on every `/dashboard` SSR load without caching; `getLatestPaymentForAccount` queried `billing_payments` on every `/dashboard` load without caching.
+  2. **N+1 Schedule Creation Loops**: `ScheduleEmailService.createSchedule` iterated over `previewItems` in a `for` loop and awaited 3 sequential `insert` queries per month (24–36 sequential DB roundtrips for a 12-month schedule). Similarly, `createPaymentSchedule` in `lib/finance/scheduleService.ts` looped over `insertedIds` and called `await getExpectedPaymentScheduleById(id)` N times sequentially.
+  3. **Multi-Table Action Waterfalls**:
+     - `fetchWorkspaceDocumentsAction` queried `documents`, `transactions`, `transaction_attachments`, `inspection_photos`, and `condition_reports` one after another in 5 sequential stages (and queried non-existent `transactions.date` instead of `transaction_date`).
+     - `fetchAutopilotDashboardAction` ran 6 sequential queries (and fetched `leases` across all workspaces without scoping to `properties.workspace_id`).
+     - `fetchEligiblePropertiesForAutopilotAction` (4 queries), `generateSuggestedDraftActivitiesAction` (5 queries), and `fetchActivityDetailAction` (8 queries) all executed sequentially instead of concurrently.
+     - `fetchAccountantBasSummaryAction` fetched all historical completed transactions without filtering by the BAS period date range (`dateRange.startDate`..`dateRange.endDate`).
+* **Remediation**:
+  1. Added `serverCache` to `calculateSetupProgress` (`user:${userId}:setup_progress`, 60s TTL) and `getLatestPaymentForAccount` (`account:${accountId}:latest_payment`, 60s TTL).
+  2. Replaced the `for`-loop inserts in `ScheduleEmailService.createSchedule` with a single batch `.insert(invoicePayloads).select(...)` followed by concurrent batch inserts for `invoice_items` and `invoice_scheduled_email_jobs` (`Promise.all`), and replaced the N+1 fetch loop in `createPaymentSchedule` with a single `.insert(insertPayload).select(...)` returning full relations.
+  3. Parallelized `fetchWorkspaceDocumentsAction`, `fetchAutopilotDashboardAction`, `fetchEligiblePropertiesForAutopilotAction`, `generateSuggestedDraftActivitiesAction`, `fetchActivityDetailAction`, `fetchConditionReportDetailAction`, `fetchFinancialYearsOverviewAction`, `fetchAccountantBasSummaryAction`, `createTransaction`, and `createExpense` using `Promise.all`.
+  4. Added workspace/user-scoped `serverCache` (with automatic mutation invalidation) to `getTransactions`, `getCategories`, `getExpenses`, `getSchedules`, `getScheduleStats`, `getBasPageData`, `ensureDefaultTaxClassifications`, `fetchFilteredTransactions`, `fetchWorkspaceDocumentsAction`, `fetchConditionReportsAction`, `fetchAutopilotDashboardAction`, `fetchAccountantBasSummaryAction`, `fetchFormDropdownOptionsAction`, `fetchReportFilterOptionsAction`, `getWorkspaceActivityLogs`, and `fetchNotifications`.
+  5. Replaced remaining `@phosphor-icons/react` imports in `DashboardClientLayout.tsx` and `Testimonials.tsx` with `lucide-react` and lazy-loaded `ScheduleEmailDetailDrawer` via `next/dynamic`.
+
+---
+
 ## 3. Bottleneck Interaction Matrix
 
 ```

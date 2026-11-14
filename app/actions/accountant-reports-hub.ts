@@ -3,6 +3,7 @@
 import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import { createClient } from '@/lib/supabase/server';
+import { serverCache } from '@/lib/cache/server-cache';
 import {
   FinanceReportFilters,
 } from '@/modules/finance/domain/reporting-types';
@@ -54,20 +55,20 @@ export interface AccountantHubFilters {
 export async function fetchAccountantBasSummaryAction(filters: AccountantHubFilters) {
   try {
     const { context } = await getAuthContext();
-    const supabase = await createClient();
-
     const fy = filters.financialYear || getCurrentFinancialYearNumber();
     const period = (filters.period === 'custom' ? 'FY' : filters.period) as BasPeriod;
+    const dateRange = resolveBasDateRange(fy, period);
 
-    // Fetch properties for workspace
-    const { data: propertiesData } = await supabase
-      .from('properties')
-      .select('id, name')
-      .eq('workspace_id', context.workspaceId);
-    const properties = propertiesData || [];
+    const cacheKey = `workspace:${context.workspaceId}:bas_summary:${fy}:${period}:${filters.propertyId || 'all'}`;
+    const cached = serverCache.get<any>(cacheKey);
+    if (cached) {
+      return { success: true, data: cached };
+    }
 
-    // Fetch transactions
-    let query = supabase
+    const supabase = await createClient();
+
+    // Fetch properties and transactions concurrently within the BAS date range
+    let txQuery = supabase
       .from('transactions')
       .select(`
         id,
@@ -100,15 +101,25 @@ export async function fetchAccountantBasSummaryAction(filters: AccountantHubFilt
         )
       `)
       .eq('workspace_id', context.workspaceId)
-      .eq('status', 'completed');
+      .eq('status', 'completed')
+      .gte('transaction_date', dateRange.startDate)
+      .lte('transaction_date', dateRange.endDate);
 
     if (filters.propertyId && filters.propertyId !== 'all') {
-      query = query.eq('property_id', filters.propertyId);
+      txQuery = txQuery.eq('property_id', filters.propertyId);
     }
 
-    const { data: txData, error: txErr } = await query;
+    const [{ data: propertiesData }, { data: txData, error: txErr }] = await Promise.all([
+      supabase
+        .from('properties')
+        .select('id, name')
+        .eq('workspace_id', context.workspaceId),
+      txQuery,
+    ]);
+
     if (txErr) throw txErr;
 
+    const properties = propertiesData || [];
     const transactions = (txData || []) as any[];
 
     // Calculate BAS worksheet using canonical Australian calculation engine
@@ -117,6 +128,8 @@ export async function fetchAccountantBasSummaryAction(filters: AccountantHubFilt
       period,
       propertyId: filters.propertyId === 'all' ? undefined : filters.propertyId,
     });
+
+    serverCache.set(cacheKey, worksheet, 30_000);
 
     return {
       success: true,

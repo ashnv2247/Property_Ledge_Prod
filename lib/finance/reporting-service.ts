@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { serverCache } from '@/lib/cache/server-cache';
 import {
   FinanceReportFilters,
   FinancialOverviewReportDTO,
@@ -50,8 +51,20 @@ async function fetchFilteredTransactions(filters: FinanceReportFilters): Promise
   transactions: TransactionDTO[];
   dateRange: FinancialYearRange;
 }> {
-  const supabase = await createClient();
   const dateRange = resolveFilterDateRange(filters);
+  const isCacheable = Boolean(filters.workspaceId) && !filters.searchQuery;
+  const cacheKey = isCacheable
+    ? `workspace:${filters.workspaceId}:report_tx:${dateRange.start}:${dateRange.end}:${filters.propertyId || 'all'}:${filters.transactionType || 'all'}:${filters.categoryId || 'all'}:${filters.taxClassificationId || 'all'}:${filters.tenantId || 'all'}:${filters.leaseId || 'all'}:${filters.status || 'all'}`
+    : null;
+
+  if (cacheKey) {
+    const cached = serverCache.get<TransactionDTO[]>(cacheKey);
+    if (cached) {
+      return { transactions: cached, dateRange };
+    }
+  }
+
+  const supabase = await createClient();
 
   let query = supabase
     .from('transactions')
@@ -141,6 +154,10 @@ async function fetchFilteredTransactions(filters: FinanceReportFilters): Promise
         tx.tenant?.first_name?.toLowerCase().includes(q) ||
         tx.tenant?.last_name?.toLowerCase().includes(q)
     );
+  }
+
+  if (cacheKey) {
+    serverCache.set(cacheKey, transactions, 30_000);
   }
 
   return { transactions, dateRange };

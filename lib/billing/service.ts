@@ -538,6 +538,12 @@ export async function getSubscriptionPaymentBySubId(subscriptionId: string): Pro
 }
 
 export async function getLatestPaymentForAccount(accountId: string): Promise<SubscriptionPayment | null> {
+  const cacheKey = `account:${accountId}:latest_payment`;
+  const cached = serverCache.get<SubscriptionPayment | null>(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   const supabase = await createAdminClient();
   const { data } = await (supabase as any)
     .from('subscription_payments')
@@ -547,7 +553,9 @@ export async function getLatestPaymentForAccount(accountId: string): Promise<Sub
     .limit(1)
     .maybeSingle();
 
-  return data;
+  const result = data ?? null;
+  serverCache.set(cacheKey, result, 60_000);
+  return result;
 }
 
 export async function getPaymentProofByPaymentId(paymentId: string): Promise<PaymentProof | null> {

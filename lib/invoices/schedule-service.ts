@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server';
+import { serverCache } from '@/lib/cache/server-cache';
 import {
   InvoiceEmailScheduleDTO,
   InvoiceScheduledEmailJobDTO,
@@ -107,24 +108,24 @@ export class InvoiceScheduleService {
   ): Promise<{ schedule: InvoiceEmailScheduleDTO; generatedCount: number }> {
     const supabase: any = await createAdminClient();
 
-    // 1. Fetch Source Invoice
-    const { data: sourceInvoice, error: invErr } = await supabase
-      .from('invoices')
-      .select('*')
-      .eq('id', input.sourceInvoiceId)
-      .eq('workspace_id', workspaceId)
-      .single();
+    // 1 & 2. Fetch Source Invoice and Source Invoice Items in parallel
+    const [{ data: sourceInvoice, error: invErr }, { data: sourceItems, error: itemsErr }] = await Promise.all([
+      supabase
+        .from('invoices')
+        .select('*')
+        .eq('id', input.sourceInvoiceId)
+        .eq('workspace_id', workspaceId)
+        .single(),
+      supabase
+        .from('invoice_items')
+        .select('*')
+        .eq('invoice_id', input.sourceInvoiceId)
+        .order('sort_order', { ascending: true }),
+    ]);
 
     if (invErr || !sourceInvoice) {
       throw new Error(`Source invoice not found: ${invErr?.message || 'Invalid ID'}`);
     }
-
-    // 2. Fetch Source Invoice Items
-    const { data: sourceItems, error: itemsErr } = await supabase
-      .from('invoice_items')
-      .select('*')
-      .eq('invoice_id', sourceInvoice.id)
-      .order('sort_order', { ascending: true });
 
     if (itemsErr) {
       throw new Error(`Failed to fetch source invoice line items: ${itemsErr.message}`);
@@ -222,7 +223,10 @@ export class InvoiceScheduleService {
     const emailJobsToInsert: any[] = [];
     const nowIso = new Date().toISOString();
 
-    // 6. Bulk-generate individual invoices for each month
+    // 6. Bulk-generate individual invoices for each month in a single batch insert
+    const invoicePayloads: Array<Record<string, any>> = [];
+    const monthMetaList: Array<{ ym: string; issueDate: string }> = [];
+
     for (let i = 0; i < months.length; i++) {
       const ym = months[i];
       const dates = computeInvoiceDates(ym, generationDay, dueDays, input.dueDateFixed);
@@ -230,8 +234,8 @@ export class InvoiceScheduleService {
       maxNum++;
       const invoiceNumber = `INV-${currentYear}-${String(maxNum).padStart(6, '0')}`;
 
-      // Independent Invoice Payload
-      const newInvoicePayload: Record<string, any> = {
+      monthMetaList.push({ ym, issueDate: dates.issueDate });
+      invoicePayloads.push({
         workspace_id: workspaceId,
         invoice_number: invoiceNumber,
         currency: sourceInvoice.currency || 'AUD',
@@ -260,46 +264,43 @@ export class InvoiceScheduleService {
         source_invoice_id: sourceInvoice.id,
         snapshot: sourceInvoice.snapshot || null,
         created_by: userId,
-      };
+      });
+    }
 
-      const { data: createdInv, error: createInvErr } = await supabase
-        .from('invoices')
-        .insert(newInvoicePayload)
-        .select()
-        .single();
+    const { data: createdInvoices, error: createInvErr } = await supabase
+      .from('invoices')
+      .insert(invoicePayloads)
+      .select('id, invoice_number, issue_date');
 
-      if (createInvErr || !createdInv) {
-        console.error(`[InvoiceScheduleService] Failed to insert invoice for ${ym}:`, createInvErr);
-        continue;
-      }
+    if (createInvErr || !createdInvoices) {
+      console.error('[InvoiceScheduleService] Failed to batch insert invoices:', createInvErr);
+      throw new Error(`Failed to generate scheduled invoices: ${createInvErr?.message || 'Database error'}`);
+    }
 
-      // Insert line items copy
+    const allItemInserts: Array<Record<string, any>> = [];
+    for (let i = 0; i < createdInvoices.length; i++) {
+      const createdInv = createdInvoices[i];
+      const meta = monthMetaList[i] || { ym: months[i], issueDate: createdInv.issue_date };
+
       if (sourceItems && sourceItems.length > 0) {
-        const itemInserts = sourceItems.map((item: any, idx: number) => ({
-          invoice_id: createdInv.id,
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          amount: item.amount,
-          tax_rate: item.tax_rate,
-          tax_amount: item.tax_amount,
-          line_total: item.line_total,
-          sort_order: idx,
-        }));
-
-        const { error: itemsInsertErr } = await supabase
-          .from('invoice_items')
-          .insert(itemInserts);
-
-        if (itemsInsertErr) {
-          console.error(`[InvoiceScheduleService] Failed to insert line items for invoice ${invoiceNumber}:`, itemsInsertErr);
+        for (let idx = 0; idx < sourceItems.length; idx++) {
+          const item = sourceItems[idx];
+          allItemInserts.push({
+            invoice_id: createdInv.id,
+            description: item.description,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            amount: item.amount,
+            tax_rate: item.tax_rate,
+            tax_amount: item.tax_amount,
+            line_total: item.line_total,
+            sort_order: idx,
+          });
         }
       }
 
-      // If Automatic Email Sending is enabled, schedule an email delivery job
       if (emailMode === 'automatic') {
-        // Scheduled send date is on issue date at 08:00 UTC (or immediately if already past/today)
-        const scheduledTime = new Date(`${dates.issueDate}T08:00:00.000Z`);
+        const scheduledTime = new Date(`${meta.issueDate}T08:00:00.000Z`);
         const finalScheduledSendDate = scheduledTime.getTime() <= Date.now() ? nowIso : scheduledTime.toISOString();
 
         emailJobsToInsert.push({
@@ -308,7 +309,7 @@ export class InvoiceScheduleService {
           invoice_id: createdInv.id,
           recipient_email: recipientEmail,
           recipient_name: recipientName,
-          billing_month: ym,
+          billing_month: meta.ym,
           scheduled_send_date: finalScheduledSendDate,
           status: 'scheduled',
           attempts: 0,
@@ -319,16 +320,21 @@ export class InvoiceScheduleService {
       }
     }
 
-    // Insert scheduled email jobs
-    if (emailJobsToInsert.length > 0) {
-      const { error: jobsErr } = await supabase
-        .from('invoice_scheduled_email_jobs')
-        .insert(emailJobsToInsert);
+    // Batch insert line items and email jobs concurrently
+    await Promise.all([
+      allItemInserts.length > 0
+        ? supabase.from('invoice_items').insert(allItemInserts).then(({ error }: any) => {
+            if (error) console.error('[InvoiceScheduleService] Failed to batch insert line items:', error);
+          })
+        : Promise.resolve(),
+      emailJobsToInsert.length > 0
+        ? supabase.from('invoice_scheduled_email_jobs').insert(emailJobsToInsert).then(({ error }: any) => {
+            if (error) console.error('[InvoiceScheduleService] Failed to insert email delivery jobs:', error);
+          })
+        : Promise.resolve(),
+    ]);
 
-      if (jobsErr) {
-        console.error('[InvoiceScheduleService] Failed to insert email delivery jobs:', jobsErr);
-      }
-    }
+    serverCache.invalidateWorkspace(workspaceId);
 
     return {
       schedule: scheduleRecord as InvoiceEmailScheduleDTO,
@@ -340,6 +346,21 @@ export class InvoiceScheduleService {
    * Fetches schedules with filtering and pagination.
    */
   async getSchedules(workspaceId: string, filters: ScheduleEmailFilters = {}) {
+    const isCacheable = !filters.search && (filters.page || 1) === 1;
+    const cacheKey = isCacheable
+      ? `workspace:${workspaceId}:invoice_schedules:${filters.status || 'all'}:${filters.emailMode || 'all'}:${filters.propertyId || 'all'}:${filters.tenantId || 'all'}:${filters.sortBy || 'created_at'}:${filters.sortOrder || 'desc'}:${filters.limit || 50}`
+      : null;
+
+    if (cacheKey) {
+      const cached = serverCache.get<{
+        items: InvoiceEmailScheduleDTO[];
+        total: number;
+        page: number;
+        limit: number;
+      }>(cacheKey);
+      if (cached) return cached;
+    }
+
     const supabase: any = await createAdminClient();
 
     let query = supabase
@@ -421,18 +442,26 @@ export class InvoiceScheduleService {
       tenantName: row.tenant ? `${row.tenant.first_name || ''} ${row.tenant.last_name || ''}`.trim() : undefined,
     }));
 
-    return {
+    const result = {
       items: enrichedSchedules,
       total: count || 0,
       page,
       limit,
     };
+    if (cacheKey) {
+      serverCache.set(cacheKey, result, 30_000);
+    }
+    return result;
   }
 
   /**
    * Fetches dynamic summary statistics for Schedule Email page.
    */
   async getScheduleStats(workspaceId: string): Promise<ScheduleEmailStatsDTO> {
+    const cacheKey = `workspace:${workspaceId}:invoice_schedule_stats`;
+    const cached = serverCache.get<ScheduleEmailStatsDTO>(cacheKey);
+    if (cached) return cached;
+
     const supabase: any = await createAdminClient();
 
     const { data: schedules, error } = await supabase
@@ -463,13 +492,15 @@ export class InvoiceScheduleService {
       emailsFailed += s.emails_failed_count || 0;
     }
 
-    return {
+    const result: ScheduleEmailStatsDTO = {
       totalSchedules: (schedules || []).length,
       totalInvoicesGenerated,
       emailsSent,
       emailsPending,
       emailsFailed,
     };
+    serverCache.set(cacheKey, result, 30_000);
+    return result;
   }
 
   /**
@@ -478,39 +509,40 @@ export class InvoiceScheduleService {
   async getScheduleDetails(scheduleId: string, workspaceId: string) {
     const supabase: any = await createAdminClient();
 
-    // Schedule info
-    const { data: schedule, error: schedErr } = await supabase
-      .from('invoice_email_schedules')
-      .select(`
-        *,
-        source_invoice:invoices!source_invoice_id(id, invoice_number, total_amount, currency),
-        property:properties!property_id(name),
-        tenant:tenants!tenant_id(first_name, last_name)
-      `)
-      .eq('id', scheduleId)
-      .eq('workspace_id', workspaceId)
-      .single();
+    const [
+      { data: schedule, error: schedErr },
+      { data: generatedInvoices },
+      { data: emailJobs },
+    ] = await Promise.all([
+      supabase
+        .from('invoice_email_schedules')
+        .select(`
+          *,
+          source_invoice:invoices!source_invoice_id(id, invoice_number, total_amount, currency),
+          property:properties!property_id(name),
+          tenant:tenants!tenant_id(first_name, last_name)
+        `)
+        .eq('id', scheduleId)
+        .eq('workspace_id', workspaceId)
+        .single(),
+      supabase
+        .from('invoices')
+        .select('id, invoice_number, issue_date, due_date, total_amount, balance_due, status, email_status, billing_period_start, billing_period_end, currency')
+        .eq('schedule_id', scheduleId)
+        .order('issue_date', { ascending: true }),
+      supabase
+        .from('invoice_scheduled_email_jobs')
+        .select(`
+          *,
+          invoice:invoices!invoice_id(invoice_number, total_amount, status, due_date)
+        `)
+        .eq('schedule_id', scheduleId)
+        .order('scheduled_send_date', { ascending: true }),
+    ]);
 
     if (schedErr || !schedule) {
       throw new Error(`Schedule not found: ${schedErr?.message || 'Invalid ID'}`);
     }
-
-    // Generated Invoices
-    const { data: generatedInvoices } = await supabase
-      .from('invoices')
-      .select('id, invoice_number, issue_date, due_date, total_amount, balance_due, status, email_status, billing_period_start, billing_period_end, currency')
-      .eq('schedule_id', scheduleId)
-      .order('issue_date', { ascending: true });
-
-    // Email delivery jobs
-    const { data: emailJobs } = await supabase
-      .from('invoice_scheduled_email_jobs')
-      .select(`
-        *,
-        invoice:invoices!invoice_id(invoice_number, total_amount, status, due_date)
-      `)
-      .eq('schedule_id', scheduleId)
-      .order('scheduled_send_date', { ascending: true });
 
     const formattedJobs: InvoiceScheduledEmailJobDTO[] = (emailJobs || []).map((job: any) => ({
       id: job.id,
@@ -564,6 +596,7 @@ export class InvoiceScheduleService {
       .single();
 
     if (error) throw new Error(`Failed to pause schedule: ${error.message}`);
+    serverCache.invalidateWorkspace(workspaceId);
     return data;
   }
 
@@ -581,6 +614,7 @@ export class InvoiceScheduleService {
       .single();
 
     if (error) throw new Error(`Failed to resume schedule: ${error.message}`);
+    serverCache.invalidateWorkspace(workspaceId);
     return data;
   }
 
@@ -608,6 +642,7 @@ export class InvoiceScheduleService {
       .eq('schedule_id', scheduleId)
       .in('status', ['scheduled', 'pending']);
 
+    serverCache.invalidateWorkspace(workspaceId);
     return data;
   }
 
