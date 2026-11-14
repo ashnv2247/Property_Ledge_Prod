@@ -158,8 +158,17 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
   }, [invoices, activePropertyId, includeIndependent]);
 
   const displayedInvoices = useMemo(() => {
-    if (statusFilter === 'all') return scopedInvoices;
-    return scopedInvoices.filter((inv) => inv.status === statusFilter);
+    const list =
+      statusFilter === 'all'
+        ? scopedInvoices
+        : scopedInvoices.filter((inv) => inv.status === statusFilter);
+
+    return [...list].sort((a, b) => {
+      const t1 = a.issueDate ? new Date(a.issueDate).getTime() : 0;
+      const t2 = b.issueDate ? new Date(b.issueDate).getTime() : 0;
+      if (t1 !== t2) return t1 - t2;
+      return (a.invoiceNumber || '').localeCompare(b.invoiceNumber || '');
+    });
   }, [scopedInvoices, statusFilter]);
 
   // KPIs strictly reflecting current property context and filters with transparent calculation derivations
@@ -551,6 +560,12 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
         headerName: 'Issue Date',
         field: 'issueDate',
         width: 130,
+        sort: 'asc',
+        comparator: (d1: string, d2: string) => {
+          const t1 = d1 ? new Date(d1).getTime() : 0;
+          const t2 = d2 ? new Date(d2).getTime() : 0;
+          return t1 - t2;
+        },
         cellRenderer: (params: any) => {
           const inv = params.data as InvoiceDTO;
           if (!inv) return null;
@@ -565,6 +580,11 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
         headerName: 'Due Date',
         field: 'dueDate',
         width: 130,
+        comparator: (d1: string, d2: string) => {
+          const t1 = d1 ? new Date(d1).getTime() : 0;
+          const t2 = d2 ? new Date(d2).getTime() : 0;
+          return t1 - t2;
+        },
         cellRenderer: (params: any) => {
           const inv = params.data as InvoiceDTO;
           if (!inv) return null;

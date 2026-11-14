@@ -83,7 +83,8 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
           template_id, notes, payment_instructions, cancellation_reason,
           issued_at, paid_at, automation_id
         `)
-        .order('created_at', { ascending: false });
+        .order('issue_date', { ascending: true })
+        .order('created_at', { ascending: true });
 
       if (filters.workspaceId) {
         query = query.eq('workspace_id', filters.workspaceId);
