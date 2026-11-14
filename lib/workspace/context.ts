@@ -32,17 +32,18 @@ export const getUserWorkspaces = cache(async function getUserWorkspaces(userId: 
   }
 
   const supabase = await createClient();
-  const { data: owned } = await supabase
-    .from('workspaces')
-    .select('id, name, slug, status, avatar_url')
-    .eq('owner_id', userId)
-    .eq('status', 'active');
-
-  const { data: memberOf } = await supabase
-    .from('workspace_members')
-    .select('workspace_id, role_id, team_roles(name), workspaces(id, name, slug, status, avatar_url)')
-    .eq('user_id', userId)
-    .eq('status', 'active');
+  const [{ data: owned }, { data: memberOf }] = await Promise.all([
+    supabase
+      .from('workspaces')
+      .select('id, name, slug, status, avatar_url')
+      .eq('owner_id', userId)
+      .eq('status', 'active'),
+    supabase
+      .from('workspace_members')
+      .select('workspace_id, role_id, team_roles(name), workspaces(id, name, slug, status, avatar_url)')
+      .eq('user_id', userId)
+      .eq('status', 'active'),
+  ]);
 
   const map = new Map<string, {
     id: string;
@@ -97,12 +98,30 @@ export const resolveWorkspaceContextById = cache(async function resolveWorkspace
   }
 
   const supabase = await createClient();
-  const { data: ws } = await supabase
-    .from('workspaces')
-    .select('id, name, owner_id')
-    .eq('id', wsId)
-    .eq('status', 'active')
-    .maybeSingle();
+  const [{ data: ws }, { data: membership }, { data: ownerRole }, permissions] = await Promise.all([
+    supabase
+      .from('workspaces')
+      .select('id, name, owner_id')
+      .eq('id', wsId)
+      .eq('status', 'active')
+      .maybeSingle(),
+    supabase
+      .from('workspace_members')
+      .select('role_id, team_roles(name)')
+      .eq('workspace_id', wsId)
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .maybeSingle(),
+    cachedOwnerRole
+      ? Promise.resolve({ data: cachedOwnerRole })
+      : supabase
+          .from('team_roles')
+          .select('id, name')
+          .is('workspace_id', null)
+          .ilike('name', 'owner')
+          .maybeSingle(),
+    getEffectiveWorkspacePermissions(wsId, userId),
+  ]);
 
   if (!ws) return null;
 
@@ -111,29 +130,13 @@ export const resolveWorkspaceContextById = cache(async function resolveWorkspace
   let roleName: string | null = isOwner ? 'Owner' : null;
 
   if (!isOwner) {
-    const { data: membership } = await supabase
-      .from('workspace_members')
-      .select('role_id, team_roles(name)')
-      .eq('workspace_id', wsId)
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .maybeSingle();
-
     if (!membership) return null;
     const m = membership as { role_id: string | null; team_roles?: { name?: string } | null };
     roleId = m.role_id;
     roleName = m.team_roles?.name ?? null;
   } else {
-    if (!cachedOwnerRole) {
-      const { data: ownerRole } = await supabase
-        .from('team_roles')
-        .select('id, name')
-        .is('workspace_id', null)
-        .ilike('name', 'owner')
-        .maybeSingle();
-      if (ownerRole) {
-        cachedOwnerRole = { id: (ownerRole as { id: string }).id, name: (ownerRole as { name: string }).name };
-      }
+    if (!cachedOwnerRole && ownerRole) {
+      cachedOwnerRole = { id: (ownerRole as { id: string }).id, name: (ownerRole as { name: string }).name };
     }
     if (cachedOwnerRole) {
       roleId = cachedOwnerRole.id;
@@ -141,10 +144,7 @@ export const resolveWorkspaceContextById = cache(async function resolveWorkspace
     }
   }
 
-  const [permissions, billing] = await Promise.all([
-    getEffectiveWorkspacePermissions(wsId, userId),
-    resolveWorkspaceBilling(wsId, (ws as { owner_id: string }).owner_id),
-  ]);
+  const billing = await resolveWorkspaceBilling(wsId, (ws as { owner_id: string }).owner_id);
 
   const result: WorkspaceContext = {
     workspaceId: wsId,

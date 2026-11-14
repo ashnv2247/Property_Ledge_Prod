@@ -11,6 +11,7 @@ import {
   CachedData,
 } from '@/lib/stores/useEntityCacheStore';
 import { useWorkspaceStore } from '@/lib/stores/useWorkspaceStore';
+import { useAppContextOptional } from '@/components/context/AppContextProvider';
 import { usePropertyContextOptional } from '@/components/property/PropertyContext';
 
 export interface UsePersistentEntityQueryOptions<T> {
@@ -52,7 +53,8 @@ export function usePersistentEntityQuery<T>({
   onError,
 }: UsePersistentEntityQueryOptions<T>): UsePersistentEntityQueryResult<T> {
   const storeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
-  const effectiveWorkspaceId = workspaceId || storeWorkspaceId;
+  const appContext = useAppContextOptional();
+  const effectiveWorkspaceId = workspaceId || storeWorkspaceId || appContext?.workspaceId || null;
   const propertyContext = usePropertyContextOptional();
   const WORKSPACE_WIDE_ENTITIES = new Set([
     'properties',
@@ -82,24 +84,25 @@ export function usePersistentEntityQuery<T>({
   }, [cacheKey]);
 
   // Determine initial usable data
+  const hasServerInitialData = initialData !== undefined && initialData !== null;
   const fallbackEmpty = (Array.isArray(initialData) ? [] : null) as unknown as T;
-  const initialUsable: T = (cachedEntry?.data ?? initialData ?? fallbackEmpty) as T;
+  const initialUsable: T = (cachedEntry?.data ?? (hasServerInitialData ? initialData : fallbackEmpty)) as T;
 
   // If server provided initialData but store doesn't have it yet, hydrate store once
   useEffect(() => {
-    if (!useEntityCacheStore.getState().cacheMap[cacheKey] && initialData) {
+    if (!useEntityCacheStore.getState().cacheMap[cacheKey] && hasServerInitialData) {
       useEntityCacheStore
         .getState()
-        .setKeyedData(cacheKey, initialData, effectiveWorkspaceId, effectivePropertyId);
+        .setKeyedData(cacheKey, initialData as T, effectiveWorkspaceId, effectivePropertyId);
     }
-  }, [cacheKey, initialData, effectiveWorkspaceId, effectivePropertyId]);
+  }, [cacheKey, hasServerInitialData, initialData, effectiveWorkspaceId, effectivePropertyId]);
 
   const [data, setData] = useState<T>(() => initialUsable);
-  const [isLoading, setIsLoading] = useState<boolean>(() => !initialUsable && enabled);
+  const [isLoading, setIsLoading] = useState<boolean>(() => !cachedEntry?.data && !hasServerInitialData && enabled);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(() => {
     if (cachedEntry?.fetchedAt) return new Date(cachedEntry.fetchedAt);
-    if (initialData) return new Date();
+    if (hasServerInitialData) return new Date();
     return null;
   });
   const [error, setError] = useState<string | null>(() => cachedEntry?.error ?? null);

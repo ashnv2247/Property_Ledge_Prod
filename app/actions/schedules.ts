@@ -1,7 +1,8 @@
-'use me';
 'use server';
 
 import { authClient } from '@/modules/auth';
+import { resolveWorkspaceContext } from '@/lib/workspace/context';
+import { serverCache } from '@/lib/cache/server-cache';
 import {
   getExpectedPaymentSchedules,
   getExpectedPaymentScheduleById,
@@ -27,8 +28,16 @@ export type { SchedulesPageData } from '@/lib/finance/scheduleService';
 
 export async function fetchSchedulesPageDataAction(filters: ExpectedScheduleFilterParams = {}) {
   try {
+    let resolvedWorkspaceId = filters.workspace_id;
+    if (!resolvedWorkspaceId) {
+      const wsCtx = await resolveWorkspaceContext();
+      resolvedWorkspaceId = wsCtx?.workspaceId;
+    }
     const { getSchedulesPageData } = await import('@/lib/finance/scheduleService');
-    const data = await getSchedulesPageData(filters);
+    const data = await getSchedulesPageData({
+      ...filters,
+      workspace_id: resolvedWorkspaceId,
+    });
     return { success: true, data };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to fetch schedules page data';
@@ -38,7 +47,15 @@ export async function fetchSchedulesPageDataAction(filters: ExpectedScheduleFilt
 
 export async function fetchExpectedSchedulesAction(filters: ExpectedScheduleFilterParams = {}) {
   try {
-    const data = await getExpectedPaymentSchedules(filters);
+    let resolvedWorkspaceId = filters.workspace_id;
+    if (!resolvedWorkspaceId) {
+      const wsCtx = await resolveWorkspaceContext();
+      resolvedWorkspaceId = wsCtx?.workspaceId;
+    }
+    const data = await getExpectedPaymentSchedules({
+      ...filters,
+      workspace_id: resolvedWorkspaceId,
+    });
     return { success: true, data };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to fetch schedules';
@@ -50,6 +67,7 @@ export async function createScheduleAction(input: CreateExpectedScheduleInput) {
   try {
     const user = await authClient.getCurrentUser();
     const data = await createPaymentSchedule(input, user?.id);
+    serverCache.invalidatePrefix('schedules:');
     revalidatePath('/dashboard/schedules');
     revalidatePath('/dashboard/money');
     return { success: true, data };
@@ -63,6 +81,7 @@ export async function updateExpectedEntryAction(id: string, input: UpdateExpecte
   try {
     const user = await authClient.getCurrentUser();
     const data = await updateExpectedPaymentEntry(id, input, user?.id);
+    serverCache.invalidatePrefix('schedules:');
     revalidatePath('/dashboard/schedules');
     revalidatePath('/dashboard/money');
     return { success: true, data };
@@ -76,6 +95,7 @@ export async function deleteExpectedEntryAction(id: string) {
   try {
     const user = await authClient.getCurrentUser();
     await deleteExpectedPaymentEntry(id, user?.id);
+    serverCache.invalidatePrefix('schedules:');
     revalidatePath('/dashboard/schedules');
     revalidatePath('/dashboard/money');
     return { success: true };

@@ -136,6 +136,17 @@ export function LeaseManagementPage({ initialLeases, initialProperties }: LeaseM
     };
   }, [activePropertyId]);
 
+  const initialLeaseBundle = useMemo(
+    () =>
+      initialLeases !== undefined
+        ? {
+            leases: initialLeases,
+            properties: initialProperties || [],
+          }
+        : null,
+    [initialLeases, initialProperties]
+  );
+
   const {
     data: leaseBundle,
     setData: setLeaseBundle,
@@ -147,13 +158,7 @@ export function LeaseManagementPage({ initialLeases, initialProperties }: LeaseM
     entity: 'leases',
     workspaceId: activeWorkspaceId,
     propertyId: activePropertyId,
-    initialData:
-      initialLeases && initialLeases.length > 0
-        ? {
-            leases: initialLeases,
-            properties: initialProperties || [],
-          }
-        : null,
+    initialData: initialLeaseBundle,
     freshnessTier: 'normal',
     fetcher,
     onError: (err) => {

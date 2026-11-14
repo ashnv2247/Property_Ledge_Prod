@@ -32,13 +32,30 @@ import {
   ScheduleType,
 } from '@/modules/finance/domain/types';
 import { fetchExpectedSchedulesAction, deleteExpectedEntryAction } from '@/app/actions/schedules';
-import { CreateScheduleModal } from './CreateScheduleModal';
-import { ScheduleTypeSelectModal } from './ScheduleTypeSelectModal';
-import { LinkTransactionModal } from './LinkTransactionModal';
-import { MultiAllocationModal } from './MultiAllocationModal';
-import { EditScheduleModal } from './EditScheduleModal';
+import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
 import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
+
+const CreateScheduleModal = dynamic(
+  () => import('./CreateScheduleModal').then((mod) => mod.CreateScheduleModal),
+  { ssr: false }
+);
+const ScheduleTypeSelectModal = dynamic(
+  () => import('./ScheduleTypeSelectModal').then((mod) => mod.ScheduleTypeSelectModal),
+  { ssr: false }
+);
+const LinkTransactionModal = dynamic(
+  () => import('./LinkTransactionModal').then((mod) => mod.LinkTransactionModal),
+  { ssr: false }
+);
+const MultiAllocationModal = dynamic(
+  () => import('./MultiAllocationModal').then((mod) => mod.MultiAllocationModal),
+  { ssr: false }
+);
+const EditScheduleModal = dynamic(
+  () => import('./EditScheduleModal').then((mod) => mod.EditScheduleModal),
+  { ssr: false }
+);
 
 interface ExpectedScheduleListProps {
   initialSchedules?: ExpectedPaymentScheduleDTO[];

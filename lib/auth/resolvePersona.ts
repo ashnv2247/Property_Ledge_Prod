@@ -41,36 +41,38 @@ export const getPersonaForUser = cache(async function getPersonaForUser(userId: 
     return cached;
   }
 
-  if (await isAdmin(userId)) {
-    const res: PersonaContext = { persona: 'platform_admin' };
-    serverCache.set(cacheKey, res, 60_000);
-    return res;
-  }
-
   const supabase = await createClient();
 
-  const { data: ownedWorkspace } = await supabase
-    .from('workspaces')
-    .select('id')
-    .eq('owner_id', userId)
-    .eq('status', 'active')
-    .limit(1)
-    .maybeSingle();
-
-  let result: PersonaContext = { persona: 'owner', workspaceRole: null };
-
-  if (ownedWorkspace) {
-    result = { persona: 'owner', workspaceRole: 'owner' };
-  } else {
-    const { data: workspaceMembership } = await supabase
+  const [adminFlag, { data: ownedWorkspace }, { data: workspaceMembership }] = await Promise.all([
+    isAdmin(userId),
+    supabase
+      .from('workspaces')
+      .select('id')
+      .eq('owner_id', userId)
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle(),
+    supabase
       .from('workspace_members')
       .select('role_id, team_roles(name)')
       .eq('user_id', userId)
       .eq('status', 'active')
       .order('created_at', { ascending: true })
       .limit(1)
-      .maybeSingle();
+      .maybeSingle(),
+  ]);
 
+  if (adminFlag) {
+    const res: PersonaContext = { persona: 'platform_admin' };
+    serverCache.set(cacheKey, res, 60_000);
+    return res;
+  }
+
+  let result: PersonaContext = { persona: 'owner', workspaceRole: null };
+
+  if (ownedWorkspace) {
+    result = { persona: 'owner', workspaceRole: 'owner' };
+  } else {
     const membership = workspaceMembership as {
       role_id?: string | null;
       team_roles?: { name?: string } | null;
@@ -81,14 +83,23 @@ export const getPersonaForUser = cache(async function getPersonaForUser(userId: 
     if (persona) {
       result = { persona, workspaceRole: roleName?.toLowerCase() ?? null };
     } else {
-      const { data: propertyMembership } = await supabase
-        .from('property_members')
-        .select('role')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
+      const [{ data: propertyMembership }, { data: tenantRecord }] = await Promise.all([
+        supabase
+          .from('property_members')
+          .select('role')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('tenants')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
       const typedPropertyMembership = propertyMembership as { role: string } | null;
 
@@ -97,18 +108,8 @@ export const getPersonaForUser = cache(async function getPersonaForUser(userId: 
         if (['owner', 'manager', 'agent', 'staff', 'viewer'].includes(role)) {
           result = { persona: role, workspaceRole: role };
         }
-      } else {
-        const { data: tenantRecord } = await supabase
-          .from('tenants')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('status', 'active')
-          .limit(1)
-          .maybeSingle();
-
-        if (tenantRecord) {
-          result = { persona: 'tenant', workspaceRole: 'tenant' };
-        }
+      } else if (tenantRecord) {
+        result = { persona: 'tenant', workspaceRole: 'tenant' };
       }
     }
   }

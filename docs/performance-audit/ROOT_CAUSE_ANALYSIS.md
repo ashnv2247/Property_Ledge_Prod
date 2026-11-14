@@ -74,14 +74,41 @@ PropertyLedge was experiencing noticeable latency across route transitions, dash
 
 ---
 
-### Root Cause 6: Duplicate Client-Side Re-fetches on Initial Mount
-* **Location**: `components/dashboard/overview/DashboardOverview.tsx`
+### Root Cause 6: Duplicate Client-Side Re-fetches on Initial Mount (`DashboardOverview` & `usePersistentEntityQuery`)
+* **Location**: `components/dashboard/overview/DashboardOverview.tsx`, `components/context/AppContextProvider.tsx`, `lib/hooks/usePersistentEntityQuery.ts`, `LeaseManagementPage.tsx`, `ConditionReportsDashboard.tsx`, `PropertiesClientView.tsx`.
 * **Mechanism**:
-  `DashboardOverview` received fresh `initialData` from the server layout SSR. However, its SWR coordination effect did not guard against the initial mount cycle: because client Zustand store hydration takes one microtask to propagate `activeWorkspaceId`, the effect evaluated `isCurrentMatching` as false and immediately fired a duplicate `loadData(false)` call to the backend.
-* **Compounding Effect**:
-  Every time a user opened the dashboard, the browser initiated a redundant network call to `fetchDashboardDataAction`, consuming server resources and causing unnecessary re-renders.
+  1. In React, child `useEffect` hooks execute *before* parent `useEffect` hooks. Because `AppContextProvider` hydrated `useWorkspaceStore` inside a parent `useEffect`, `useWorkspaceStore((s) => s.activeWorkspaceId)` was `null` during the initial render and initial `useEffect` of every child page using `usePersistentEntityQuery`.
+  2. Consequently, `usePersistentEntityQuery` initially computed `cacheKey = "<entity>:global:all"`, and one microtask later—when `AppContextProvider`'s `useEffect` ran—flipped `cacheKey` to `"<entity>:<wsId>:all"`, triggering an immediate duplicate client-side Server Action fetch on mount across all 10 entity pages.
+  3. Additionally, `LeaseManagementPage`, `ConditionReportsDashboard`, and `PropertiesClientView` passed `initialData: initialItems && initialItems.length > 0 ? initialItems : null`, which treated a valid empty array `[]` from SSR as `null` and forced an immediate redundant client refetch and skeleton state whenever a workspace had 0 records.
 * **Remediation**:
-  Introduced `servedByServerRef` to detect that fresh SSR initial data was delivered, hydrating the cache synchronously and suppressing the redundant immediate client fetch.
+  1. Exposed `useAppContextOptional()` from `AppContextProvider` (with `workspaceId = storeWorkspaceId ?? resolvedWsId` available synchronously on first render) and updated `usePersistentEntityQuery` to fall back to `appContext?.workspaceId`, eliminating the `global` -> `<wsId>` cache key flip.
+  2. Updated `usePersistentEntityQuery` (`hasServerInitialData = initialData !== undefined && initialData !== null`) and entity views (`LeaseManagementPage`, `ConditionReportsDashboard`, `PropertiesClientView`) to preserve empty SSR arrays `[]` and memoize initial bundle references.
+
+---
+
+### Root Cause 7: Bundle & Module Compilation Bloat (6,630 Modules)
+* **Location**: `next.config.ts`, `components/finance/ExpenseList.tsx`, `components/finance/ExpectedScheduleList.tsx`, `components/finance/FinancialList.tsx`.
+* **Mechanism**:
+  1. `@phosphor-icons/react`, `lucide-react`, `recharts`, `d3`, `date-fns`, and `framer-motion` were not configured under `experimental.optimizePackageImports` in `next.config.ts`, causing barrel imports to pull thousands of unused icon and chart modules into the bundle graph.
+  2. Heavy closed modals (`AccountantReportModal` pulling in `jspdf`, `jspdf-autotable`, and `pdf-lib`; `BulkExpenseUploadModal`; `ExpenseModal`; `CreateScheduleModal`; `TransactionModal`) were statically imported into top-level list views even when never opened by the user.
+* **Remediation**:
+  1. Configured `experimental.optimizePackageImports` in `next.config.ts` for `['lucide-react', '@phosphor-icons/react', 'recharts', 'd3', 'date-fns', 'framer-motion']`.
+  2. Converted closed modals across `ExpenseList.tsx`, `ExpectedScheduleList.tsx`, and `FinancialList.tsx` to `next/dynamic` (`ssr: false`).
+
+---
+
+### Root Cause 8: Sequential Database Waterfalls in Auth, Workspace & Property Resolution
+* **Location**: `lib/workspace/context.ts`, `lib/auth/resolvePersona.ts`, `lib/properties/queries.ts`, `lib/dashboard/queries.ts`, `app/actions/schedules.ts`, `lib/finance/scheduleService.ts`.
+* **Mechanism**:
+  - `getUserWorkspaces` queried `workspaces` (owned) and `workspace_members` (memberOf) sequentially instead of concurrently.
+  - `resolveWorkspaceContextById` executed 3 sequential stages (`workspaces` -> `workspace_members`/`team_roles` -> `permissions`).
+  - `getPersonaForUser` executed up to 5 sequential queries (`isAdmin` -> `workspaces` -> `workspace_members` -> `property_members` -> `tenants`).
+  - `getUserProperties` executed a sequential second query to `workspaces` to fetch workspace names instead of joining `workspaces(name)` directly in the property query.
+  - `getWorkspaceNeedsAttention`, `getNeedsAttention`, `getReportsSummary`, and `getExpectedPaymentSchedules` lacked `serverCache` (30s TTL), and `app/actions/schedules.ts` had a stray `'use me';` directive on line 1 before `'use server';`.
+* **Remediation**:
+  - Parallelized all independent queries with `Promise.all` across `lib/workspace/context.ts`, `lib/auth/resolvePersona.ts`, `lib/properties/queries.ts`, and `lib/dashboard/queries.ts`.
+  - Joined `workspaces(name)` directly in `getUserProperties`.
+  - Added workspace-scoped `serverCache` (30s TTL) to `getWorkspaceNeedsAttention`, `getNeedsAttention`, `getReportsSummary`, and `getExpectedPaymentSchedules`, bounded `getReportsSummary` transactions to 24 months, added `.limit(200)` bounds to property entity queries, and fixed `'use server';` in `app/actions/schedules.ts`.
 
 ---
 

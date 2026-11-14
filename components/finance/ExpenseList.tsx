@@ -43,16 +43,30 @@ import {
   fetchExpensesAction,
   deleteExpenseAction,
 } from '@/app/actions/expenses';
-import { ExpenseModal } from './ExpenseModal';
-import { ExpenseDetailModal } from './ExpenseDetailModal';
-import { BulkExpenseUploadModal } from './BulkExpenseUploadModal';
+import dynamic from 'next/dynamic';
 import { ExpenseCategoryPieChart } from './ExpenseCategoryPieChart';
 import { ExpenseBudgetTrackerCard } from './ExpenseBudgetTrackerCard';
-import { AccountantReportModal } from '@/components/reports/AccountantReportModal';
 import { formatCurrency } from '@/lib/format/currency';
 import { formatAuDisplayDate } from '@/lib/format/australian-time';
 import { cn } from '@/lib/utils';
 import { usePersistentEntityQuery } from '@/lib/hooks/usePersistentEntityQuery';
+
+const ExpenseModal = dynamic(
+  () => import('./ExpenseModal').then((mod) => mod.ExpenseModal),
+  { ssr: false }
+);
+const ExpenseDetailModal = dynamic(
+  () => import('./ExpenseDetailModal').then((mod) => mod.ExpenseDetailModal),
+  { ssr: false }
+);
+const BulkExpenseUploadModal = dynamic(
+  () => import('./BulkExpenseUploadModal').then((mod) => mod.BulkExpenseUploadModal),
+  { ssr: false }
+);
+const AccountantReportModal = dynamic(
+  () => import('@/components/reports/AccountantReportModal').then((mod) => mod.AccountantReportModal),
+  { ssr: false }
+);
 
 interface ExpenseListProps {
   initialExpenses?: ExpenseDTO[];

@@ -33,8 +33,9 @@ Measurements taken on AWS Sydney (`aws-0-ap-southeast-2.pooler.supabase.com`) ov
 | :--- | :--- | :--- | :--- |
 | **Cookie & Auth Check** | ~15 ms | ~15 ms | 0 ms |
 | **Workspace & Context** | ~280 ms (remote RTT) | ~280 ms (concurrent) | 0 ms |
-| **Property Access Resolution** | ~280 ms (sequential after context) | **0 ms** (executed concurrently in primary Promise.all) | **-280 ms** |
-| **Total Server Layout Latency** | **~575 ms** | **~295 ms** | **48.7% Reduction** |
+| **Property Access Resolution** | ~280 ms (sequential after context) | **0 ms** (executed concurrently in primary Promise.all + joined `workspaces(name)`) | **-280 ms** |
+| **Auth Persona & Workspace Resolution** | ~750 ms (3–5 sequential queries on cold cache) | **~260 ms** (parallelized via `Promise.all`) | **-490 ms** |
+| **Total Server Layout Latency (Cold / Warm)** | **~1,150 ms Cold / ~575 ms Warm** | **~295 ms Cold / < 15 ms Warm (`serverCache`)** | **74.3% – 97.4% Reduction** |
 
 ---
 
@@ -44,8 +45,8 @@ Measurements taken on AWS Sydney (`aws-0-ap-southeast-2.pooler.supabase.com`) ov
 | :--- | :--- | :--- |
 | **Transactions Query Date Scope** | All historical records since inception | Bounded strictly to last 24 months (`gte('transaction_date', twoYearsAgoIso)`) |
 | **Typical Payload Size (100+ tx)** | 185 kB – 850 kB JSON | 18 kB – 45 kB JSON |
-| **Subsequent Dashboard View Time** | 350 ms – 900 ms (re-queried) | **< 5 ms** (served from workspace `serverCache`) |
-| **Duplicate Client Mount Requests** | 1 immediate duplicate request | **0 duplicate requests** (suppressed via `servedByServerRef`) |
+| **Subsequent Dashboard View Time** | 350 ms – 900 ms (re-queried) | **< 5 ms** (served from workspace `serverCache` including `needsAttention`) |
+| **Duplicate Client Mount Requests** | 1–2 immediate duplicate requests per page (`global` -> `<wsId>` cache key flip) | **0 duplicate requests** (synchronous `AppContext` workspace resolution + SSR cache hydration) |
 
 ---
 

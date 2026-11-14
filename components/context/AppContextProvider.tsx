@@ -72,9 +72,9 @@ export function AppContextProvider({
     [updateFromServer]
   );
 
-  const workspaceId = storeWorkspaceId ?? initialWorkspaceId;
+  const workspaceId = storeWorkspaceId ?? resolvedWsId;
   const effectivePermissions = storePermissions.length > 0 ? storePermissions : permissions;
-  const effectiveWorkspaceName = storeWorkspaceName ?? workspaceName;
+  const effectiveWorkspaceName = storeWorkspaceName ?? resolvedWsName;
   const effectiveRoleName = storeRoleName ?? roleName;
   const effectiveEntitlements =
     Object.keys(storeEntitlements).length > 0 ? storeEntitlements : entitlements;
@@ -115,4 +115,8 @@ export function useAppContext() {
     throw new Error('useAppContext must be used within an AppContextProvider');
   }
   return context;
+}
+
+export function useAppContextOptional() {
+  return useContext(AppContext);
 }

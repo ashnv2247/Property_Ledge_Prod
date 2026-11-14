@@ -71,7 +71,7 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
   } = usePersistentEntityQuery<Record<string, unknown>[]>({
     entity: 'properties',
     workspaceId: activeWorkspaceId,
-    initialData: initialProperties && initialProperties.length > 0 ? initialProperties : null,
+    initialData: initialProperties ?? null,
     freshnessTier: 'normal',
     fetcher: fetchDashboardProperties,
     onError: (err) => {

@@ -54,10 +54,19 @@ import {
 } from '@/app/actions/finance';
 import { getDropdownOptions, prewarmOptionsCache } from '@/lib/cache/optionsCache';
 import dynamic from 'next/dynamic';
-import { TransactionModal } from './TransactionModal';
-import { TransactionDetailModal } from './TransactionDetailModal';
-import { TransactionTypeSelectModal } from './TransactionTypeSelectModal';
 
+const TransactionModal = dynamic(
+  () => import('./TransactionModal').then((mod) => mod.TransactionModal),
+  { ssr: false }
+);
+const TransactionDetailModal = dynamic(
+  () => import('./TransactionDetailModal').then((mod) => mod.TransactionDetailModal),
+  { ssr: false }
+);
+const TransactionTypeSelectModal = dynamic(
+  () => import('./TransactionTypeSelectModal').then((mod) => mod.TransactionTypeSelectModal),
+  { ssr: false }
+);
 const LedgerReportModal = dynamic(
   () => import('./LedgerReportModal').then((mod) => mod.LedgerReportModal),
   { ssr: false }

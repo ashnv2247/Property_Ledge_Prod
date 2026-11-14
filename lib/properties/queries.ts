@@ -39,7 +39,7 @@ export const getUserProperties = cache(async function getUserProperties(
 
   let ownedQuery = supabase
     .from('properties')
-    .select('id, name, workspace_id')
+    .select('id, name, workspace_id, workspaces(name)')
     .eq('owner_id', userId)
     .eq('status', 'active');
 
@@ -57,7 +57,8 @@ export const getUserProperties = cache(async function getUserProperties(
         id,
         name,
         workspace_id,
-        status
+        status,
+        workspaces(name)
       )
     `)
     .eq('user_id', userId)
@@ -87,31 +88,63 @@ export const getUserProperties = cache(async function getUserProperties(
     );
   }
 
-  const typedOwnedProperties = (ownedProperties || []) as Array<{ id: string; name: string; workspace_id: string }>;
+  const typedOwnedProperties = (ownedProperties || []) as Array<{
+    id: string;
+    name: string;
+    workspace_id: string;
+    workspaces?: { name?: string } | Array<{ name?: string }> | null;
+  }>;
   
   interface MemberPropertyWithRelation {
     property_id: string;
     role: PropertyMember['role'];
     status: PropertyMember['status'];
-    properties: { id: string; name: string; workspace_id: string; status: string };
+    properties: {
+      id: string;
+      name: string;
+      workspace_id: string;
+      status: string;
+      workspaces?: { name?: string } | Array<{ name?: string }> | null;
+    };
   }
   
   const typedMemberProperties = (memberProperties || []) as MemberPropertyWithRelation[];
 
-  const orgIds = new Set<string>();
+  const resolveWsName = (wsRel?: { name?: string } | Array<{ name?: string }> | null): string | undefined => {
+    if (!wsRel) return undefined;
+    if (Array.isArray(wsRel)) return wsRel[0]?.name;
+    return wsRel.name;
+  };
+
+  const orgMap = new Map<string, string>();
+  const missingOrgIds = new Set<string>();
   for (const prop of typedOwnedProperties) {
-    if (prop.workspace_id) orgIds.add(prop.workspace_id);
+    const joinedName = resolveWsName(prop.workspaces);
+    if (prop.workspace_id && joinedName) {
+      orgMap.set(prop.workspace_id, joinedName);
+    } else if (prop.workspace_id) {
+      missingOrgIds.add(prop.workspace_id);
+    }
   }
   for (const mem of typedMemberProperties) {
-    if (mem.properties.workspace_id) orgIds.add(mem.properties.workspace_id);
+    const joinedName = resolveWsName(mem.properties.workspaces);
+    if (mem.properties.workspace_id && joinedName) {
+      orgMap.set(mem.properties.workspace_id, joinedName);
+    } else if (mem.properties.workspace_id && !orgMap.has(mem.properties.workspace_id)) {
+      missingOrgIds.add(mem.properties.workspace_id);
+    }
   }
 
-  const { data: workspaces } = await supabase
-    .from('workspaces')
-    .select('id, name')
-    .in('id', Array.from(orgIds));
+  if (missingOrgIds.size > 0) {
+    const { data: workspaces } = await supabase
+      .from('workspaces')
+      .select('id, name')
+      .in('id', Array.from(missingOrgIds));
 
-  const orgMap = new Map(((workspaces || []) as Array<{ id: string; name: string }>).map(o => [o.id, o.name]));
+    for (const o of (workspaces || []) as Array<{ id: string; name: string }>) {
+      orgMap.set(o.id, o.name);
+    }
+  }
 
   const propertyMap = new Map<string, UserPropertyAccess>();
 
@@ -150,25 +183,26 @@ export const getUserOrganizations = cache(async function getUserOrganizations(
 ): Promise<(Workspace & { membership?: WorkspaceMember })[]> {
   const supabase = await createClient();
 
-  const { data: ownedOrgs, error: ownedError } = await supabase
-    .from('workspaces')
-    .select('*')
-    .eq('owner_id', userId)
-    .eq('status', 'active');
+  const [{ data: ownedOrgs, error: ownedError }, { data: memberOrgs, error: memberError }] = await Promise.all([
+    supabase
+      .from('workspaces')
+      .select('*')
+      .eq('owner_id', userId)
+      .eq('status', 'active'),
+    supabase
+      .from('workspace_members')
+      .select(`
+        *,
+        workspaces!inner (*)
+      `)
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .eq('workspaces.status', 'active'),
+  ]);
 
   if (ownedError) {
     console.error('Error fetching owned workspaces:', ownedError);
   }
-
-  const { data: memberOrgs, error: memberError } = await supabase
-    .from('workspace_members')
-    .select(`
-      *,
-      workspaces!inner (*)
-    `)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .eq('workspaces.status', 'active');
 
   if (memberError) {
     console.error('Error fetching member workspaces:', memberError);

@@ -3,6 +3,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   serverExternalPackages: ['@playwright/test', 'playwright', 'playwright-core', 'pdf-lib', 'docx', 'jspdf'],
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      '@phosphor-icons/react',
+      'recharts',
+      'd3',
+      'date-fns',
+      'framer-motion',
+    ],
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },

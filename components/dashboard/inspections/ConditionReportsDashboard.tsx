@@ -61,7 +61,7 @@ const PROPERTY_FALLBACK_IMAGES = [
 ];
 
 export function ConditionReportsDashboard({
-  initialReports = [],
+  initialReports,
   propertyFilterId,
 }: ConditionReportsDashboardProps) {
   const router = useRouter();
@@ -78,7 +78,7 @@ export function ConditionReportsDashboard({
   } = usePersistentEntityQuery<ConditionReport[]>({
     entity: 'condition_reports',
     propertyId: propertyFilterId !== undefined ? propertyFilterId : (contextPropertyId ?? null),
-    initialData: initialReports && initialReports.length > 0 ? initialReports : undefined,
+    initialData: initialReports,
     freshnessTier: 'normal',
     fetcher: async ({ propertyId }) => {
       const res = await fetchConditionReportsAction(propertyFilterId || propertyId || undefined);

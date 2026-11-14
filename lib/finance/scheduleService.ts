@@ -1,4 +1,5 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { serverCache } from '@/lib/cache/server-cache';
 import {
   ExpectedPaymentScheduleDTO,
   TransactionScheduleAllocationDTO,
@@ -24,6 +25,21 @@ import { createTransaction } from '@/lib/finance/service';
 export async function getExpectedPaymentSchedules(
   filters: ExpectedScheduleFilterParams = {}
 ): Promise<ExpectedPaymentScheduleDTO[]> {
+  const isCacheable =
+    Boolean(filters.workspace_id) &&
+    !filters.search_query &&
+    !filters.start_date &&
+    !filters.end_date &&
+    !filters.offset;
+  const cacheKey = isCacheable
+    ? `schedules:${filters.workspace_id}:${filters.property_id || 'all'}:${filters.lease_id || 'all'}:${filters.schedule_type || 'all'}:${filters.status || 'all'}:${filters.limit || 100}`
+    : null;
+
+  if (cacheKey) {
+    const cached = serverCache.get<ExpectedPaymentScheduleDTO[]>(cacheKey);
+    if (cached) return cached;
+  }
+
   const supabase = await createClient();
 
   let query = supabase
@@ -184,6 +200,10 @@ export async function getExpectedPaymentSchedules(
         item.notes?.toLowerCase().includes(q)
       );
     });
+  }
+
+  if (cacheKey) {
+    serverCache.set(cacheKey, results, 30_000);
   }
 
   return results;

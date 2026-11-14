@@ -352,27 +352,27 @@ export async function getMaintenanceDetail(propertyId: string, requestId: string
 
   if (error || !data) return null;
 
-  let property = null;
-  if ((data as any).property_id) {
-    const { data: prop } = await supabase
-      .from('properties')
-      .select('id, name, address_line_1, city, state')
-      .eq('id', (data as any).property_id)
-      .maybeSingle();
-    property = prop;
-  }
+  const propId = (data as any).property_id;
+  const tenantId = (data as any).tenant_id;
 
-  let tenant = null;
-  if ((data as any).tenant_id) {
-    const { data: ten } = await supabase
-      .from('tenants')
-      .select('id, first_name, last_name, email, phone')
-      .eq('id', (data as any).tenant_id)
-      .maybeSingle();
-    tenant = ten;
-  }
+  const [propResult, tenResult] = await Promise.all([
+    propId
+      ? supabase
+          .from('properties')
+          .select('id, name, address_line_1, city, state')
+          .eq('id', propId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    tenantId
+      ? supabase
+          .from('tenants')
+          .select('id, first_name, last_name, email, phone')
+          .eq('id', tenantId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
-  return { ...(data as Record<string, unknown>), property, tenant };
+  return { ...(data as Record<string, unknown>), property: propResult.data, tenant: tenResult.data };
 }
 
 export async function getInspectionDetail(propertyId: string, inspectionId: string) {
@@ -391,7 +391,7 @@ export async function getInspectionDetail(propertyId: string, inspectionId: stri
   return data;
 }
 
-export async function getInvoices(propertyId: string) {
+export async function getInvoices(propertyId: string, limit: number = 200) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('invoices')
@@ -400,7 +400,8 @@ export async function getInvoices(propertyId: string) {
       tenant:tenants(first_name, last_name)
     `)
     .eq('property_id', propertyId)
-    .order('issue_date', { ascending: false });
+    .order('issue_date', { ascending: false })
+    .limit(limit);
 
   if (error) {
     console.error('Error fetching invoices:', error);
@@ -446,14 +447,15 @@ export async function getPayments(propertyId: string, limit: number = 100) {
   return data || [];
 }
 
-export async function getExpenses(propertyId: string) {
+export async function getExpenses(propertyId: string, limit: number = 200) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('transactions')
     .select('*')
     .eq('property_id', propertyId)
     .eq('transaction_type', 'expense')
-    .order('transaction_date', { ascending: false });
+    .order('transaction_date', { ascending: false })
+    .limit(limit);
 
   if (error) {
     console.error('Error fetching expenses:', error);
@@ -462,7 +464,7 @@ export async function getExpenses(propertyId: string) {
   return data || [];
 }
 
-export async function getMaintenanceRequests(propertyId: string) {
+export async function getMaintenanceRequests(propertyId: string, limit: number = 200) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('maintenance_requests')
@@ -471,7 +473,8 @@ export async function getMaintenanceRequests(propertyId: string) {
       tenant:tenants(first_name, last_name)
     `)
     .eq('property_id', propertyId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(limit);
 
   if (error) {
     console.error('Error fetching maintenance requests:', error);
@@ -480,7 +483,7 @@ export async function getMaintenanceRequests(propertyId: string) {
   return data || [];
 }
 
-export async function getInspections(propertyId: string) {
+export async function getInspections(propertyId: string, limit: number = 200) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('inspections')
@@ -489,7 +492,8 @@ export async function getInspections(propertyId: string) {
       inspection_items(*)
     `)
     .eq('property_id', propertyId)
-    .order('scheduled_at', { ascending: false });
+    .order('scheduled_at', { ascending: false })
+    .limit(limit);
 
   if (error) {
     console.error('Error fetching inspections:', error);
@@ -498,13 +502,14 @@ export async function getInspections(propertyId: string) {
   return data || [];
 }
 
-export async function getDocuments(propertyId: string) {
+export async function getDocuments(propertyId: string, limit: number = 200) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('documents')
     .select('*')
     .eq('property_id', propertyId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(limit);
 
   if (error) {
     console.error('Error fetching documents:', error);
@@ -513,13 +518,14 @@ export async function getDocuments(propertyId: string) {
   return data || [];
 }
 
-export async function getTasks(propertyId: string) {
+export async function getTasks(propertyId: string, limit: number = 200) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
     .eq('property_id', propertyId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(limit);
 
   if (error) {
     console.error('Error fetching tasks:', error);
@@ -707,12 +713,29 @@ function calculateGrowthTrend(
 }
 
 export async function getReportsSummary(propertyId: string) {
+  const cacheKey = `property:${propertyId}:dashboard_reports_summary`;
+  const cached = serverCache.get<any>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const supabase = await createClient();
+  const twoYearsAgoIso = new Date(Date.now() - 730 * 86400000).toISOString().slice(0, 10);
+
   const [invoices, transactions, tenants, leases, propertyResult] = await Promise.all([
-    supabase.from('invoices').select('status, total_amount, balance_due, due_date').eq('property_id', propertyId),
-    supabase.from('transactions').select('amount, status, transaction_type, transaction_date, property_id').eq('property_id', propertyId),
-    supabase.from('tenants').select('status').eq('property_id', propertyId),
-    supabase.from('leases').select('status, rent_amount').eq('property_id', propertyId),
+    supabase
+      .from('invoices')
+      .select('status, total_amount, balance_due, due_date')
+      .eq('property_id', propertyId)
+      .in('status', ['issued', 'partially_paid', 'overdue']),
+    supabase
+      .from('transactions')
+      .select('amount, status, transaction_type, transaction_date, property_id')
+      .eq('property_id', propertyId)
+      .eq('status', 'completed')
+      .gte('transaction_date', twoYearsAgoIso),
+    supabase.from('tenants').select('status').eq('property_id', propertyId).eq('status', 'active'),
+    supabase.from('leases').select('status, rent_amount').eq('property_id', propertyId).eq('status', 'active'),
     supabase.from('properties').select('id, name, purchase_price, rent_amount, payment_frequency, property_category, property_type, status').eq('id', propertyId).single(),
   ]);
 
@@ -747,7 +770,7 @@ export async function getReportsSummary(propertyId: string) {
     }
   }
 
-  return {
+  const result = {
     totalRevenue,
     outstandingBalance: invoiceData.reduce((sum, i) => sum + Number(i.balance_due || 0), 0),
     totalExpenses,
@@ -770,6 +793,9 @@ export async function getReportsSummary(propertyId: string) {
     },
     propertyBreakdown: [],
   };
+
+  serverCache.set(cacheKey, result, 30_000);
+  return result;
 }
 
 export async function getWorkspaceReportsSummary(workspaceId: string) {
@@ -1004,6 +1030,12 @@ export async function getPropertyTeam(propertyId: string) {
 }
 
 export async function getNeedsAttention(propertyId: string) {
+  const cacheKey = `property:${propertyId}:needs_attention`;
+  const cached = serverCache.get<any>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const supabase = await createClient();
 
   const [overdueInvoices, openMaintenance, outstandingInvoices] = await Promise.all([
@@ -1030,15 +1062,24 @@ export async function getNeedsAttention(propertyId: string) {
       .limit(5),
   ]);
 
-  return {
+  const result = {
     overdueInvoices: overdueInvoices.data || [],
     openMaintenance: openMaintenance.data || [],
     outstandingInvoices: outstandingInvoices.data || [],
     vacantUnits: [],
   };
+
+  serverCache.set(cacheKey, result, 30_000);
+  return result;
 }
 
 export async function getWorkspaceNeedsAttention(workspaceId: string) {
+  const cacheKey = `workspace:${workspaceId}:needs_attention`;
+  const cached = serverCache.get<any>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const supabase = await createClient();
 
   const [overdueInvoices, openMaintenance, outstandingInvoices] = await Promise.all([
@@ -1065,13 +1106,15 @@ export async function getWorkspaceNeedsAttention(workspaceId: string) {
       .limit(5),
   ]);
 
-
-  return {
+  const result = {
     overdueInvoices: overdueInvoices.data || [],
     openMaintenance: openMaintenance.data || [],
     outstandingInvoices: outstandingInvoices.data || [],
     vacantUnits: [],
   };
+
+  serverCache.set(cacheKey, result, 30_000);
+  return result;
 }
 
 export async function getTenantPayments(propertyId: string, tenantId: string) {

@@ -72,14 +72,52 @@ This log documents every architectural and code modification implemented during 
 ---
 
 ### Layer 5: React Hydration & SWR Duplicate Suppression
-* **File Modified**: [components/dashboard/overview/DashboardOverview.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/dashboard/overview/DashboardOverview.tsx)
+* **Files Modified**:
+  - [components/dashboard/overview/DashboardOverview.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/dashboard/overview/DashboardOverview.tsx)
+  - [components/context/AppContextProvider.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/context/AppContextProvider.tsx)
+  - [lib/hooks/usePersistentEntityQuery.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/hooks/usePersistentEntityQuery.ts)
+  - [components/dashboard/leases/LeaseManagementPage.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/dashboard/leases/LeaseManagementPage.tsx)
+  - [components/dashboard/inspections/ConditionReportsDashboard.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/dashboard/inspections/ConditionReportsDashboard.tsx)
+  - [components/dashboard/properties/PropertiesClientView.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/dashboard/properties/PropertiesClientView.tsx)
 * **Changes**:
-  - Added `servedByServerRef` to detect server-rendered initial state and suppress duplicate immediate `loadData(false)` execution on mount.
-* **Impact**: Eliminates duplicate network requests on dashboard initial load.
+  - Added `servedByServerRef` in `DashboardOverview` to detect server-rendered initial state and suppress duplicate immediate `loadData(false)` execution on mount.
+  - Exported `useAppContextOptional()` from `AppContextProvider` with synchronous `resolvedWsId` fallback and wired `usePersistentEntityQuery` to read `appContext?.workspaceId` on initial render before `useWorkspaceStore`'s `useEffect` runs, eliminating the `global` -> `<wsId>` cache key flip and duplicate mount refetch across all 10 entity pages.
+  - Preserved valid empty SSR arrays (`[]`) in `usePersistentEntityQuery`, `LeaseManagementPage`, `ConditionReportsDashboard`, and `PropertiesClientView` instead of coalescing empty arrays to `null`/`undefined`.
+* **Impact**: Eliminates 100% of duplicate client-side Server Action refetches on initial mount across Dashboard and all entity list pages.
 
 ---
 
-### Layer 6: Enterprise Data Grid Refactoring
+### Layer 6: Bundle Optimization & Dynamic Modal Splitting
+* **Files Modified**:
+  - [next.config.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/next.config.ts)
+  - [components/finance/ExpenseList.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/finance/ExpenseList.tsx)
+  - [components/finance/ExpectedScheduleList.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/finance/ExpectedScheduleList.tsx)
+  - [components/finance/FinancialList.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/finance/FinancialList.tsx)
+* **Changes**:
+  - Added `experimental.optimizePackageImports` in `next.config.ts` for `['lucide-react', '@phosphor-icons/react', 'recharts', 'd3', 'date-fns', 'framer-motion']`.
+  - Converted heavy closed modals (`AccountantReportModal`, `BulkExpenseUploadModal`, `ExpenseModal`, `ExpenseDetailModal`, `CreateScheduleModal`, `ScheduleTypeSelectModal`, `LinkTransactionModal`, `MultiAllocationModal`, `EditScheduleModal`, `TransactionModal`, `TransactionDetailModal`, `TransactionTypeSelectModal`) to `next/dynamic` (`ssr: false`).
+* **Impact**: Defers heavy PDF (`jspdf`, `pdf-lib`) and modal form bundles until user interaction, cutting initial route compilation and client JS execution overhead.
+
+---
+
+### Layer 7: Auth, Workspace, Property & Schedule Query Parallelization & Caching
+* **Files Modified**:
+  - [lib/workspace/context.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/workspace/context.ts)
+  - [lib/auth/resolvePersona.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/auth/resolvePersona.ts)
+  - [lib/properties/queries.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/properties/queries.ts)
+  - [lib/dashboard/queries.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/dashboard/queries.ts)
+  - [app/actions/schedules.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/app/actions/schedules.ts)
+  - [lib/finance/scheduleService.ts](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/lib/finance/scheduleService.ts)
+* **Changes**:
+  - Parallelized `owned` and `memberOf` queries in `getUserWorkspaces` and `getUserOrganizations` via `Promise.all`.
+  - Parallelized `workspaces`, `workspace_members`, `team_roles`, and `getEffectiveWorkspacePermissions` in `resolveWorkspaceContextById`.
+  - Parallelized `isAdmin`, `workspaces`, and `workspace_members` in `getPersonaForUser`.
+  - Joined `workspaces(name)` directly in `getUserProperties`, eliminating a sequential roundtrip to `workspaces`.
+  - Added 30s `serverCache` to `getWorkspaceNeedsAttention`, `getNeedsAttention`, `getReportsSummary`, and `getExpectedPaymentSchedules`, bounded `getReportsSummary` transactions to 24 months, parallelized `getMaintenanceDetail`, bounded property entity queries (`getInvoices`, `getExpenses`, `getMaintenanceRequests`, `getInspections`, `getDocuments`, `getTasks`) to `.limit(200)`, and removed the stray `'use me';` directive on line 1 of `app/actions/schedules.ts`.
+
+---
+
+### Layer 8: Enterprise Data Grid Refactoring
 * **Files Modified**:
   - [components/ui/data-grid/DataGrid.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/ui/data-grid/DataGrid.tsx)
   - [components/ui/data-grid/DataGridToolbar.tsx](file:///c:/Projects/Austalia/PropertyLedge/Property_Ledge/components/ui/data-grid/DataGridToolbar.tsx)
