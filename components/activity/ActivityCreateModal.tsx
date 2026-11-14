@@ -216,30 +216,27 @@ export function ActivityCreateModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-      <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col bg-surface dark:bg-[#0B1320] border border-border dark:border-[#1E293B] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 dark:border-[#1E293B]/80 bg-surface-subtle dark:bg-[#0E1726]/80 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#008F83]/15 border border-[#008F83]/30 flex items-center justify-center text-[#008F83] dark:text-[#32D5C4]">
-              <Plus className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-foreground dark:text-white">
-                New Activity
-              </h3>
-              <p className="text-xs text-muted dark:text-slate-400">
-                Track what needs to happen, who is responsible, and when it is due.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-muted hover:text-foreground dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto font-sans animate-in fade-in duration-200">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-y-auto max-h-[92vh] z-10 p-6 sm:p-8 my-auto">
+        {/* Close button */}
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isSubmitting}
+          aria-label="Close dialog"
+          className="absolute top-5 right-5 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* Centered Header (Standardized Reference UI) */}
+        <div className="text-center mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold font-heading tracking-tight text-slate-900 dark:text-white">
+            Create Activity
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Track what needs to happen, who is responsible, and when it is due.
+          </p>
         </div>
 
         {/* Scrollable Form Content */}
@@ -458,27 +455,31 @@ export function ActivityCreateModal({
           </form>
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border/80 dark:border-[#1E293B]/80 bg-surface-subtle dark:bg-[#0E1726]/80 shrink-0">
-          <Button
+        {/* Modal Footer Actions (Standardized Reference UI) */}
+        <div className="pt-6 mt-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+          <button
             type="button"
-            variant="outline"
-            size="sm"
             onClick={onClose}
             disabled={isSubmitting}
+            className="h-11 px-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50"
           >
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button
             form="create-activity-form"
             type="submit"
-            variant="default"
-            size="sm"
-            loading={isSubmitting}
-            className="bg-[#008F83] hover:bg-[#007A70] text-white font-semibold"
+            disabled={isSubmitting}
+            className="h-11 px-6 rounded-xl bg-[#008F83] text-white font-semibold text-sm hover:bg-[#008F83]/90 shadow-xs transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50 min-w-[140px]"
           >
-            Create Activity
-          </Button>
+            {isSubmitting ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Creating...
+              </span>
+            ) : (
+              'Create Activity'
+            )}
+          </button>
         </div>
       </div>
     </div>

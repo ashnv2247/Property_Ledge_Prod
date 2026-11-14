@@ -36,48 +36,22 @@ test('verify 4-step create invoice modal with category choice', async ({ page })
   await standaloneCard.click();
   await page.waitForTimeout(400);
 
-  // Click 'Continue to Select Template'
-  const continueBtn1 = page.getByRole('button', { name: /continue to select template/i }).first();
-  await continueBtn1.click();
-  await page.waitForTimeout(800);
-
-  // Screenshot 2: Step 1 - Select Template
-  await page.screenshot({ path: 'C:/Users/DELL/.gemini/antigravity-ide/brain/18d172ec-a67e-4a96-b7f3-a1b63f7fd4db/.tempmediaStorage/invoice_step1_template_select.png' });
-
   // Click 'Continue to Invoice Details'
-  const continueBtn2 = page.getByRole('button', { name: /continue to invoice details/i }).first();
-  await continueBtn2.click();
+  const continueBtn = page.getByRole('button', { name: /continue to invoice details/i }).first();
+  await continueBtn.click();
   await page.waitForTimeout(800);
 
-  // Screenshot 3a: Step 2 Sub-step 0 - Parties & Identity
-  await page.screenshot({ path: 'C:/Users/DELL/.gemini/antigravity-ide/brain/18d172ec-a67e-4a96-b7f3-a1b63f7fd4db/.tempmediaStorage/invoice_step2_substep0_parties.png' });
-
+  // Step 1: Invoice Details (Breathable single-page form)
   // Fill recipient name
   const recipientInput = page.locator('input[placeholder*="John Smith"]').first();
   await recipientInput.fill('Acme Corp Pty Ltd');
   await page.waitForTimeout(400);
-
-  // Click 'Next Section ->' to go to Sub-step 1 (Schedule & Dates)
-  const nextSectionBtn1 = page.getByRole('button', { name: /next section/i }).first();
-  await nextSectionBtn1.click();
-  await page.waitForTimeout(600);
-
-  // Screenshot 3b: Step 2 Sub-step 1 - Schedule & Dates
-  await page.screenshot({ path: 'C:/Users/DELL/.gemini/antigravity-ide/brain/18d172ec-a67e-4a96-b7f3-a1b63f7fd4db/.tempmediaStorage/invoice_step2_substep1_schedule.png' });
-
-  // Click 'Next Section ->' to go to Sub-step 2 (Line Items & Terms)
-  const nextSectionBtn2 = page.getByRole('button', { name: /next section/i }).first();
-  await nextSectionBtn2.click();
-  await page.waitForTimeout(600);
-
-  // Screenshot 3c: Step 2 Sub-step 2 - Line Items & Terms
-  await page.screenshot({ path: 'C:/Users/DELL/.gemini/antigravity-ide/brain/18d172ec-a67e-4a96-b7f3-a1b63f7fd4db/.tempmediaStorage/invoice_step2_substep2_lineitems.png' });
 
   // Click 'Preview Document'
   const previewBtn = page.getByRole('button', { name: /preview document/i }).first();
   await previewBtn.click();
   await page.waitForTimeout(1000);
 
-  // Screenshot 4: Step 3 - Preview Document
-  await page.screenshot({ path: 'C:/Users/DELL/.gemini/antigravity-ide/brain/18d172ec-a67e-4a96-b7f3-a1b63f7fd4db/.tempmediaStorage/invoice_step3_preview.png' });
+  // Step 2: Live Preview Document & Issue
+  await expect(page.getByText('Sandbox Safe')).toBeVisible();
 });

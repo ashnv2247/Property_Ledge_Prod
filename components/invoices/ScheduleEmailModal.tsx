@@ -231,15 +231,12 @@ export function ScheduleEmailModal({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Modal Header */}
-        <div className="mb-6">
-          <span className="text-xs font-semibold text-[#008F83] uppercase tracking-wider block mb-1">
-            Recurring Invoicing
-          </span>
-          <h2 className="text-2xl font-heading font-bold text-slate-900 dark:text-white">
+        {/* Centered Header (Standardized Reference UI) */}
+        <div className="text-center mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold font-heading tracking-tight text-slate-900 dark:text-white">
             Schedule Email
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-[#94A3B8] mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Configure automated recurring monthly invoices and independent delivery schedules.
           </p>
         </div>
@@ -742,37 +739,36 @@ export function ScheduleEmailModal({
           </AnimatePresence>
         </div>
 
-        {/* Modal Footer Actions */}
-        <div className="mt-8 pt-5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <Button
+        {/* Modal Footer Actions (Standardized Reference UI) */}
+        <div className="mt-8 pt-5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+          <button
             type="button"
-            variant="outline"
             onClick={activeStep === 0 ? onClose : handleBack}
             disabled={isSubmitting}
-            className="font-bold text-xs"
+            className="h-11 px-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50"
           >
             {activeStep === 0 ? 'Cancel' : 'Back'}
-          </Button>
+          </button>
 
-          <Button
+          <button
             type="button"
             onClick={activeStep === steps.length - 1 ? handleConfirmCreate : handleNext}
             disabled={isSubmitting || !sourceInvoice || monthsCount <= 0}
-            className="font-bold text-xs bg-[#008F83] hover:bg-[#008F83]/90 text-white min-w-[120px]"
+            className="h-11 px-6 rounded-xl bg-[#008F83] text-white font-semibold text-sm hover:bg-[#008F83]/90 shadow-xs transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50 min-w-[140px]"
           >
             {isSubmitting ? (
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="inline-flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Generating...
               </span>
             ) : activeStep === steps.length - 1 ? (
               'Create Schedule'
             ) : (
-              <span className="inline-flex items-center gap-1">
-                Continue <ArrowRight className="w-3.5 h-3.5" />
+              <span className="inline-flex items-center gap-1.5">
+                Continue <ArrowRight className="w-4 h-4" />
               </span>
             )}
-          </Button>
+          </button>
         </div>
       </motion.div>
     </div>

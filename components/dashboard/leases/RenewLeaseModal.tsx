@@ -329,71 +329,83 @@ export function RenewLeaseModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-admin-surface border border-admin-border rounded-2xl shadow-2xl overflow-hidden flex flex-col my-8">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-admin-border bg-admin-surface-elevated">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-admin-primary/10 flex items-center justify-center text-admin-primary">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-admin-foreground">Renew Lease</h2>
-                <span className="px-2 py-0.5 text-xs font-semibold rounded-md bg-admin-primary/10 text-admin-primary border border-admin-primary/20">
-                  Ref: {previousLeaseCode}
-                </span>
-              </div>
-              <p className="text-xs text-admin-muted">
-                {propertyTitle} {unitTitle && `· ${unitTitle}`}
-              </p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 sm:p-6 overflow-y-auto font-sans animate-in fade-in duration-200">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-y-auto max-h-[92vh] z-10 p-6 sm:p-8 my-auto">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          disabled={isSubmitting}
+          aria-label="Close dialog"
+          className="absolute top-5 right-5 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* Centered Header (Standardized Reference UI) */}
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <h2 className="text-xl sm:text-2xl font-bold font-heading tracking-tight text-slate-900 dark:text-white">
+              Renew Lease
+            </h2>
+            <span className="text-[10.5px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border bg-[#008F83]/10 text-[#008F83] border-[#008F83]/20">
+              Ref: {previousLeaseCode}
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            For {propertyTitle} {unitTitle && `· ${unitTitle}`}
+          </p>
+        </div>
+
+        {/* Centered Stepper */}
+        <nav aria-label="Progress" className="mb-8">
+          <div className="relative flex items-center justify-between max-w-xs mx-auto">
+            <div className="absolute top-4 left-6 right-6 h-0.5 bg-slate-100 dark:bg-slate-800 -z-0" />
+            <div
+              className="absolute top-4 left-6 h-0.5 bg-[#008F83] transition-all duration-300 -z-0"
+              style={{ width: step === 0 ? '0%' : 'calc(100% - 48px)' }}
+            />
+            <div className="w-full flex items-center justify-between z-10 px-1">
+              {[
+                { id: 1, name: 'Terms & Tenants' },
+                { id: 2, name: 'Review & Confirm' },
+              ].map((s, idx) => {
+                const isCurrent = idx === step;
+                const isCompleted = idx < step;
+                return (
+                  <div key={s.id} className="flex flex-col items-center">
+                    <div
+                      className={cn(
+                        'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200',
+                        isCurrent
+                          ? 'bg-[#008F83] text-white shadow-md ring-4 ring-[#008F83]/15 scale-105'
+                          : isCompleted
+                          ? 'bg-[#008F83] text-white shadow-xs'
+                          : 'bg-white dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700'
+                      )}
+                    >
+                      {isCompleted ? <Check className="w-4 h-4 stroke-[2.5]" /> : s.id}
+                    </div>
+                    <span
+                      className={cn(
+                        'mt-1.5 text-[11px] font-medium transition-colors text-center',
+                        isCurrent
+                          ? 'text-[#008F83] font-semibold'
+                          : isCompleted
+                          ? 'text-slate-700 dark:text-slate-300'
+                          : 'text-slate-400 dark:text-slate-500'
+                      )}
+                    >
+                      {s.name}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="p-1.5 rounded-lg text-admin-muted hover:text-admin-foreground hover:bg-admin-surface-elevated transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Stepper Tabs */}
-        <div className="flex border-b border-admin-border bg-admin-surface text-xs font-semibold">
-          <button
-            onClick={() => setStep(0)}
-            disabled={isSubmitting}
-            className={cn(
-              'flex-1 py-3 px-4 text-center border-b-2 transition-colors flex items-center justify-center gap-2',
-              step === 0
-                ? 'border-admin-primary text-admin-primary bg-admin-primary/5'
-                : 'border-transparent text-admin-muted hover:text-admin-foreground'
-            )}
-          >
-            <span className="w-5 h-5 rounded-full bg-admin-primary/10 text-admin-primary flex items-center justify-center text-[11px] font-bold">
-              1
-            </span>
-            New Terms & Tenants
-          </button>
-          <button
-            onClick={handleProceedToReview}
-            disabled={isSubmitting}
-            className={cn(
-              'flex-1 py-3 px-4 text-center border-b-2 transition-colors flex items-center justify-center gap-2',
-              step === 1
-                ? 'border-admin-primary text-admin-primary bg-admin-primary/5'
-                : 'border-transparent text-admin-muted hover:text-admin-foreground'
-            )}
-          >
-            <span className="w-5 h-5 rounded-full bg-admin-primary/10 text-admin-primary flex items-center justify-center text-[11px] font-bold">
-              2
-            </span>
-            Review & Confirm
-          </button>
-        </div>
+        </nav>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
+        <div className="space-y-6">
           {validationError && (
             <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs font-medium flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -790,37 +802,41 @@ export function RenewLeaseModal({
           )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-admin-border bg-admin-surface-elevated">
+        {/* Modal Footer (Standardized Reference UI) */}
+        <div className="pt-6 mt-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
           {step === 0 ? (
             <>
-              <Button
-                variant="soft"
+              <button
+                type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
+                className="h-11 px-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50"
               >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
+                type="button"
                 onClick={handleProceedToReview}
-                className="gap-2 font-bold"
+                className="h-11 px-6 rounded-xl bg-[#008F83] text-white font-semibold text-sm hover:bg-[#008F83]/90 shadow-xs transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#008F83]/30"
               >
                 Review Renewal Terms <ArrowRight className="w-4 h-4" />
-              </Button>
+              </button>
             </>
           ) : (
             <>
-              <Button
-                variant="soft"
+              <button
+                type="button"
                 onClick={() => setStep(0)}
                 disabled={isSubmitting}
+                className="h-11 px-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50"
               >
                 Back to Edit Terms
-              </Button>
-              <Button
+              </button>
+              <button
+                type="button"
                 onClick={handleConfirmRenewal}
                 disabled={isSubmitting}
-                className="gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="h-11 px-6 rounded-xl bg-[#008F83] text-white font-semibold text-sm hover:bg-[#008F83]/90 shadow-xs transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50 min-w-[160px]"
               >
                 {isSubmitting ? (
                   <>
@@ -832,7 +848,7 @@ export function RenewLeaseModal({
                     <Check className="w-4 h-4" /> Confirm & Create Renewal
                   </>
                 )}
-              </Button>
+              </button>
             </>
           )}
         </div>
