@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import { getCurrentUser } from '@/lib/auth/queries';
 import { authorizeOrThrow } from '@/lib/auth/authorize';
-import type { TeamPermission } from '@/lib/auth/authorization';
+import { hasWorkspacePermission, type TeamPermission } from '@/lib/auth/authorization';
+import { AuthorizationError } from '@/lib/auth/errors';
 import { createAdminClient } from '@/lib/supabase/server';
 import { actionRegistry } from '@/modules/automation/application/actions/action-registry';
 import { SendLeaseAction } from '@/modules/automation/application/actions/send-lease-action';
@@ -42,13 +43,28 @@ async function resolveWorkspaceInvoiceTemplateId(
 
 actionRegistry.register(new SendLeaseAction());
 
-async function getContext(permission?: TeamPermission) {
+async function getContext(permission?: TeamPermission | TeamPermission[]) {
   const [user, context] = await Promise.all([getCurrentUser(), resolveWorkspaceContext()]);
   if (!user || !context) {
     throw new Error('Unauthorized or no active workspace');
   }
   if (permission) {
-    await authorizeOrThrow({ workspaceId: context.workspaceId, permission });
+    if (Array.isArray(permission)) {
+      let allowed = context.isOwner || permission.some((p) => context.permissions.includes(p) || context.permissions.includes('*'));
+      if (!allowed) {
+        for (const p of permission) {
+          if (await hasWorkspacePermission(context.workspaceId, p, user.id)) {
+            allowed = true;
+            break;
+          }
+        }
+      }
+      if (!allowed) {
+        throw new AuthorizationError('PERMISSION_DENIED', `Missing permission: ${permission[0]}`);
+      }
+    } else {
+      await authorizeOrThrow({ workspaceId: context.workspaceId, permission });
+    }
   }
   return { user, context };
 }
@@ -695,7 +711,12 @@ export async function retryExecutionAction(executionId: string) {
 
 export async function fetchInvoiceTemplatesAction() {
   try {
-    const { context } = await getContext('team.settings.view');
+    const { context } = await getContext([
+      'invoice.view',
+      'invoice.create',
+      'team.settings.view',
+      'team.settings.update',
+    ]);
     const supabase = await createAdminClient();
 
     const { data, error } = await (supabase as any)
@@ -823,7 +844,14 @@ export interface SendAutomationTestEmailDTO {
 
 export async function sendAutomationTestEmailAction(dto: SendAutomationTestEmailDTO) {
   try {
-    const { user, context } = await getContext('team.settings.update');
+    const { user, context } = await getContext([
+      'invoice.view',
+      'invoice.create',
+      'lease.view',
+      'lease.create',
+      'team.settings.view',
+      'team.settings.update',
+    ]);
     const targetEmail = dto.testRecipient?.trim() || user.email;
     if (!targetEmail) {
       throw new Error('Please provide a valid test recipient email address');
@@ -942,6 +970,57 @@ export async function sendAutomationTestEmailAction(dto: SendAutomationTestEmail
 
     const customMsg = dto.customMessage || 'Thank you for your business. Please find your automated invoice attached.';
 
+    let attachments: Array<{ filename: string; content: string }> | undefined = undefined;
+    try {
+      const { PdfInvoiceAdapter } = await import('@/modules/invoices/infrastructure/documents/pdf/pdf-invoice-adapter');
+      const invoiceDto: any = {
+        invoiceNumber: 'INV-TEST-PREVIEW',
+        status: 'draft',
+        issueDate: new Date().toLocaleDateString('en-AU'),
+        dueDate: dueDate,
+        currency,
+        issuer: {
+          name: dto.issuedByOverride?.name || 'Property Ledge Management',
+          email: dto.issuedByOverride?.email || null,
+          phone: dto.issuedByOverride?.phone || null,
+          address: dto.issuedByOverride?.address || null,
+          taxId: dto.issuedByOverride?.taxId || null,
+        },
+        recipient: {
+          name: customer,
+          email: dto.customerEmail || null,
+          phone: null,
+          address: dto.customerAddress || null,
+        },
+        items: [
+          {
+            description: desc,
+            quantity: 1,
+            unitPrice: amount,
+            taxRate: 10,
+            amount: amount,
+          },
+        ],
+        subtotalFormatted: `$${(amount / 1.1).toFixed(2)}`,
+        taxAmountFormatted: `$${(amount - amount / 1.1).toFixed(2)}`,
+        totalAmountFormatted: `$${amount.toFixed(2)}`,
+        amountPaidFormatted: '$0.00',
+        balanceDueFormatted: `$${amount.toFixed(2)}`,
+        layoutStyle: dto.invoiceTemplateId || 'classic',
+        brandColor: '#22333b',
+        accentColor: '#008F83',
+      };
+      const pdfBytes = await PdfInvoiceAdapter.generate(invoiceDto);
+      attachments = [
+        {
+          filename: `Test_Invoice_Preview.pdf`,
+          content: Buffer.from(pdfBytes).toString('base64'),
+        },
+      ];
+    } catch (pdfErr) {
+      console.warn('[sendAutomationTestEmailAction] Could not generate test invoice PDF attachment:', pdfErr);
+    }
+
     const res = await emailService.sendEmail({
       to: targetEmail,
       subject,
@@ -981,6 +1060,7 @@ export async function sendAutomationTestEmailAction(dto: SendAutomationTestEmail
           <p style="font-size: 13px; color: #64748b; margin-top: 24px;">Issued by <strong>${dto.issuedByOverride?.name || 'Property Ledge Management'}</strong></p>
         </div>`,
       },
+      attachments,
     });
 
     if (!res.success) throw new Error(res.error?.message || 'Failed to deliver test email');
@@ -1011,7 +1091,13 @@ export interface SendLeaseAgreementTestEmailDTO {
 
 export async function sendLeaseAgreementTestEmailAction(dto: SendLeaseAgreementTestEmailDTO) {
   try {
-    const { user, context } = await getContext('team.settings.update');
+    const { user, context } = await getContext([
+      'lease.view',
+      'lease.create',
+      'property.view',
+      'team.settings.view',
+      'team.settings.update',
+    ]);
     if (dto.propertyId) {
       const supabase = await createAdminClient();
       const { data: property } = await (supabase as any)
