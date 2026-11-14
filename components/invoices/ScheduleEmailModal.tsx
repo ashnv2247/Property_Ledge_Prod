@@ -458,7 +458,7 @@ export function ScheduleEmailModal({
                   </span>
                 </div>
 
-                {/* Dates & Frequencies */}
+                {/* Schedule Parameters & Due Dates */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -484,65 +484,73 @@ export function ScheduleEmailModal({
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Payment Due Date
+                      Due Date Rule
                     </label>
-                    <div className="flex gap-2">
-                      <Select
-                        value={dueDateType}
-                        onChange={(e) => setDueDateType(e.target.value as any)}
-                        className="bg-white dark:bg-slate-800 w-1/2"
-                      >
-                        <option value="relative">Days after issue</option>
-                        <option value="fixed">Fixed day</option>
-                      </Select>
+                    <Select
+                      value={dueDateType}
+                      onChange={(e) => setDueDateType(e.target.value as any)}
+                      className="bg-white dark:bg-slate-800"
+                    >
+                      <option value="relative">Days after issue (Relative)</option>
+                      <option value="fixed">Fixed day of month</option>
+                    </Select>
+                    <span className="text-[11px] text-slate-400 block mt-1">
+                      How invoice payment deadline is calculated.
+                    </span>
+                  </div>
 
-                      {dueDateType === 'relative' ? (
-                        <Select
-                          value={String(dueDaysAfter)}
-                          onChange={(e) => setDueDaysAfter(Number(e.target.value))}
-                          className="bg-white dark:bg-slate-800 w-1/2"
-                        >
-                          <option value="3">3 days</option>
-                          <option value="7">7 days (Net 7)</option>
-                          <option value="14">14 days (Net 14)</option>
-                          <option value="30">30 days (Net 30)</option>
-                        </Select>
-                      ) : (
-                        <Select
-                          value={String(fixedDueDay)}
-                          onChange={(e) => setFixedDueDay(Number(e.target.value))}
-                          className="bg-white dark:bg-slate-800 w-1/2"
-                        >
-                          <option value="7">7th</option>
-                          <option value="14">14th</option>
-                          <option value="15">15th</option>
-                          <option value="21">21st</option>
-                          <option value="28">28th</option>
-                        </Select>
-                      )}
-                    </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      {dueDateType === 'relative' ? 'Payment Terms (Days)' : 'Fixed Due Day'}
+                    </label>
+                    {dueDateType === 'relative' ? (
+                      <Select
+                        value={String(dueDaysAfter)}
+                        onChange={(e) => setDueDaysAfter(Number(e.target.value))}
+                        className="bg-white dark:bg-slate-800"
+                      >
+                        <option value="3">3 days</option>
+                        <option value="7">7 days (Net 7)</option>
+                        <option value="14">14 days (Net 14)</option>
+                        <option value="30">30 days (Net 30)</option>
+                      </Select>
+                    ) : (
+                      <Select
+                        value={String(fixedDueDay)}
+                        onChange={(e) => setFixedDueDay(Number(e.target.value))}
+                        className="bg-white dark:bg-slate-800"
+                      >
+                        <option value="7">7th of month</option>
+                        <option value="14">14th of month</option>
+                        <option value="15">15th of month</option>
+                        <option value="21">21st of month</option>
+                        <option value="28">28th of month</option>
+                      </Select>
+                    )}
                     <span className="text-[11px] text-slate-400 block mt-1">
                       Payment deadline displayed on customer invoices.
                     </span>
                   </div>
-                </div>
 
-                {/* Timezone */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Timezone
-                  </label>
-                  <Select
-                    value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
-                    className="bg-white dark:bg-slate-800"
-                  >
-                    <option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option>
-                    <option value="Australia/Melbourne">Australia/Melbourne</option>
-                    <option value="Australia/Brisbane">Australia/Brisbane (AEST)</option>
-                    <option value="Australia/Adelaide">Australia/Adelaide (ACST/ACDT)</option>
-                    <option value="Australia/Perth">Australia/Perth (AWST)</option>
-                  </Select>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Timezone
+                    </label>
+                    <Select
+                      value={timezone}
+                      onChange={(e) => setTimezone(e.target.value)}
+                      className="bg-white dark:bg-slate-800"
+                    >
+                      <option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option>
+                      <option value="Australia/Melbourne">Australia/Melbourne</option>
+                      <option value="Australia/Brisbane">Australia/Brisbane (AEST)</option>
+                      <option value="Australia/Adelaide">Australia/Adelaide (ACST/ACDT)</option>
+                      <option value="Australia/Perth">Australia/Perth (AWST)</option>
+                    </Select>
+                    <span className="text-[11px] text-slate-400 block mt-1">
+                      Timezone used for monthly job execution.
+                    </span>
+                  </div>
                 </div>
               </motion.div>
             )}
