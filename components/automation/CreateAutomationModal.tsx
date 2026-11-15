@@ -78,8 +78,8 @@ export function CreateAutomationModal({
   const [customerEmail, setCustomerEmail] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [customerAddress, setCustomerAddress] = useState<string>('');
-  const [invoiceDescription, setInvoiceDescription] = useState<string>('Monthly Maintenance & Services');
-  const [invoiceAmount, setInvoiceAmount] = useState<number | ''>(1000);
+  const [invoiceDescription, setInvoiceDescription] = useState<string>('');
+  const [invoiceAmount, setInvoiceAmount] = useState<number | ''>('');
   const [currency, setCurrency] = useState<string>('AUD');
 
   // Schedule Fields
@@ -89,9 +89,9 @@ export function CreateAutomationModal({
 
   // Issued By / Issuer Profile Fields
   const [isEditingIssuer, setIsEditingIssuer] = useState<boolean>(false);
-  const [issuerName, setIssuerName] = useState<string>('Property Ledge Management');
-  const [issuerEmail, setIssuerEmail] = useState<string>('billing@propertyledge.com.au');
-  const [issuerPhone, setIssuerPhone] = useState<string>('+61 2 9000 0000');
+  const [issuerName, setIssuerName] = useState<string>('');
+  const [issuerEmail, setIssuerEmail] = useState<string>('');
+  const [issuerPhone, setIssuerPhone] = useState<string>('');
   const [issuerAddress, setIssuerAddress] = useState<string>('');
   const [issuerTaxId, setIssuerTaxId] = useState<string>('');
   const [paymentDueDays, setPaymentDueDays] = useState<number>(14);
@@ -197,9 +197,9 @@ export function CreateAutomationModal({
   );
 
   const hasCustomIssuer = Boolean(
-    (issuerName && issuerName !== 'Property Ledge Management') ||
-    (issuerEmail && issuerEmail !== 'billing@propertyledge.com.au') ||
-    (issuerPhone && issuerPhone !== '+61 2 9000 0000') ||
+    issuerName.trim() ||
+    issuerEmail.trim() ||
+    issuerPhone.trim() ||
     issuerAddress.trim() ||
     issuerTaxId.trim() ||
     paymentDueDays !== 14
@@ -221,18 +221,28 @@ export function CreateAutomationModal({
         };
       }
 
-      const issuedByPayload = {
-        name: issuerName.trim() || 'Property Ledge Management',
-        email: issuerEmail.trim() || 'billing@propertyledge.com.au',
-        phone: issuerPhone.trim() || undefined,
-        address: issuerAddress.trim() || undefined,
-        taxId: issuerTaxId.trim() || undefined,
-        issuerName: issuerName.trim() || 'Property Ledge Management',
-        issuerEmail: issuerEmail.trim() || 'billing@propertyledge.com.au',
-        issuerPhone: issuerPhone.trim() || undefined,
-        issuerAddress: issuerAddress.trim() || undefined,
-        issuerTaxId: issuerTaxId.trim() || undefined,
-      };
+      const hasAnyIssuerDetails = Boolean(
+        issuerName.trim() ||
+        issuerEmail.trim() ||
+        issuerPhone.trim() ||
+        issuerAddress.trim() ||
+        issuerTaxId.trim()
+      );
+
+      const issuedByPayload = hasAnyIssuerDetails
+        ? {
+            name: issuerName.trim() || undefined,
+            email: issuerEmail.trim() || undefined,
+            phone: issuerPhone.trim() || undefined,
+            address: issuerAddress.trim() || undefined,
+            taxId: issuerTaxId.trim() || undefined,
+            issuerName: issuerName.trim() || undefined,
+            issuerEmail: issuerEmail.trim() || undefined,
+            issuerPhone: issuerPhone.trim() || undefined,
+            issuerAddress: issuerAddress.trim() || undefined,
+            issuerTaxId: issuerTaxId.trim() || undefined,
+          }
+        : undefined;
 
       if (automationType === 'lease') {
         if (!selectedLeaseId) {
@@ -268,6 +278,9 @@ export function CreateAutomationModal({
         if (!customerName.trim() || !customerEmail.trim()) {
           throw new Error('Please enter customer name and email address.');
         }
+        if (!invoiceDescription.trim()) {
+          throw new Error('Please enter a service description.');
+        }
         if (!invoiceAmount || Number(invoiceAmount) <= 0) {
           throw new Error('Please enter a valid invoice amount greater than 0.');
         }
@@ -276,7 +289,7 @@ export function CreateAutomationModal({
           customerName: customerName.trim(),
           customerEmail: customerEmail.trim(),
           customerAddress: customerAddress.trim() || undefined,
-          description: invoiceDescription.trim() || 'Monthly Service',
+          description: invoiceDescription.trim(),
           amount: Number(invoiceAmount),
           currency,
           invoiceTemplateId: selectedTemplateId || undefined,
@@ -326,13 +339,15 @@ export function CreateAutomationModal({
               rentAmount: customRentAmount !== '' ? Number(customRentAmount) : undefined,
             }
           : undefined,
-        issuedByOverride: {
-          name: issuerName,
-          email: issuerEmail,
-          phone: issuerPhone,
-          address: issuerAddress,
-          taxId: issuerTaxId,
-        },
+        issuedByOverride: (issuerName.trim() || issuerEmail.trim() || issuerPhone.trim() || issuerAddress.trim() || issuerTaxId.trim())
+          ? {
+              name: issuerName.trim() || undefined,
+              email: issuerEmail.trim() || undefined,
+              phone: issuerPhone.trim() || undefined,
+              address: issuerAddress.trim() || undefined,
+              taxId: issuerTaxId.trim() || undefined,
+            }
+          : undefined,
         paymentDueDays: Number(paymentDueDays) || 14,
         emailSubject: emailSubject.trim() || undefined,
         customMessage: emailMessage.trim() || undefined,
@@ -898,7 +913,7 @@ export function CreateAutomationModal({
                             type="email"
                             value={issuerEmail}
                             onChange={(e) => setIssuerEmail(e.target.value)}
-                            placeholder="billing@propertyledge.com.au"
+                            placeholder="e.g. billing@propertyledge.com.au"
                           />
                         </div>
 
@@ -908,7 +923,7 @@ export function CreateAutomationModal({
                             type="tel"
                             value={issuerPhone}
                             onChange={(e) => setIssuerPhone(e.target.value)}
-                            placeholder="+61 2 9000 0000"
+                            placeholder="e.g. +61 2 9000 0000"
                           />
                           <Select
                             label="Payment Due Terms"
@@ -944,9 +959,9 @@ export function CreateAutomationModal({
                           <button
                             type="button"
                             onClick={() => {
-                              setIssuerName('Property Ledge Management');
-                              setIssuerEmail('billing@propertyledge.com.au');
-                              setIssuerPhone('+61 2 9000 0000');
+                              setIssuerName('');
+                              setIssuerEmail('');
+                              setIssuerPhone('');
                               setIssuerAddress('');
                               setIssuerTaxId('');
                               setPaymentDueDays(14);
@@ -968,12 +983,12 @@ export function CreateAutomationModal({
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div className="flex items-center gap-1.5">
                           <span className="text-slate-500 dark:text-slate-400 font-medium">Issued By:</span>
-                          <strong className="text-slate-900 dark:text-white">{issuerName || 'Property Ledge Management'}</strong>
+                          <strong className="text-slate-900 dark:text-white">{issuerName || 'Your Business Name'}</strong>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           <span className="font-mono text-[#008F83] font-medium truncate" title={issuerEmail}>
-                            {issuerEmail || 'billing@propertyledge.com.au'}
+                            {issuerEmail || 'No billing email configured'}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5">
@@ -1248,7 +1263,7 @@ export function CreateAutomationModal({
                       label="Amount ($ AUD) *"
                       type="number"
                       min={1}
-                      placeholder="1000"
+                      placeholder="e.g. 1000"
                       value={invoiceAmount}
                       onChange={(e) => setInvoiceAmount(e.target.value === '' ? '' : Number(e.target.value))}
                     />
@@ -1301,7 +1316,7 @@ export function CreateAutomationModal({
                         type="email"
                         value={issuerEmail}
                         onChange={(e) => setIssuerEmail(e.target.value)}
-                        placeholder="billing@propertyledge.com.au"
+                        placeholder="e.g. billing@propertyledge.com.au"
                       />
                     </div>
 
@@ -1311,7 +1326,7 @@ export function CreateAutomationModal({
                         type="tel"
                         value={issuerPhone}
                         onChange={(e) => setIssuerPhone(e.target.value)}
-                        placeholder="+61 2 9000 0000"
+                        placeholder="e.g. +61 2 9000 0000"
                       />
                       <Select
                         label="Payment Due Terms"
@@ -1347,9 +1362,9 @@ export function CreateAutomationModal({
                       <button
                         type="button"
                         onClick={() => {
-                          setIssuerName('Property Ledge Management');
-                          setIssuerEmail('billing@propertyledge.com.au');
-                          setIssuerPhone('+61 2 9000 0000');
+                          setIssuerName('');
+                          setIssuerEmail('');
+                          setIssuerPhone('');
                           setIssuerAddress('');
                           setIssuerTaxId('');
                           setPaymentDueDays(14);
@@ -1371,12 +1386,12 @@ export function CreateAutomationModal({
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex items-center gap-1.5">
                       <span className="text-slate-500 dark:text-slate-400 font-medium">Issued By:</span>
-                      <strong className="text-slate-900 dark:text-white">{issuerName || 'Property Ledge Management'}</strong>
+                      <strong className="text-slate-900 dark:text-white">{issuerName || 'Your Business Name'}</strong>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span className="font-mono text-[#008F83] font-medium truncate" title={issuerEmail}>
-                        {issuerEmail || 'billing@propertyledge.com.au'}
+                        {issuerEmail || 'No billing email configured'}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -1570,11 +1585,11 @@ export function CreateAutomationModal({
                         </div>
                         <div className="flex justify-between py-0.5">
                           <span className="text-slate-500 dark:text-slate-400">Issuer Name:</span>
-                          <strong className="text-slate-900 dark:text-white">{issuerName}</strong>
+                          <strong className="text-slate-900 dark:text-white">{issuerName || 'Default Business Profile'}</strong>
                         </div>
                         <div className="flex justify-between py-0.5">
                           <span className="text-slate-500 dark:text-slate-400">Billing Email:</span>
-                          <span className="font-mono text-[#008F83] font-bold">{issuerEmail}</span>
+                          <span className="font-mono text-[#008F83] font-bold">{issuerEmail || 'Default Email'}</span>
                         </div>
                         {issuerPhone && (
                           <div className="flex justify-between py-0.5">
@@ -1645,11 +1660,13 @@ export function CreateAutomationModal({
                       )}
                       <div className="flex justify-between py-0.5">
                         <span className="text-slate-500 dark:text-slate-400">Charge Amount:</span>
-                        <strong className="text-slate-900 dark:text-white">${Number(invoiceAmount).toLocaleString()} AUD</strong>
+                        <strong className="text-slate-900 dark:text-white">
+                          {invoiceAmount !== '' && Number(invoiceAmount) > 0 ? `$${Number(invoiceAmount).toLocaleString()} AUD` : 'Not specified'}
+                        </strong>
                       </div>
                       <div className="flex justify-between py-0.5">
                         <span className="text-slate-500 dark:text-slate-400">Service Description:</span>
-                        <span className="text-slate-900 dark:text-white">{invoiceDescription}</span>
+                        <span className="text-slate-900 dark:text-white">{invoiceDescription || 'Not specified'}</span>
                       </div>
                     </div>
 
@@ -1667,11 +1684,11 @@ export function CreateAutomationModal({
                       </div>
                       <div className="flex justify-between py-0.5">
                         <span className="text-slate-500 dark:text-slate-400">Issuer Name:</span>
-                        <strong className="text-slate-900 dark:text-white">{issuerName}</strong>
+                        <strong className="text-slate-900 dark:text-white">{issuerName || 'Default Business Profile'}</strong>
                       </div>
                       <div className="flex justify-between py-0.5">
                         <span className="text-slate-500 dark:text-slate-400">Billing Email:</span>
-                        <span className="font-mono text-[#008F83] font-bold">{issuerEmail}</span>
+                        <span className="font-mono text-[#008F83] font-bold">{issuerEmail || 'Default Email'}</span>
                       </div>
                       {issuerPhone && (
                         <div className="flex justify-between py-0.5">

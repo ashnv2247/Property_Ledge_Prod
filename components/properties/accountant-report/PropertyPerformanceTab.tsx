@@ -15,7 +15,7 @@ export function PropertyPerformanceTab({
   financialYearLabel,
 }: PropertyPerformanceTabProps) {
   // Allow user to dynamically adjust property valuation to model different yields
-  const [propertyValue, setPropertyValue] = useState<number>(performance.propertyValue || 650000);
+  const [propertyValue, setPropertyValue] = useState<number>(performance.propertyValue || 0);
   const [isEditingValuation, setIsEditingValuation] = useState(false);
 
   const grossRent = performance.grossRent;
@@ -63,14 +63,15 @@ export function PropertyPerformanceTab({
                 <input
                   type="number"
                   aria-label="Property Valuation"
-                  value={propertyValue}
-                  onChange={(e) => setPropertyValue(Math.max(1, Number(e.target.value)))}
+                  value={propertyValue === 0 ? '' : propertyValue}
+                  placeholder="e.g. 650000"
+                  onChange={(e) => setPropertyValue(Math.max(0, Number(e.target.value)))}
                   className="w-full h-8 px-2 text-sm font-mono font-bold rounded-lg bg-slate-900 border border-teal-500 text-teal-300 focus:outline-none"
                 />
               </div>
             ) : (
               <p className="font-mono text-xl font-bold text-slate-100">
-                {formatCurrency(propertyValue)}
+                {propertyValue > 0 ? formatCurrency(propertyValue) : 'Not specified'}
               </p>
             )}
             <span className="text-[11px] text-slate-500">Asset purchase / market valuation</span>

@@ -50,9 +50,9 @@ export default function OnboardingPropertyPage() {
   } | null>(null);
 
   const [propertyCategory, setPropertyCategory] = useState<'Residential' | 'Commercial' | 'Other'>('Residential');
-  const [floorArea, setFloorArea] = useState<string>('85');
-  const [hasCarSpace, setHasCarSpace] = useState<boolean>(true);
-  const [carSpacesCount, setCarSpacesCount] = useState<number>(1);
+  const [floorArea, setFloorArea] = useState<string>('');
+  const [hasCarSpace, setHasCarSpace] = useState<boolean>(false);
+  const [carSpacesCount, setCarSpacesCount] = useState<number>(0);
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -327,7 +327,7 @@ export default function OnboardingPropertyPage() {
                       )}
                     >
                       <Car className="w-3.5 h-3.5" />
-                      <span>Yes ({carSpacesCount})</span>
+                      <span>{hasCarSpace ? `Yes (${carSpacesCount})` : 'Yes'}</span>
                     </button>
                   </div>
                 </div>

@@ -29,9 +29,9 @@ export function PropertyPerformanceTab({ data }: PropertyPerformanceTabProps) {
   const { kpis, properties } = data;
   const { selectedProperty } = usePropertyContext();
 
-  const [propertyValue, setPropertyValue] = useState<number>(650000);
+  const [propertyValue, setPropertyValue] = useState<number>(0);
   const [isEditingValue, setIsEditingValue] = useState(false);
-  const [inputValue, setInputValue] = useState('650000');
+  const [inputValue, setInputValue] = useState('');
 
   // Collapsible section state for Annual Comparative Performance table
   const [isIncomeOpen, setIsIncomeOpen] = useState(true);
@@ -47,6 +47,8 @@ export function PropertyPerformanceTab({ data }: PropertyPerformanceTabProps) {
     const parsed = parseFloat(inputValue.replace(/[^0-9.]/g, ''));
     if (!isNaN(parsed) && parsed > 0) {
       setPropertyValue(parsed);
+    } else {
+      setPropertyValue(0);
     }
     setIsEditingValue(false);
   };
@@ -56,14 +58,14 @@ export function PropertyPerformanceTab({ data }: PropertyPerformanceTabProps) {
   const currentFYLabel = `FY ${endYear - 1}/${String(endYear).slice(-2)}`;
   const priorFYLabel = `FY ${endYear - 2}/${String(endYear - 1).slice(-2)}`;
 
-  // Comparative data values (benchmarked to mock reference or ledger data)
-  const currentIncomeTotal = kpis.totalPortfolioIncome > 0 ? kpis.totalPortfolioIncome : 28600;
-  const priorIncomeTotal = kpis.totalPortfolioIncome > 0 ? kpis.totalPortfolioIncome * 0.909 : 26000;
+  // Comparative data values (benchmarked to actual report data)
+  const currentIncomeTotal = kpis.totalPortfolioIncome || 0;
+  const priorIncomeTotal = (kpis as any).priorPortfolioIncome || 0;
   const incomeVarianceVal = currentIncomeTotal - priorIncomeTotal;
   const incomeVariancePct = priorIncomeTotal > 0 ? (incomeVarianceVal / priorIncomeTotal) * 100 : 0;
 
-  const currentExpenseTotal = kpis.totalPortfolioExpenses > 0 ? kpis.totalPortfolioExpenses : 6918;
-  const priorExpenseTotal = kpis.totalPortfolioExpenses > 0 ? kpis.totalPortfolioExpenses * 1.26 : 8720;
+  const currentExpenseTotal = kpis.totalPortfolioExpenses || 0;
+  const priorExpenseTotal = (kpis as any).priorPortfolioExpenses || 0;
   const expenseVarianceVal = currentExpenseTotal - priorExpenseTotal;
   const expenseVariancePct = priorExpenseTotal > 0 ? (expenseVarianceVal / priorExpenseTotal) * 100 : 0;
 
@@ -73,7 +75,7 @@ export function PropertyPerformanceTab({ data }: PropertyPerformanceTabProps) {
   const netVariancePct = priorNetPosition !== 0 ? (netVarianceVal / Math.abs(priorNetPosition)) * 100 : 0;
 
   // Weekly Rent calculation
-  const weeklyRent = currentIncomeTotal / 52;
+  const weeklyRent = currentIncomeTotal > 0 ? currentIncomeTotal / 52 : 0;
 
   // Breakdown expense items for comparative table
   const comparativeExpenses = [
@@ -86,7 +88,7 @@ export function PropertyPerformanceTab({ data }: PropertyPerformanceTabProps) {
 
   // Display property identity
   const displayAddress = (properties[0]?.address) || 'Portfolio Consolidated Overview';
-  const displayTitle = selectedProperty?.propertyName || (properties[0]?.propertyName) || 'Unit 323, 213A Princes Hwy (Lot 5)';
+  const displayTitle = selectedProperty?.propertyName || (properties[0]?.propertyName) || 'Portfolio Consolidated Overview';
 
   return (
     <div className="space-y-6">
@@ -133,6 +135,7 @@ export function PropertyPerformanceTab({ data }: PropertyPerformanceTabProps) {
                 <input
                   type="text"
                   value={inputValue}
+                  placeholder="e.g. 650000"
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && savePropertyValue()}
                   className="w-full text-lg font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-[#008F83] focus:outline-none"
@@ -157,7 +160,7 @@ export function PropertyPerformanceTab({ data }: PropertyPerformanceTabProps) {
               </div>
             ) : (
               <div className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-white tabular-nums tracking-tight">
-                {formatCurrency(propertyValue)}
+                {propertyValue > 0 ? formatCurrency(propertyValue) : 'Not specified'}
               </div>
             )}
             <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">User-entered valuation benchmark</p>
