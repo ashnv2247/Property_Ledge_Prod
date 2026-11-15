@@ -16,12 +16,14 @@ export async function GET(
     }
 
     const pdfBytes = await PdfInvoiceAdapter.generate(renderDto);
+    const download = request.nextUrl.searchParams.get('download') === '1';
+    const disposition = download ? 'attachment' : 'inline';
 
     return new Response(pdfBytes as any, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="${renderDto.invoiceNumber || 'Invoice'}.pdf"`,
+        'Content-Disposition': `${disposition}; filename="${renderDto.invoiceNumber || 'Invoice'}.pdf"`,
         'Cache-Control': 'public, max-age=60, s-maxage=60',
       },
     });
