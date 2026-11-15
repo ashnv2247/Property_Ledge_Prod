@@ -9,8 +9,23 @@ import { DomainError, ExternalServiceError } from '@/shared/domain/errors';
 
 export class InvoiceStorageService {
   private readonly BUCKET_NAME = 'invoice-documents';
+  private bucketEnsured = false;
 
   constructor(private readonly client: TypedSupabaseClient) {}
+
+  private async ensureBucket(): Promise<void> {
+    if (this.bucketEnsured) return;
+    try {
+      const { error } = await this.client.storage.createBucket(this.BUCKET_NAME, {
+        public: false,
+      });
+      if (!error || error.message?.toLowerCase().includes('already exists')) {
+        this.bucketEnsured = true;
+      }
+    } catch {
+      // Ignore if create bucket fails or exists
+    }
+  }
 
   /**
    * Uploads binary document buffer to private storage.
@@ -23,13 +38,27 @@ export class InvoiceStorageService {
     contentType: string
   ): Promise<Result<{ storagePath: string; fileSizeBytes: number }, DomainError>> {
     try {
+      await this.ensureBucket();
       const storagePath = `${workspaceId}/${invoiceId}/${fileName}`;
-      const { data, error } = await this.client.storage
+      let { data, error } = await this.client.storage
         .from(this.BUCKET_NAME)
         .upload(storagePath, buffer, {
           contentType,
           upsert: true,
         });
+
+      if (error && error.message?.toLowerCase().includes('not found')) {
+        this.bucketEnsured = false;
+        await this.ensureBucket();
+        const retry = await this.client.storage
+          .from(this.BUCKET_NAME)
+          .upload(storagePath, buffer, {
+            contentType,
+            upsert: true,
+          });
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         return err(new ExternalServiceError('Storage', `Failed to upload invoice document: ${error.message}`));

@@ -68,6 +68,7 @@ export function InvoiceDetailModal({
 
   const [actionLoading, setActionLoading] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -120,11 +121,15 @@ export function InvoiceDetailModal({
 
   const handleSendEmailSubmit = async () => {
     setActionLoading(true);
+    setActionError(null);
     try {
       await onSendEmail(invoice.id, emailMessage, driveFolderUrl, emailSubject);
       setShowEmailForm(false);
       setActionSuccess('Invoice email dispatched successfully to client.');
       setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to send invoice email');
+      setTimeout(() => setActionError(null), 5000);
     } finally {
       setActionLoading(false);
     }
@@ -132,6 +137,7 @@ export function InvoiceDetailModal({
 
   const handleSendTestEmailSubmit = async () => {
     setIsSendingTest(true);
+    setActionError(null);
     try {
       const res = await sendInvoiceTestEmailAction(
         invoice.id,
@@ -144,7 +150,8 @@ export function InvoiceDetailModal({
       setActionSuccess(`Test email sent successfully to ${res.recipient || testRecipient || 'your inbox'}!`);
       setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
-      alert(err.message || 'Failed to send test email');
+      setActionError(err.message || 'Failed to send test email');
+      setTimeout(() => setActionError(null), 5000);
     } finally {
       setIsSendingTest(false);
     }
@@ -209,6 +216,13 @@ export function InvoiceDetailModal({
         {actionSuccess && (
           <div className="bg-emerald-500/10 border-b border-emerald-500/30 px-6 py-2.5 text-emerald-500 text-xs font-semibold flex items-center gap-2">
             <CheckCircle className="w-4 h-4" /> {actionSuccess}
+          </div>
+        )}
+
+        {/* Action Error Toast */}
+        {actionError && (
+          <div className="bg-rose-500/10 border-b border-rose-500/30 px-6 py-2.5 text-rose-500 text-xs font-semibold flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" /> {actionError}
           </div>
         )}
 
