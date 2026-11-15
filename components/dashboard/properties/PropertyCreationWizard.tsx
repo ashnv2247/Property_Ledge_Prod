@@ -422,96 +422,98 @@ export function PropertyCreationWizard({
               transition={{ duration: 0.18 }}
               className="space-y-4 px-0.5 py-1"
             >
-              {/* Floor Area & Car Space (Replacing bedroom & bathroom) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="wizard-floorArea" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Floor Area (m²)
-                  </label>
-                  <div className="relative flex items-center">
-                    <Maximize2 className="absolute left-3.5 h-4 w-4 text-slate-400 pointer-events-none" />
-                    <input
-                      id="wizard-floorArea"
-                      name="floorArea"
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="e.g. 85"
-                      value={formData.floorArea}
-                      onChange={handleChange}
-                      className="w-full h-11 pl-10 pr-12 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#008F83]"
-                    />
-                    <span className="absolute right-3.5 text-xs font-bold text-slate-400 pointer-events-none">
-                      m²
-                    </span>
-                  </div>
+              {formData.propertyCategory === 'Commercial' ? (
+                /* Commercial Specs: Floor Area (sqm) & Car Spaces */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    label="Floor Area (sqm)"
+                    name="floorArea"
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="e.g. 47"
+                    value={formData.floorArea}
+                    onChange={handleChange}
+                    className="bg-white dark:bg-slate-800"
+                  />
+                  <Input
+                    label="Car Spaces"
+                    name="carSpaces"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 1"
+                    value={formData.carSpaces}
+                    onChange={handleChange}
+                    className="bg-white dark:bg-slate-800"
+                  />
                 </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Car Space
-                  </label>
-                  <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 h-11 items-center">
-                    <button
-                      type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, hasCarSpace: false, carSpaces: '0' }))}
-                      className={cn(
-                        'h-9 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer',
-                        !formData.hasCarSpace
-                          ? 'bg-[#008F83] text-white shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      )}
-                    >
-                      <span>No</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          hasCarSpace: true,
-                          carSpaces: prev.carSpaces && prev.carSpaces !== '0' ? prev.carSpaces : '1',
-                        }))
-                      }
-                      className={cn(
-                        'h-9 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer',
-                        formData.hasCarSpace
-                          ? 'bg-[#008F83] text-white shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      )}
-                    >
-                      <Car className="w-3.5 h-3.5" />
-                      <span>Yes ({formData.carSpaces && formData.carSpaces !== '0' ? formData.carSpaces : '1'})</span>
-                    </button>
-                  </div>
+              ) : (
+                /* Residential Specs: Beds, Baths, Cars */
+                <div className="grid grid-cols-3 gap-3">
+                  <Input
+                    label="Beds"
+                    name="bedrooms"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 2"
+                    value={formData.bedrooms}
+                    onChange={handleChange}
+                    className="bg-white dark:bg-slate-800 text-center"
+                  />
+                  <Input
+                    label="Baths"
+                    name="bathrooms"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="e.g. 1"
+                    value={formData.bathrooms}
+                    onChange={handleChange}
+                    className="bg-white dark:bg-slate-800 text-center"
+                  />
+                  <Input
+                    label="Cars"
+                    name="carSpaces"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 1"
+                    value={formData.carSpaces}
+                    onChange={handleChange}
+                    className="bg-white dark:bg-slate-800 text-center"
+                  />
                 </div>
-              </div>
+              )}
 
-              {/* Advertised Rent & Payment Frequency */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="Advertised Rent ($)"
-                  name="rentAmount"
-                  type="number"
-                  min="0"
-                  placeholder="e.g. 650"
-                  value={formData.rentAmount}
-                  onChange={handleChange}
-                  leftIcon={<span className="text-xs font-bold">$</span>}
-                  className="bg-white dark:bg-slate-800"
-                />
+              {/* Rental Details */}
+              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800">
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-tight mb-3">
+                  Rental Details
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    label="Advertised Rent ($)"
+                    name="rentAmount"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 650"
+                    value={formData.rentAmount}
+                    onChange={handleChange}
+                    leftIcon={<span className="text-xs font-bold">$</span>}
+                    className="bg-white dark:bg-slate-800"
+                  />
 
-                <Select
-                  label="Payment Frequency"
-                  name="paymentFrequency"
-                  value={formData.paymentFrequency}
-                  onChange={handleChange}
-                  className="bg-white dark:bg-slate-800"
-                >
-                  <option value="Weekly">Weekly</option>
-                  <option value="Fortnightly">Fortnightly</option>
-                  <option value="Monthly">Monthly</option>
-                </Select>
+                  <Select
+                    label="Payment Frequency"
+                    name="paymentFrequency"
+                    value={formData.paymentFrequency}
+                    onChange={handleChange}
+                    className="bg-white dark:bg-slate-800"
+                  >
+                    <option value="Weekly">Weekly</option>
+                    <option value="Fortnightly">Fortnightly</option>
+                    <option value="Monthly">Monthly</option>
+                  </Select>
+                </div>
               </div>
 
               {/* Australian GST Tracking Toggle */}
@@ -602,34 +604,72 @@ export function PropertyCreationWizard({
                 {/* Divider */}
                 <div className="h-px bg-slate-200/80 dark:bg-slate-800" />
 
-                {/* Property Statistics Row (Floor Area & Car Space) */}
-                <div className="grid grid-cols-2 gap-2 sm:gap-4 text-center sm:text-left">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 shrink-0 hidden sm:block">
-                      <Maximize2 className="h-4 w-4 text-[#008F83]" />
-                    </div>
-                    <div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400">Floor Area</div>
-                      <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
-                        {formData.floorArea ? `${formData.floorArea} m²` : 'Not specified'}
+                {/* Property Statistics Row */}
+                {formData.propertyCategory === 'Commercial' ? (
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4 text-center sm:text-left">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 shrink-0 hidden sm:block">
+                        <Maximize2 className="h-4 w-4 text-[#008F83]" />
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">Floor Area</div>
+                        <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
+                          {formData.floorArea ? `${formData.floorArea} sqm` : 'Not specified'}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 shrink-0 hidden sm:block">
-                      <Car className="h-4 w-4 text-[#008F83]" />
-                    </div>
-                    <div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400">Car Space</div>
-                      <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
-                        {formData.hasCarSpace
-                          ? `${formData.carSpaces && formData.carSpaces !== '0' ? formData.carSpaces : '1'} Space(s)`
-                          : 'No parking'}
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 shrink-0 hidden sm:block">
+                        <Car className="h-4 w-4 text-[#008F83]" />
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">Car Spaces</div>
+                        <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
+                          {formData.carSpaces || '0'} {Number(formData.carSpaces) === 1 ? 'Space' : 'Spaces'}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center sm:text-left">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 shrink-0 hidden sm:block">
+                        <Bed className="h-4 w-4 text-[#008F83]" />
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">Bedrooms</div>
+                        <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
+                          {formData.bedrooms || '0'} {Number(formData.bedrooms) === 1 ? 'Bed' : 'Beds'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 shrink-0 hidden sm:block">
+                        <Bath className="h-4 w-4 text-[#008F83]" />
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">Bathrooms</div>
+                        <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
+                          {formData.bathrooms || '0'} {Number(formData.bathrooms) === 1 ? 'Bath' : 'Baths'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 shrink-0 hidden sm:block">
+                        <Car className="h-4 w-4 text-[#008F83]" />
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">Parking</div>
+                        <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
+                          {formData.carSpaces || '0'} {Number(formData.carSpaces) === 1 ? 'Space' : 'Spaces'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Divider */}
                 <div className="h-px bg-slate-200/80 dark:bg-slate-800" />

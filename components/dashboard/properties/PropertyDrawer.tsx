@@ -451,28 +451,75 @@ export function PropertyDrawer({
             />
           </div>
 
-          {/* Floor Area & Car Spaces */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Floor Area (m²)"
-              type="number"
-              min="0"
-              step="any"
-              value={floorArea}
-              onChange={(e) => setFloorArea(e.target.value)}
-              placeholder="e.g. 85"
-              className="bg-white dark:bg-slate-800"
-            />
-            <Input
-              label="Car Spaces"
-              type="number"
-              min="0"
-              value={carSpaces}
-              onChange={(e) => setCarSpaces(e.target.value)}
-              placeholder="e.g. 1"
-              className="bg-white dark:bg-slate-800 text-center"
-            />
-          </div>
+          {/* Property Specs: Commercial vs Residential */}
+          {propertyCategory === 'Commercial' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Floor Area (sqm)"
+                type="number"
+                min="0"
+                step="any"
+                value={floorArea}
+                onChange={(e) => setFloorArea(e.target.value)}
+                placeholder="e.g. 47"
+                className="bg-white dark:bg-slate-800"
+              />
+              <Input
+                label="Car Spaces"
+                type="number"
+                min="0"
+                value={carSpaces}
+                onChange={(e) => setCarSpaces(e.target.value)}
+                placeholder="e.g. 1"
+                className="bg-white dark:bg-slate-800 text-center"
+              />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <Input
+                  label="Beds"
+                  type="number"
+                  min="0"
+                  value={bedrooms}
+                  onChange={(e) => setBedrooms(e.target.value)}
+                  placeholder="e.g. 2"
+                  className="bg-white dark:bg-slate-800 text-center"
+                />
+                <Input
+                  label="Baths"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={bathrooms}
+                  onChange={(e) => setBathrooms(e.target.value)}
+                  placeholder="e.g. 1"
+                  className="bg-white dark:bg-slate-800 text-center"
+                />
+                <Input
+                  label="Cars"
+                  type="number"
+                  min="0"
+                  value={carSpaces}
+                  onChange={(e) => setCarSpaces(e.target.value)}
+                  placeholder="e.g. 1"
+                  className="bg-white dark:bg-slate-800 text-center"
+                />
+              </div>
+              <div>
+                <Input
+                  label="Floor Area (sqm)"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={floorArea}
+                  onChange={(e) => setFloorArea(e.target.value)}
+                  placeholder="e.g. 85"
+                  className="bg-white dark:bg-slate-800"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Advertised Rent & Valuation */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

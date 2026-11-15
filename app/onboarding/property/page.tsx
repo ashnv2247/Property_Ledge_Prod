@@ -270,7 +270,7 @@ export default function OnboardingPropertyPage() {
                 {/* Floor Area */}
                 <div className="space-y-1">
                   <label htmlFor="floorArea" className="block text-xs font-semibold text-slate-300">
-                    Floor Area
+                    Floor Area (sqm)
                   </label>
                   <div className="relative flex items-center">
                     <Maximize2 className="absolute left-3.5 h-4 w-4 text-[#8FA3B8] pointer-events-none" />
@@ -281,11 +281,11 @@ export default function OnboardingPropertyPage() {
                       step="any"
                       value={floorArea}
                       onChange={(e) => setFloorArea(e.target.value)}
-                      className={cn(inputClassName, 'pl-10 pr-12 text-xs sm:text-sm h-11 font-semibold')}
-                      placeholder="e.g. 85"
+                      className={cn(inputClassName, 'pl-10 pr-14 text-xs sm:text-sm h-11 font-semibold')}
+                      placeholder={propertyCategory === 'Commercial' ? 'e.g. 47' : 'e.g. 85'}
                     />
-                    <span className="absolute right-3.5 text-xs font-bold text-[#8FA3B8] pointer-events-none">
-                      m²
+                    <span className="absolute right-3 text-xs font-bold text-[#8FA3B8] pointer-events-none">
+                      sqm
                     </span>
                   </div>
                 </div>
@@ -293,7 +293,7 @@ export default function OnboardingPropertyPage() {
                 {/* Car Space Segmented Selector */}
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold text-slate-300">
-                    Car Space
+                    Car Spaces
                   </label>
                   <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#08182A] border border-white/[0.08] h-11 items-center">
                     <button
