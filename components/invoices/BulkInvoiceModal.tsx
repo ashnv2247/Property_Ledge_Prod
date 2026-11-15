@@ -70,8 +70,8 @@ export function BulkInvoiceModal({ isOpen, onClose, onSuccess }: BulkInvoiceModa
     return `${today.year}-${String(today.month).padStart(2, '0')}`;
   });
   const [monthsCount, setMonthsCount] = useState<number>(6);
-  const [description, setDescription] = useState('Monthly Rental Billing');
-  const [amountPerMonth, setAmountPerMonth] = useState<number>(2500);
+  const [description, setDescription] = useState('');
+  const [amountPerMonth, setAmountPerMonth] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0); // 0% or 0.10 (GST 10%)
   const [dueDays, setDueDays] = useState<number>(7);
   const [autoIssue, setAutoIssue] = useState<boolean>(true);
@@ -560,7 +560,8 @@ export function BulkInvoiceModal({ isOpen, onClose, onSuccess }: BulkInvoiceModa
                 min={0.01}
                 step={0.01}
                 required
-                value={amountPerMonth}
+                placeholder="e.g. 650.00"
+                value={amountPerMonth || ''}
                 onChange={(e) => setAmountPerMonth(Math.max(0, Number(e.target.value)))}
                 className="font-mono font-bold"
               />

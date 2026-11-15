@@ -62,12 +62,12 @@ export function PropertyDrawer({
   const [propertyType, setPropertyType] = useState('Apartment');
   const [imageUrl, setImageUrl] = useState('');
   const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
-  const [floorArea, setFloorArea] = useState('85');
-  const [bedrooms, setBedrooms] = useState('2');
-  const [bathrooms, setBathrooms] = useState('2');
-  const [carSpaces, setCarSpaces] = useState('1');
-  const [rentAmount, setRentAmount] = useState('650');
-  const [purchasePrice, setPurchasePrice] = useState('650000');
+  const [floorArea, setFloorArea] = useState('');
+  const [bedrooms, setBedrooms] = useState('');
+  const [bathrooms, setBathrooms] = useState('');
+  const [carSpaces, setCarSpaces] = useState('');
+  const [rentAmount, setRentAmount] = useState('');
+  const [purchasePrice, setPurchasePrice] = useState('');
   const [paymentFrequency, setPaymentFrequency] = useState('Weekly');
   const [status, setStatus] = useState('active');
   const [description, setDescription] = useState('');
@@ -158,7 +158,7 @@ export function PropertyDrawer({
         setBathrooms('');
         setCarSpaces('');
         setRentAmount('');
-        setPurchasePrice('650000');
+        setPurchasePrice('');
         setPaymentFrequency('Weekly');
         setStatus('active');
         setDescription('');

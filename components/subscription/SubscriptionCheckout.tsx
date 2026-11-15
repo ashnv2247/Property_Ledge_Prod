@@ -59,10 +59,10 @@ export function SubscriptionCheckout({
   const [phone, setPhone] = useState(userPhone);
   const [businessName, setBusinessName] = useState('');
   const [abn, setAbn] = useState('');
-  const [address, setAddress] = useState('14 Collins Street');
-  const [suburb, setSuburb] = useState('Melbourne');
+  const [address, setAddress] = useState('');
+  const [suburb, setSuburb] = useState('');
   const [state, setState] = useState('VIC');
-  const [postcode, setPostcode] = useState('3000');
+  const [postcode, setPostcode] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [stepError, setStepError] = useState<string>('');
 

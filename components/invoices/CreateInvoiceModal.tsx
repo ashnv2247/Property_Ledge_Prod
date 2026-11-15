@@ -530,11 +530,11 @@ export function CreateInvoiceModal({
       dueDate,
       currency,
       issuer: {
-        name: issuerName.trim() || workspaceName || 'Property Ledge Management',
-        email: issuerEmail.trim() || 'billing@propertyledge.com.au',
+        name: issuerName.trim() || workspaceName || 'Property Management',
+        email: issuerEmail.trim() || undefined,
         phone: issuerPhone.trim() || undefined,
         address: issuerAddress.trim() || undefined,
-        taxId: issuerTaxId.trim() || '51 824 753 556',
+        taxId: issuerTaxId.trim() || undefined,
       },
       items: items.map((i) => ({
         description: i.description.trim(),
@@ -1077,14 +1077,20 @@ export function CreateInvoiceModal({
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-[#008F83]" />
                       <span className="font-bold text-sm text-slate-900 dark:text-white">
-                        {issuerName.trim() || workspaceName || 'Property Ledge Management'}
+                        {issuerName.trim() || workspaceName || 'Property Management'}
                       </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        Saved
-                      </span>
+                      {issuerTaxId.trim() || issuerEmail.trim() ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          Saved
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-slate-200/60 text-slate-600 dark:bg-slate-700/60 dark:text-slate-300 border border-slate-300/40 dark:border-slate-600/40">
+                          Not Set
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {issuerTaxId.trim() ? `ABN: ${issuerTaxId.trim()}` : 'ABN: 51 824 753 556'} • {issuerEmail.trim() || 'billing@propertyledge.com.au'}
+                      {issuerTaxId.trim() ? `ABN: ${issuerTaxId.trim()}` : 'No ABN configured'} • {issuerEmail.trim() || 'No billing email configured'}
                     </p>
                   </div>
                   <button
@@ -1481,11 +1487,11 @@ export function CreateInvoiceModal({
                   customerName: recipientName || 'Valued Recipient',
                   customerEmail: recipientEmail,
                   customerAddress: recipientAddress,
-                  issuerName: issuerName.trim() || workspaceName || 'Property Ledge Management',
-                  issuerEmail: issuerEmail.trim() || 'billing@propertyledge.com.au',
-                  issuerPhone,
-                  issuerAddress,
-                  issuerTaxId: issuerTaxId.trim() || '51 824 753 556',
+                  issuerName: issuerName.trim() || workspaceName || 'Property Management',
+                  issuerEmail: issuerEmail.trim() || undefined,
+                  issuerPhone: issuerPhone.trim() || undefined,
+                  issuerAddress: issuerAddress.trim() || undefined,
+                  issuerTaxId: issuerTaxId.trim() || undefined,
                   items,
                   notes,
                   paymentInstructions,

@@ -67,24 +67,22 @@ export function InvoiceTemplateWizard({
   const [invoiceType, setInvoiceType] = useState('rent');
   const [status, setStatus] = useState<InvoiceTemplateStatus>('active');
 
-  // Step 2: Content & Pricing
+  // Step 2: Content & Pricing (Clean defaults, not prefilled with dummy data)
   const [items, setItems] = useState<InvoiceTemplateItem[]>([
-    { description: 'Monthly Property Rent', quantity: 1, unitPrice: 2500, taxRate: 10, discount: 0 },
+    { description: '', quantity: 1, unitPrice: 0, taxRate: 10, discount: 0 },
   ]);
   const [paymentTermsDays, setPaymentTermsDays] = useState<number>(14);
-  const [lateFeeAmount, setLateFeeAmount] = useState<number>(50);
-  const [lateFeeDays, setLateFeeDays] = useState<number>(7);
-  const [notes, setNotes] = useState('Payment due within terms. Thank you for your residency.');
-  const [paymentInstructions, setPaymentInstructions] = useState(
-    'Bank: Commonwealth Bank of Australia\nBSB: 062-000\nAccount: 1234 5678\nReference: INV-[ID]'
-  );
+  const [lateFeeAmount, setLateFeeAmount] = useState<number>(0);
+  const [lateFeeDays, setLateFeeDays] = useState<number>(0);
+  const [notes, setNotes] = useState('');
+  const [paymentInstructions, setPaymentInstructions] = useState('');
 
   // Visual Styling
   const [layoutStyle, setLayoutStyle] = useState<InvoiceLayoutStyle>('classic');
   const [brandColor, setBrandColor] = useState('#22333b');
   const [accentColor, setAccentColor] = useState('#a9927d');
-  const [headerText, setHeaderText] = useState('PROPERTY LEDGE');
-  const [footerText, setFooterText] = useState('Property Ledge Management Pty Ltd • ABN 12 345 678 901');
+  const [headerText, setHeaderText] = useState('');
+  const [footerText, setFooterText] = useState('');
 
   // Step 3: Automation & Schedule
   const [frequency, setFrequency] = useState<'monthly' | 'weekly' | 'fortnightly' | 'quarterly' | 'on_demand'>('monthly');
@@ -121,7 +119,7 @@ export function InvoiceTemplateWizard({
         setLayoutStyle(initialTemplate.layoutStyle || 'classic');
         setBrandColor(initialTemplate.brandColor || '#22333b');
         setAccentColor(initialTemplate.accentColor || '#a9927d');
-        setHeaderText(initialTemplate.headerText || 'PROPERTY LEDGE');
+        setHeaderText(initialTemplate.headerText || '');
         setFooterText(initialTemplate.footerText || '');
         if (initialTemplate.automationConfig) {
           setFrequency((initialTemplate.automationConfig.frequency as any) || 'monthly');

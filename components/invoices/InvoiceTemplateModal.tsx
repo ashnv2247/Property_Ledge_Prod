@@ -95,20 +95,18 @@ export function InvoiceTemplateModal({
   const [currency, setCurrency] = useState('AUD');
   const [status, setStatus] = useState<'active' | 'draft' | 'paused'>('active');
 
-  // Issuer / From Business Details
-  const [issuerName, setIssuerName] = useState('Property Ledge Management');
-  const [issuerEmail, setIssuerEmail] = useState('accounts@propertyledge.com.au');
-  const [issuerPhone, setIssuerPhone] = useState('+61 2 9000 0000');
-  const [issuerAddress, setIssuerAddress] = useState('Level 12, 100 Miller St, North Sydney NSW 2060');
-  const [issuerTaxId, setIssuerTaxId] = useState('ABN 51 824 753 556');
-  const [paymentInstructions, setPaymentInstructions] = useState(
-    'Direct Deposit / PayID / BPAY accepted.\nBSB: 082-000  Account: 1234 5678\nReference: INV-SAMPLE-001'
-  );
+  // Issuer / From Business Details (Clean defaults, not prefilled with dummy data)
+  const [issuerName, setIssuerName] = useState('');
+  const [issuerEmail, setIssuerEmail] = useState('');
+  const [issuerPhone, setIssuerPhone] = useState('');
+  const [issuerAddress, setIssuerAddress] = useState('');
+  const [issuerTaxId, setIssuerTaxId] = useState('');
+  const [paymentInstructions, setPaymentInstructions] = useState('');
   const [headerText, setHeaderText] = useState('');
 
   // Line items
   const [items, setItems] = useState<TemplateLineItem[]>([
-    { description: 'Residential Rent', quantity: 1, unitPrice: 650, taxRate: 0 },
+    { description: '', quantity: 1, unitPrice: 0, taxRate: 0 },
   ]);
 
   // Terms & Covenants
@@ -116,7 +114,7 @@ export function InvoiceTemplateModal({
   const [lateFeeAmount, setLateFeeAmount] = useState('');
   const [lateFeeDays, setLateFeeDays] = useState('');
   const [linkedPropertyIds, setLinkedPropertyIds] = useState<string[]>([]);
-  const [notes, setNotes] = useState('Payment is due within the terms specified on this invoice. Thank you for your business.');
+  const [notes, setNotes] = useState('');
 
   // Automation
   const [automationFrequency, setAutomationFrequency] = useState<'monthly' | 'weekly' | 'fortnightly' | 'on_demand'>('monthly');
@@ -207,12 +205,12 @@ export function InvoiceTemplateModal({
         setAccentColor(initialPreset.accentColor || '#0F766E');
         setCurrency('AUD');
         setStatus('active');
-        setItems([{ description: 'Rental Charge', quantity: 1, unitPrice: 650, taxRate: 0 }]);
+        setItems([{ description: '', quantity: 1, unitPrice: 0, taxRate: 0 }]);
         setPaymentTermsDays('14');
         setLateFeeAmount('');
         setLateFeeDays('');
         setLinkedPropertyIds([]);
-        setNotes('Payment is due within the terms specified on this invoice. Thank you for your business.');
+        setNotes('');
         setAutomationFrequency('monthly');
         setDayOfMonth('1');
         setAutoApprove(false);
@@ -225,12 +223,12 @@ export function InvoiceTemplateModal({
         setAccentColor('#0F766E');
         setCurrency('AUD');
         setStatus('active');
-        setItems([{ description: 'Residential Rent', quantity: 1, unitPrice: 650, taxRate: 0 }]);
+        setItems([{ description: '', quantity: 1, unitPrice: 0, taxRate: 0 }]);
         setPaymentTermsDays('14');
         setLateFeeAmount('');
         setLateFeeDays('');
         setLinkedPropertyIds([]);
-        setNotes('Payment is due within the terms specified on this invoice. Thank you for your business.');
+        setNotes('');
         setAutomationFrequency('monthly');
         setDayOfMonth('1');
         setAutoApprove(false);
@@ -274,25 +272,23 @@ export function InvoiceTemplateModal({
       customerName: 'Sample Resident / Tenant',
       customerEmail: 'tenant@propertyledge.com.au',
       customerAddress: selectedProperty ? selectedProperty.address_line_1 : 'Unit 4B, 100 George Street, Sydney NSW 2000',
-      issuerName: issuerName || 'Property Ledge Management',
-      issuerEmail: issuerEmail || 'accounts@propertyledge.com.au',
-      issuerAddress: issuerAddress || 'Level 12, 100 Miller St, North Sydney NSW 2060',
-      issuerPhone: issuerPhone || '+61 2 9000 0000',
-      issuerTaxId: issuerTaxId || 'ABN 51 824 753 556',
+      issuerName: issuerName || 'Your Business Name',
+      issuerEmail: issuerEmail || '',
+      issuerAddress: issuerAddress || '',
+      issuerPhone: issuerPhone || '',
+      issuerTaxId: issuerTaxId || '',
       propertyAddress: propertyLabel,
       items:
-        items.length > 0
+        items.length > 0 && items.some((it) => it.description || it.unitPrice)
           ? items.map((it) => ({
-              description: it.description || 'Residential Rent & Tenancy Services',
+              description: it.description || 'Rental Services',
               quantity: Number(it.quantity) || 1,
               unitPrice: Number(it.unitPrice) || 0,
               taxRate: Number(it.taxRate) || 0,
             }))
-          : [{ description: 'Residential Rent', quantity: 1, unitPrice: 650, taxRate: 0 }],
+          : [{ description: 'Rental Services', quantity: 1, unitPrice: 0, taxRate: 0 }],
       notes: notesWithLateFee,
-      paymentInstructions:
-        paymentInstructions ||
-        'Direct Deposit / PayID / BPAY accepted.\nBSB: 082-000  Account: 1234 5678\nReference: INV-SAMPLE-001',
+      paymentInstructions: paymentInstructions || '',
       headerText: headerText.trim() ? headerText.trim().toUpperCase() : name.trim() ? name.toUpperCase() : 'TAX INVOICE',
       brandColor,
       accentColor,
