@@ -49,6 +49,7 @@ import {
   createAuDate,
 } from '@/lib/format/australian-time';
 import { cn } from '@/lib/utils';
+import { useWorkspaceStore } from '@/lib/stores/useWorkspaceStore';
 
 interface CreateInvoiceModalProps {
   isOpen: boolean;
@@ -68,8 +69,9 @@ interface CreateInvoiceModalProps {
 
 const WIZARD_STEPS = [
   { idx: 0, name: 'Invoice Type' },
-  { idx: 1, name: 'Details' },
-  { idx: 2, name: 'Preview & Issue' },
+  { idx: 1, name: 'Recipient' },
+  { idx: 2, name: 'Details' },
+  { idx: 3, name: 'Preview & Issue' },
 ];
 
 export function CreateInvoiceModal({
@@ -122,6 +124,7 @@ export function CreateInvoiceModal({
   const [testSuccess, setTestSuccess] = useState<string | null>(null);
 
   // Issuer (Issued By) Details - Clean, not prefilled with demo data
+  const workspaceName = useWorkspaceStore((s) => s.workspaceName);
   const [isEditingIssuer, setIsEditingIssuer] = useState(false);
   const [issuerName, setIssuerName] = useState('');
   const [issuerEmail, setIssuerEmail] = useState('');
@@ -130,10 +133,13 @@ export function CreateInvoiceModal({
   const [issuerTaxId, setIssuerTaxId] = useState('');
 
   // Recipient (Issued To) Details
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [recipientName, setRecipientName] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
+  const [showMoreRecipientDetails, setShowMoreRecipientDetails] = useState<boolean>(false);
+  const [showMoreTermsDetails, setShowMoreTermsDetails] = useState<boolean>(false);
 
   // Dates & Payment Terms in Australian Timezone
   const [issueDate, setIssueDate] = useState(() => getAuTodayString());
@@ -254,6 +260,8 @@ export function CreateInvoiceModal({
         setIsEditingIssuer(Boolean(issuer?.name || issuer?.email || issuer?.taxId));
         setNotes(invoiceToEdit.notes || '');
         setPaymentInstructions(invoiceToEdit.paymentInstructions || '');
+        setShowMoreRecipientDetails(Boolean((invoiceToEdit as any).recipientPhone || invoiceToEdit.customerAddress || (invoiceToEdit as any).recipientAddress));
+        setShowMoreTermsDetails(Boolean(invoiceToEdit.notes || invoiceToEdit.paymentInstructions));
       } else {
         if (initialPropertyId) {
           setSelectedPropertyId(initialPropertyId);
@@ -285,6 +293,9 @@ export function CreateInvoiceModal({
         setIsEditingIssuer(false);
         setNotes('');
         setPaymentInstructions('');
+        setShowMoreRecipientDetails(false);
+        setShowMoreTermsDetails(false);
+        setSelectedCustomerId('');
       }
     } else {
       prevModalInvoiceIdRef.current = null;
@@ -397,22 +408,99 @@ export function CreateInvoiceModal({
   }, 0);
   const grandTotal = subtotal + taxTotal;
 
-  // Pure boolean check without side-effects for render-time disable conditions
+  // Known Customers & Contact Auto-fill
+  const knownCustomers = useMemo(() => {
+    const list: Array<{ id: string; name: string; email?: string; phone?: string; address?: string; leaseId?: string }> = [];
+    const seen = new Set<string>();
+
+    leases.forEach((l) => {
+      const tenantRel = l.lease_tenants?.[0] || l.tenants?.[0];
+      const t = tenantRel?.tenant || tenantRel;
+      if (t) {
+        const name = `${t.first_name || t.firstName || ''} ${t.last_name || t.lastName || ''}`.trim() || t.name || '';
+        if (name && !seen.has(name.toLowerCase())) {
+          seen.add(name.toLowerCase());
+          let addr = '';
+          if (l.property) {
+            addr = [
+              l.property.address_line_1,
+              l.property.city || l.property.suburb,
+              l.property.state,
+              l.property.postal_code,
+            ].filter(Boolean).join(', ');
+          }
+          list.push({
+            id: l.id,
+            name,
+            email: t.email || '',
+            phone: t.phone || '',
+            address: addr,
+            leaseId: l.id,
+          });
+        }
+      }
+    });
+
+    return list;
+  }, [leases]);
+
+  const handleCustomerSelect = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+    if (!customerId) return;
+    if (customerId === '__new__') {
+      setRecipientName('');
+      setRecipientEmail('');
+      setRecipientPhone('');
+      setRecipientAddress('');
+      return;
+    }
+    const found = knownCustomers.find((c) => c.id === customerId);
+    if (found) {
+      setRecipientName(found.name);
+      if (found.email) setRecipientEmail(found.email);
+      if (found.phone) {
+        setRecipientPhone(found.phone);
+        setShowMoreRecipientDetails(true);
+      }
+      if (found.address) {
+        setRecipientAddress(found.address);
+        setShowMoreRecipientDetails(true);
+      }
+      if (found.leaseId && invoiceType === 'lease') {
+        handleLeaseSelect(found.leaseId);
+      }
+    }
+  };
+
+  // Step Validation & Completion Checks
+  const isStepComplete = (stepIdx: number) => {
+    if (stepIdx === 0) return true;
+    if (stepIdx === 1) return Boolean(recipientName.trim());
+    if (stepIdx === 2) {
+      return (
+        Boolean(recipientName.trim()) &&
+        items.length > 0 &&
+        items.every((i) => Boolean(i.description.trim()) && (Number(i.quantity) || 0) > 0)
+      );
+    }
+    return true;
+  };
+
   const isStep2Complete = useMemo(() => {
-    return (
-      Boolean(recipientName.trim()) &&
-      items.length > 0 &&
-      items.every((i) => Boolean(i.description.trim()) && (Number(i.quantity) || 0) > 0)
-    );
+    return isStepComplete(2);
   }, [recipientName, items]);
 
-  // Validate Step 2 (called on user action, displays error banner)
-  const validateStep2 = () => {
+  const validateRecipient = () => {
     setError(null);
     if (!recipientName.trim()) {
-      setError('Recipient name is required.');
+      setError('Recipient name is required. Please enter or select a recipient.');
       return false;
     }
+    return true;
+  };
+
+  const validateCharges = () => {
+    setError(null);
     if (items.some((i) => !i.description.trim())) {
       setError('All invoice line items must have a description.');
       return false;
@@ -422,6 +510,10 @@ export function CreateInvoiceModal({
       return false;
     }
     return true;
+  };
+
+  const validateStep2 = () => {
+    return validateRecipient() && validateCharges();
   };
 
   // Construct Payload
@@ -438,11 +530,11 @@ export function CreateInvoiceModal({
       dueDate,
       currency,
       issuer: {
-        name: issuerName.trim(),
-        email: issuerEmail.trim() || undefined,
+        name: issuerName.trim() || workspaceName || 'Property Ledge Management',
+        email: issuerEmail.trim() || 'billing@propertyledge.com.au',
         phone: issuerPhone.trim() || undefined,
         address: issuerAddress.trim() || undefined,
-        taxId: issuerTaxId.trim() || undefined,
+        taxId: issuerTaxId.trim() || '51 824 753 556',
       },
       items: items.map((i) => ({
         description: i.description.trim(),
@@ -574,76 +666,45 @@ export function CreateInvoiceModal({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Centered Header */}
-        <div className="text-center mb-6">
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <h2 className="text-xl sm:text-2xl font-bold font-heading tracking-tight text-slate-900 dark:text-white">
-              {isEditMode ? `Edit Invoice ${invoiceToEdit?.invoiceNumber}` : 'Create New Invoice'}
-            </h2>
-            <span className="text-[10.5px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border bg-[#008F83]/10 text-[#008F83] border-[#008F83]/20">
-              {invoiceType === 'lease' ? 'Lease Linked' : 'Standalone'}
-            </span>
+        {/* Modal Header (Matching user mockup) */}
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2.5 mb-1">
+              <h2 className="text-xl sm:text-2xl font-bold font-heading tracking-tight text-slate-900 dark:text-white">
+                {isEditMode ? `Edit Invoice ${invoiceToEdit?.invoiceNumber}` : 'Create New Invoice'}
+              </h2>
+              <span className="text-[10.5px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 shrink-0">
+                {invoiceType === 'lease' ? 'Lease Linked' : 'Standalone'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Step {step + 1} of {WIZARD_STEPS.length} · {WIZARD_STEPS[step]?.name || 'Details'}
+            </p>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {step === 0
-              ? 'Choose whether to bill an active lease tenancy or an independent client.'
-              : step === 1
-              ? 'Define invoice recipient, terms, and itemized charges.'
-              : 'Review the generated document preview and issue or download.'}
-          </p>
         </div>
 
-        {/* Centered Stepper */}
+        {/* 4-Segment Progress Bar (Matching user mockup) */}
         <nav aria-label="Progress" className="mb-6">
-          <div className="flex items-center justify-center max-w-md mx-auto relative">
-            <div className="absolute top-4 left-8 right-8 h-0.5 bg-slate-200 dark:bg-slate-800 -z-0" />
-            <div
-              className="absolute top-4 left-8 h-0.5 bg-[#008F83] -z-0 transition-all duration-300"
-              style={{
-                width: step === 0 ? '0%' : step === 1 ? '50%' : 'calc(100% - 64px)',
-              }}
-            />
-
-            <div className="w-full flex items-center justify-between z-10 px-2">
-              {WIZARD_STEPS.map((s, idx) => {
-                const isCurrent = idx === step;
-                const isCompleted = idx < step;
-                return (
-                  <div key={s.idx} className="flex flex-col items-center group">
-                    <button
-                      type="button"
-                      disabled={idx > step && (idx > 1 || !isStep2Complete)}
-                      onClick={() => {
-                        if (idx === 2 && !validateStep2()) return;
-                        setStep(idx);
-                      }}
-                      className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 cursor-pointer',
-                        isCurrent
-                          ? 'bg-[#008F83] text-white shadow-md ring-4 ring-[#008F83]/15 scale-105'
-                          : isCompleted
-                          ? 'bg-[#008F83] text-white shadow-xs'
-                          : 'bg-white dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700'
-                      )}
-                    >
-                      {isCompleted ? <Check className="w-4 h-4 stroke-[2.5]" /> : s.idx + 1}
-                    </button>
-                    <span
-                      className={cn(
-                        'mt-1.5 text-[11px] font-medium transition-colors text-center',
-                        isCurrent
-                          ? 'text-[#008F83] font-semibold'
-                          : isCompleted
-                          ? 'text-slate-700 dark:text-slate-300'
-                          : 'text-slate-400 dark:text-slate-500'
-                      )}
-                    >
-                      {s.name}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="grid grid-cols-4 gap-2">
+            {WIZARD_STEPS.map((s, idx) => (
+              <button
+                key={s.idx}
+                type="button"
+                disabled={idx > step && !isStepComplete(idx - 1)}
+                onClick={() => {
+                  if (idx > step) {
+                    if (step === 1 && !validateRecipient()) return;
+                    if (step === 2 && !validateCharges()) return;
+                  }
+                  setStep(idx);
+                }}
+                className={cn(
+                  'h-1.5 rounded-full transition-all duration-300 cursor-pointer disabled:cursor-not-allowed',
+                  idx <= step ? 'bg-[#008F83]' : 'bg-slate-200 dark:bg-slate-800'
+                )}
+                title={`Step ${idx + 1}: ${s.name}`}
+              />
+            ))}
           </div>
         </nav>
 
@@ -883,145 +944,217 @@ export function CreateInvoiceModal({
           )}
 
           {/* ═══════════════════════════════════════════════════════
-              STEP 1: INVOICE INFORMATION & LINE ITEMS
+              STEP 1: RECIPIENT ("Who are you invoicing?")
              ═══════════════════════════════════════════════════════ */}
           {step === 1 && (
-            <div className="space-y-6">
-              {/* Category Segmented Switcher */}
-              <div className="space-y-1.5">
-                <span className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Billing Category
-                </span>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setInvoiceType('standalone')}
-                    className={cn(
-                      'h-11 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-150 border flex items-center justify-center gap-2',
-                      invoiceType === 'standalone'
-                        ? 'bg-[#008F83] text-white border-transparent shadow-xs'
-                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-[#008F83]/40'
-                    )}
-                  >
-                    <User className="w-4 h-4" />
-                    Independent Client
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setInvoiceType('lease')}
-                    className={cn(
-                      'h-11 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-150 border flex items-center justify-center gap-2',
-                      invoiceType === 'lease'
-                        ? 'bg-[#008F83] text-white border-transparent shadow-xs'
-                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-[#008F83]/40'
-                    )}
-                  >
-                    <Building2 className="w-4 h-4" />
-                    Tenancy Linked
-                  </button>
-                </div>
+            <div className="space-y-5 max-w-xl mx-auto py-2">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold font-heading text-slate-900 dark:text-white">
+                  Who are you invoicing?
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Enter the recipient&apos;s details. Your business information is already saved.
+                </p>
               </div>
 
               {/* Tenancy Context (if Lease-Linked) */}
               {invoiceType === 'lease' && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-4 animate-in fade-in">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-3 animate-in fade-in">
                   <div className="flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-[#008F83]" />
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                       Target Tenancy & Lease Linkage
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Select
-                      label="Select Active Lease *"
-                      value={selectedLeaseId}
-                      onChange={(e) => handleLeaseSelect(e.target.value)}
-                      className="bg-white dark:bg-slate-900"
-                    >
-                      <option value="">-- Choose active lease ({leases.length} available) --</option>
-                      {leases.map((l) => {
-                        const tenantRel = l.lease_tenants?.[0] || l.tenants?.[0];
-                        const t = tenantRel?.tenant || tenantRel;
-                        const tenantName = t ? `${t.first_name || ''} ${t.last_name || ''}`.trim() : '';
-                        return (
-                          <option key={l.id} value={l.id}>
-                            {l.property?.name || 'Property'} {tenantName ? `(${tenantName})` : ''} • ${l.rent_amount} ({l.rent_frequency || 'monthly'})
-                          </option>
-                        );
-                      })}
-                    </Select>
-                    <Select
-                      label="Linked Property"
-                      value={selectedPropertyId}
-                      onChange={(e) => setSelectedPropertyId(e.target.value)}
-                      className="bg-white dark:bg-slate-900"
-                    >
-                      <option value="">-- None (Standalone) --</option>
-                      {properties.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name || p.address_line_1}
+                  <Select
+                    label="Select Active Lease *"
+                    value={selectedLeaseId}
+                    onChange={(e) => handleLeaseSelect(e.target.value)}
+                    className="bg-white dark:bg-slate-900"
+                  >
+                    <option value="">-- Choose active lease ({leases.length} available) --</option>
+                    {leases.map((l) => {
+                      const tenantRel = l.lease_tenants?.[0] || l.tenants?.[0];
+                      const t = tenantRel?.tenant || tenantRel;
+                      const tenantName = t ? `${t.first_name || ''} ${t.last_name || ''}`.trim() : '';
+                      return (
+                        <option key={l.id} value={l.id}>
+                          {l.property?.name || 'Property'} {tenantName ? `(${tenantName})` : ''} • ${l.rent_amount} ({l.rent_frequency || 'monthly'})
                         </option>
-                      ))}
-                    </Select>
-                  </div>
+                      );
+                    })}
+                  </Select>
                 </div>
               )}
 
-              {/* Recipient Details */}
-              <div className="space-y-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                  <User className="w-4 h-4 text-[#008F83]" />
-                  Recipient (Bill To)
+              {/* Customer / Recipient Selector */}
+              <div>
+                <Select
+                  label="Customer / Recipient *"
+                  value={selectedCustomerId}
+                  onChange={(e) => handleCustomerSelect(e.target.value)}
+                  className="bg-white dark:bg-slate-800"
+                >
+                  <option value="">Select an existing customer or add new</option>
+                  {knownCustomers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.email ? `(${c.email})` : ''}
+                    </option>
+                  ))}
+                  <option value="__new__">+ Add new customer</option>
+                </Select>
+              </div>
+
+              {/* Recipient Name */}
+              <div>
+                <Input
+                  label="Recipient Name *"
+                  type="text"
+                  value={recipientName}
+                  onChange={(e) => {
+                    setRecipientName(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  placeholder="e.g. John Smith / Acme Corp"
+                  className="bg-white dark:bg-slate-800"
+                />
+              </div>
+
+              {/* Email Address */}
+              <div>
+                <Input
+                  label="Email Address"
+                  type="email"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  placeholder="john.smith@example.com"
+                  className="bg-white dark:bg-slate-800"
+                />
+              </div>
+
+              {/* Collapsible Accordion: Add phone number or billing address */}
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50/50 dark:bg-slate-800/40">
+                <button
+                  type="button"
+                  onClick={() => setShowMoreRecipientDetails(!showMoreRecipientDetails)}
+                  className="w-full px-4 py-3 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between hover:bg-slate-100/60 dark:hover:bg-slate-800/80 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <Plus className={cn('w-3.5 h-3.5 text-[#008F83] transition-transform duration-200', showMoreRecipientDetails && 'rotate-45')} />
+                    <span>Add phone number or billing address</span>
+                  </span>
+                  <ChevronDown className={cn('w-4 h-4 text-slate-400 transition-transform duration-200', showMoreRecipientDetails && 'rotate-180')} />
+                </button>
+                {showMoreRecipientDetails && (
+                  <div className="p-4 pt-1 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-200/60 dark:border-slate-800/60 animate-in fade-in">
+                    <Input
+                      label="Phone Number"
+                      type="text"
+                      value={recipientPhone}
+                      onChange={(e) => setRecipientPhone(e.target.value)}
+                      placeholder="+61 400 000 000"
+                      className="bg-white dark:bg-slate-800"
+                    />
+                    <Input
+                      label="Billing Address"
+                      type="text"
+                      value={recipientAddress}
+                      onChange={(e) => setRecipientAddress(e.target.value)}
+                      placeholder="Unit 12, 45 Oxford Street, Sydney NSW 2000"
+                      className="bg-white dark:bg-slate-800"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Your Business Details Card */}
+              <div className="space-y-2 pt-2">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                  Your Business Details
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    label="Recipient Name *"
-                    type="text"
-                    value={recipientName}
-                    onChange={(e) => setRecipientName(e.target.value)}
-                    placeholder="e.g. John Smith / Acme Corp"
-                    className="bg-white dark:bg-slate-900"
-                  />
-                  <Input
-                    label="Recipient Email"
-                    type="email"
-                    value={recipientEmail}
-                    onChange={(e) => setRecipientEmail(e.target.value)}
-                    placeholder="john.smith@tenant.com"
-                    className="bg-white dark:bg-slate-900"
-                  />
-                  <Input
-                    label="Recipient Phone"
-                    type="text"
-                    value={recipientPhone}
-                    onChange={(e) => setRecipientPhone(e.target.value)}
-                    placeholder="+61 400 000 000"
-                    className="bg-white dark:bg-slate-900"
-                  />
-                  <Input
-                    label="Billing Address"
-                    type="text"
-                    value={recipientAddress}
-                    onChange={(e) => setRecipientAddress(e.target.value)}
-                    placeholder="Unit 12, 45 Oxford Street, Bondi Junction NSW 2022"
-                    className="bg-white dark:bg-slate-900"
-                  />
+                <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-[#008F83]" />
+                      <span className="font-bold text-sm text-slate-900 dark:text-white">
+                        {issuerName.trim() || workspaceName || 'Property Ledge Management'}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        Saved
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {issuerTaxId.trim() ? `ABN: ${issuerTaxId.trim()}` : 'ABN: 51 824 753 556'} • {issuerEmail.trim() || 'billing@propertyledge.com.au'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingIssuer(!isEditingIssuer)}
+                    className="text-xs font-semibold text-[#008F83] hover:text-[#007a70] dark:text-[#32D5C4] transition-colors self-start sm:self-center"
+                  >
+                    {isEditingIssuer ? 'Hide details' : 'Edit business details →'}
+                  </button>
                 </div>
+
+                {isEditingIssuer && (
+                  <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-2 animate-in fade-in">
+                    <Input
+                      label="Business Name"
+                      type="text"
+                      placeholder="e.g. Property Ledge Management"
+                      value={issuerName}
+                      onChange={(e) => setIssuerName(e.target.value)}
+                      className="bg-slate-50 dark:bg-slate-800 text-xs"
+                    />
+                    <Input
+                      label="Business Email"
+                      type="email"
+                      placeholder="e.g. billing@example.com.au"
+                      value={issuerEmail}
+                      onChange={(e) => setIssuerEmail(e.target.value)}
+                      className="bg-slate-50 dark:bg-slate-800 text-xs"
+                    />
+                    <Input
+                      label="ABN / Tax ID"
+                      type="text"
+                      placeholder="e.g. ABN 51 824 753 556"
+                      value={issuerTaxId}
+                      onChange={(e) => setIssuerTaxId(e.target.value)}
+                      className="bg-slate-50 dark:bg-slate-800 text-xs"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════
+              STEP 2: CHARGES & TERMS ("What are you charging for?")
+             ═══════════════════════════════════════════════════════ */}
+          {step === 2 && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold font-heading text-slate-900 dark:text-white">
+                  What are you charging for?
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Itemize services, rent, or maintenance charges and set payment terms.
+                </p>
               </div>
 
               {/* Schedule, Dates & Terms */}
-              <div className="space-y-4">
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#008F83]" />
-                    Invoice Dates & Currency
+                    Invoice Reference & Due Date
                   </span>
                   <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    Timezone: <span className="font-semibold text-slate-700 dark:text-slate-300">Australia (AEST/AEDT)</span>
+                    Currency: <span className="font-semibold text-slate-700 dark:text-slate-300">{currency}</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <Input
                     label="Invoice Number *"
                     type="text"
@@ -1029,18 +1162,6 @@ export function CreateInvoiceModal({
                     onChange={(e) => setInvoiceNumber(e.target.value)}
                     className="bg-white dark:bg-slate-900 font-mono font-bold"
                   />
-                  <Select
-                    label="Billing Currency"
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
-                    className="bg-white dark:bg-slate-900 font-medium"
-                  >
-                    {Object.values(SUPPORTED_CURRENCIES).map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.code} — {c.name} ({c.symbol})
-                      </option>
-                    ))}
-                  </Select>
                   <Input
                     label="Issue Date (AU) *"
                     type="date"
@@ -1202,68 +1323,36 @@ export function CreateInvoiceModal({
                 </div>
               </div>
 
-              {/* Notes & Payment Remittance */}
-              <div className="space-y-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
-                  Terms & Payment Instructions
-                </span>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Textarea
-                    label="Special Terms / Notes (Publicly visible)"
-                    rows={2}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="e.g. Payment is due within 14 days of invoice date. Thank you for your business."
-                    className="bg-white dark:bg-slate-900"
-                  />
-                  <Textarea
-                    label="Payment Remittance Instructions"
-                    rows={2}
-                    value={paymentInstructions}
-                    onChange={(e) => setPaymentInstructions(e.target.value)}
-                    placeholder="e.g. Bank Transfer: BSB 012-345 | Account 6789 0123 (Property Ledge Trust)..."
-                    className="bg-white dark:bg-slate-900"
-                  />
-                </div>
-              </div>
-
-              {/* Optional Collapsible Issuer Details */}
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+              {/* Collapsible Accordion: Special Terms & Payment Remittance */}
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50/50 dark:bg-slate-800/40">
                 <button
                   type="button"
-                  onClick={() => setIsEditingIssuer(!isEditingIssuer)}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-1"
+                  onClick={() => setShowMoreTermsDetails(!showMoreTermsDetails)}
+                  className="w-full px-4 py-3 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between hover:bg-slate-100/60 dark:hover:bg-slate-800/80 transition-colors"
                 >
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#008F83]" />
-                  <span>{isEditingIssuer ? 'Hide Issuer Profile Details' : 'Configure Issuer Business Profile (ABN & Identity)'}</span>
-                  {isEditingIssuer ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  <span className="flex items-center gap-2">
+                    <Plus className={cn('w-3.5 h-3.5 text-[#008F83] transition-transform duration-200', showMoreTermsDetails && 'rotate-45')} />
+                    <span>Add special terms or payment remittance instructions</span>
+                  </span>
+                  <ChevronDown className={cn('w-4 h-4 text-slate-400 transition-transform duration-200', showMoreTermsDetails && 'rotate-180')} />
                 </button>
-
-                {isEditingIssuer && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-3 animate-in fade-in">
-                    <Input
-                      label="Business Name"
-                      type="text"
-                      placeholder="e.g. Property Ledge Management"
-                      value={issuerName}
-                      onChange={(e) => setIssuerName(e.target.value)}
-                      className="bg-white dark:bg-slate-900 text-xs"
+                {showMoreTermsDetails && (
+                  <div className="p-4 pt-1 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200/60 dark:border-slate-800/60 animate-in fade-in">
+                    <Textarea
+                      label="Special Terms / Notes (Publicly visible)"
+                      rows={2}
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="e.g. Payment is due within the terms specified on this invoice. Thank you for your business."
+                      className="bg-white dark:bg-slate-900"
                     />
-                    <Input
-                      label="Business Email"
-                      type="email"
-                      placeholder="e.g. billing@example.com.au"
-                      value={issuerEmail}
-                      onChange={(e) => setIssuerEmail(e.target.value)}
-                      className="bg-white dark:bg-slate-900 text-xs"
-                    />
-                    <Input
-                      label="ABN / Tax ID"
-                      type="text"
-                      placeholder="e.g. ABN 51 824 753 556"
-                      value={issuerTaxId}
-                      onChange={(e) => setIssuerTaxId(e.target.value)}
-                      className="bg-white dark:bg-slate-900 text-xs"
+                    <Textarea
+                      label="Payment Remittance Instructions"
+                      rows={2}
+                      value={paymentInstructions}
+                      onChange={(e) => setPaymentInstructions(e.target.value)}
+                      placeholder="e.g. Bank Transfer: BSB 012-345 | Account 6789 0123 (Property Ledge Trust)..."
+                      className="bg-white dark:bg-slate-900"
                     />
                   </div>
                 )}
@@ -1272,9 +1361,9 @@ export function CreateInvoiceModal({
           )}
 
           {/* ═══════════════════════════════════════════════════════
-              STEP 2: LIVE PREVIEW & DOWNLOAD / SEND
+              STEP 3: LIVE PREVIEW & DOWNLOAD / SEND
              ═══════════════════════════════════════════════════════ */}
-          {step === 2 && (
+          {step === 3 && (
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
@@ -1392,11 +1481,11 @@ export function CreateInvoiceModal({
                   customerName: recipientName || 'Valued Recipient',
                   customerEmail: recipientEmail,
                   customerAddress: recipientAddress,
-                  issuerName,
-                  issuerEmail,
+                  issuerName: issuerName.trim() || workspaceName || 'Property Ledge Management',
+                  issuerEmail: issuerEmail.trim() || 'billing@propertyledge.com.au',
                   issuerPhone,
                   issuerAddress,
-                  issuerTaxId,
+                  issuerTaxId: issuerTaxId.trim() || '51 824 753 556',
                   items,
                   notes,
                   paymentInstructions,
@@ -1443,7 +1532,7 @@ export function CreateInvoiceModal({
                 onClick={() => setStep(1)}
                 className="h-11 px-6 rounded-xl bg-[#008F83] text-white font-semibold text-xs sm:text-sm hover:bg-[#008F83]/90 shadow-xs transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#008F83]/30"
               >
-                Continue to Invoice Details <ArrowRight className="w-4 h-4" />
+                Continue to Recipient <ArrowRight className="w-4 h-4" />
               </button>
             )}
 
@@ -1460,7 +1549,29 @@ export function CreateInvoiceModal({
                 <button
                   type="button"
                   onClick={() => {
-                    if (validateStep2()) setStep(2);
+                    if (validateRecipient()) setStep(2);
+                  }}
+                  className="h-11 px-6 rounded-xl bg-[#008F83] text-white font-semibold text-xs sm:text-sm hover:bg-[#008F83]/90 shadow-xs transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#008F83]/30"
+                >
+                  Continue to Charges <ArrowRight className="w-4 h-4" />
+                </button>
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  disabled={loading}
+                  className="h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50"
+                >
+                  Save Draft
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (validateCharges()) setStep(3);
                   }}
                   className="h-11 px-6 rounded-xl bg-[#008F83] text-white font-semibold text-xs sm:text-sm hover:bg-[#008F83]/90 shadow-xs transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#008F83]/30"
                 >
@@ -1469,7 +1580,7 @@ export function CreateInvoiceModal({
               </>
             )}
 
-            {step === 2 && (
+            {step === 3 && (
               <>
                 <button
                   type="button"
