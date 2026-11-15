@@ -202,16 +202,16 @@ export const LeaseStatusCell = React.memo(function LeaseStatusCell(params: { dat
 
   if (isDraft) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border tracking-wide bg-slate-100 text-slate-700 dark:bg-slate-800/80 dark:text-slate-300 border-slate-200 dark:border-slate-700">
-        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-400" />
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border tracking-wide whitespace-nowrap shrink-0 bg-slate-100 text-slate-700 dark:bg-slate-800/80 dark:text-slate-300 border-slate-200 dark:border-slate-700">
+        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-400 shrink-0" />
         <span>Draft</span>
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border tracking-wide bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-500/20">
-      <span className="w-1.5 h-1.5 rounded-full bg-[#008F83] dark:bg-emerald-400" />
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border tracking-wide whitespace-nowrap shrink-0 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-500/20">
+      <span className="w-1.5 h-1.5 rounded-full bg-[#008F83] dark:bg-emerald-400 shrink-0" />
       <span>Active</span>
     </span>
   );
@@ -311,7 +311,8 @@ export function getLeaseTableColumns({
     {
       field: 'status',
       headerName: 'Status',
-      width: 115,
+      minWidth: 125,
+      width: 135,
       cellRenderer: LeaseStatusCell,
     },
     {

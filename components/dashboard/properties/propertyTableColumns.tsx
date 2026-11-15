@@ -93,10 +93,10 @@ export const PropertyStatusCell = React.memo(function PropertyStatusCell(params:
   const isDraft = status === 'draft' || status === 'pending';
 
   return (
-    <div className="flex items-center h-full">
+    <div className="flex items-center h-full min-w-0">
       <span
         className={cn(
-          'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold',
+          'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap shrink-0 select-none',
           isActive
             ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-500/20'
             : isDraft
@@ -106,7 +106,7 @@ export const PropertyStatusCell = React.memo(function PropertyStatusCell(params:
       >
         <span
           className={cn(
-            'h-1.5 w-1.5 rounded-full',
+            'h-1.5 w-1.5 rounded-full shrink-0',
             isActive ? 'bg-emerald-500' : isDraft ? 'bg-amber-500' : 'bg-slate-400'
           )}
         />
@@ -204,7 +204,8 @@ export function getPropertiesTableColumns(onEditProperty: (property: Record<stri
     {
       field: 'status',
       headerName: 'Status',
-      width: 110,
+      minWidth: 130,
+      width: 140,
       cellRenderer: PropertyStatusCell,
     },
     {

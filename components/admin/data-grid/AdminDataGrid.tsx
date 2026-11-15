@@ -294,7 +294,13 @@ export function AdminDataGrid<TData = any>({
       if (saved) {
         if (saved.columnState && Array.isArray(saved.columnState) && saved.columnState.length > 0) {
           try {
-            params.api.applyColumnState({ state: saved.columnState, applyOrder: true });
+            const sanitizedState = saved.columnState.map((col: any) => {
+              if (col.colId === 'status' && col.width && col.width < 130) {
+                return { ...col, width: 140 };
+              }
+              return col;
+            });
+            params.api.applyColumnState({ state: sanitizedState, applyOrder: true });
           } catch {}
         }
         if (saved.filterModel) {
