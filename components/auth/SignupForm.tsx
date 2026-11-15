@@ -98,26 +98,30 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         </p>
       </div>
 
-      {/* Error Alert */}
+      {/* Error Alert — High-Visibility, High-Contrast */}
       {errorMessage && (
         <div
           role="alert"
           aria-live="assertive"
-          className="flex items-start gap-3 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 text-xs transition-all duration-200"
+          className="flex items-start gap-3.5 p-4 rounded-2xl bg-rose-500/15 dark:bg-rose-950/80 border-2 border-rose-500 dark:border-rose-500 text-rose-950 dark:text-rose-100 shadow-lg shadow-rose-950/30 transition-all duration-200 animate-in fade-in slide-in-from-top-1"
         >
-          <AlertCircle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
-          <div className="leading-relaxed font-medium space-y-1">
-            <p>{errorMessage}</p>
+          <div className="w-8 h-8 rounded-xl bg-rose-500/25 dark:bg-rose-500/30 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0 border border-rose-500/40">
+            <AlertCircle className="w-5 h-5 stroke-[2.2]" />
+          </div>
+          <div className="flex-1 leading-snug space-y-2">
+            <p className="text-sm font-semibold tracking-tight text-rose-900 dark:text-rose-100">
+              {errorMessage}
+            </p>
             {errorMessage.toLowerCase().includes("already exists") && (
-              <p>
+              <div>
                 <Link
                   href={`/login?email=${encodeURIComponent(email)}`}
-                  className="font-bold underline text-accent hover:text-accent-hover inline-flex items-center gap-1"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
                 >
-                  <span>Click here to sign in now</span>
-                  <ArrowRight className="w-3 h-3" />
+                  <span>Sign in to your account now</span>
+                  <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
                 </Link>
-              </p>
+              </div>
             )}
           </div>
         </div>

@@ -5,7 +5,7 @@ import { useOnboardingNav } from '@/components/onboarding/OnboardingNavContext';
 import { OnboardingContent } from '@/components/onboarding/OnboardingContent';
 import { OnboardingStep } from '@/components/onboarding/OnboardingStep';
 import { OnboardingFooter } from '@/components/onboarding/OnboardingFooter';
-import { FormField, inputClassName } from '@/components/onboarding/FormField';
+import { inputClassName } from '@/components/onboarding/FormField';
 import {
   getOnboardingProgress,
   createOnboardingProperty,
@@ -17,13 +17,9 @@ import {
   Home,
   Building2,
   MapPin,
-  Sparkles,
-  Bed,
-  Bath,
   Car,
-  DollarSign,
-  CheckCircle2,
-  Search,
+  Maximize2,
+  Check,
 } from 'lucide-react';
 
 const AUS_PRESET_SUGGESTIONS = [
@@ -35,19 +31,9 @@ const AUS_PRESET_SUGGESTIONS = [
 ];
 
 const PROPERTY_TYPES = [
-  { id: 'House', label: 'House', icon: <Home className="h-3.5 w-3.5" /> },
-  { id: 'Apartment', label: 'Apartment', icon: <Building2 className="h-3.5 w-3.5" /> },
-  { id: 'Townhouse', label: 'Townhouse', icon: <Home className="h-3.5 w-3.5" /> },
-  { id: 'Unit', label: 'Unit', icon: <Building2 className="h-3.5 w-3.5" /> },
-  { id: 'Commercial', label: 'Commercial', icon: <Building2 className="h-3.5 w-3.5" /> },
-  { id: 'Other', label: 'Other', icon: <Home className="h-3.5 w-3.5" /> },
-];
-
-const OCCUPANCY_STATUSES = [
-  { id: 'Tenanted', label: 'Tenanted / Rented', desc: 'Currently generating rental income' },
-  { id: 'Vacant', label: 'Vacant / Available', desc: 'Seeking tenant or between leases' },
-  { id: 'Owner occupied', label: 'Owner Occupied', desc: 'Primary residence or holiday home' },
-  { id: 'Under maintenance', label: 'Under Renovation', desc: 'Currently undergoing works' },
+  { id: 'Residential', label: 'Residential', desc: 'House, apartment, unit', icon: <Home className="h-4 w-4" /> },
+  { id: 'Commercial', label: 'Commercial', desc: 'Office, retail, warehouse', icon: <Building2 className="h-4 w-4" /> },
+  { id: 'Other', label: 'Other', desc: 'Land, industrial, storage', icon: <Building2 className="h-4 w-4" /> },
 ];
 
 export default function OnboardingPropertyPage() {
@@ -62,13 +48,10 @@ export default function OnboardingPropertyPage() {
     post: string;
   } | null>(null);
 
-  const [propertyType, setPropertyType] = useState<string>('Apartment');
-  const [occupancy, setOccupancy] = useState<string>('Tenanted');
-  const [rentAmount, setRentAmount] = useState<string>('650');
-  const [rentFrequency, setRentFrequency] = useState<'Weekly' | 'Monthly'>('Weekly');
-  const [bedrooms, setBedrooms] = useState<number>(2);
-  const [bathrooms, setBathrooms] = useState<number>(1);
-  const [carSpaces, setCarSpaces] = useState<number>(1);
+  const [propertyCategory, setPropertyCategory] = useState<'Residential' | 'Commercial' | 'Other'>('Residential');
+  const [floorArea, setFloorArea] = useState<string>('85');
+  const [hasCarSpace, setHasCarSpace] = useState<boolean>(true);
+  const [carSpacesCount, setCarSpacesCount] = useState<number>(1);
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +84,6 @@ export default function OnboardingPropertyPage() {
 
   const handleManualAddressBlur = () => {
     if (!selectedAddress && addressInput.trim()) {
-      // Parse manual address string
       const parts = addressInput.split(',').map((p) => p.trim());
       setSelectedAddress({
         street: parts[0] || addressInput.trim(),
@@ -145,17 +127,16 @@ export default function OnboardingPropertyPage() {
       await createOnboardingProperty({
         workspaceId,
         name: addr.street,
-        propertyCategory: propertyType === 'Commercial' ? 'Commercial' : 'Residential',
-        propertyType,
+        propertyCategory: propertyCategory === 'Commercial' ? 'Commercial' : 'Residential',
+        propertyType: propertyCategory === 'Commercial' ? 'Commercial' : 'Apartment',
         addressLine1: addr.street,
         city: addr.city,
         state: addr.state,
         postalCode: addr.post,
-        bedrooms,
-        bathrooms,
-        carSpaces,
-        rentAmount: rentAmount ? parseFloat(rentAmount) : 0,
-        paymentFrequency: rentFrequency,
+        floorArea: floorArea ? parseFloat(floorArea) : undefined,
+        carSpaces: hasCarSpace ? Math.max(1, carSpacesCount) : 0,
+        rentAmount: 0,
+        paymentFrequency: 'Weekly',
       });
       navigate('/onboarding/complete');
     } catch (err) {
@@ -167,18 +148,18 @@ export default function OnboardingPropertyPage() {
 
   return (
     <OnboardingContent>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="space-y-4">
         <OnboardingStep
           eyebrow="Step 3 of 3"
-          title="Let's add your first property."
-          description="Start with a single property to configure your dashboard. You can add more anytime."
+          title="Add your property."
+          description="Enter the address and basic specs to finish setting up your portfolio."
         >
-          <div className="space-y-4 mt-4">
-            {/* Stage A: Address search with Australian suggestions */}
-            <div className="p-4 rounded-2xl bg-[#0B1D30]/60 border border-white/[0.06] space-y-2.5 relative">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#00A99D]">
-                01 · Property Address
-              </span>
+          <div className="space-y-3 pt-1">
+            {/* 01: Address Search */}
+            <div className="p-3.5 rounded-2xl bg-[#0B1D30]/70 border border-white/[0.08] space-y-2 relative shadow-xs">
+              <label htmlFor="propertyAddress" className="block text-[11px] font-bold uppercase tracking-wider text-[#00A99D]">
+                Property Address
+              </label>
 
               <div className="relative">
                 <div className="relative flex items-center">
@@ -199,8 +180,8 @@ export default function OnboardingPropertyPage() {
                       setTimeout(() => setShowSuggestions(false), 200);
                       handleManualAddressBlur();
                     }}
-                    className={cn(inputClassName, 'pl-10 text-xs sm:text-sm')}
-                    placeholder="Type address, e.g. 12 Anderson Street, Sydney NSW"
+                    className={cn(inputClassName, 'pl-10 text-xs sm:text-sm h-11')}
+                    placeholder="e.g. 12 Anderson Street, Sydney NSW"
                     autoComplete="off"
                   />
                 </div>
@@ -212,7 +193,7 @@ export default function OnboardingPropertyPage() {
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
-                      className="absolute left-0 right-0 top-full mt-1.5 z-30 rounded-xl bg-[#08182A] border border-white/[0.1] shadow-2xl shadow-black/80 overflow-hidden py-1 max-h-52 overflow-y-auto custom-scrollbar"
+                      className="absolute left-0 right-0 top-full mt-1.5 z-30 rounded-xl bg-[#08182A] border border-white/[0.12] shadow-2xl shadow-black/80 overflow-hidden py-1 max-h-48 overflow-y-auto custom-scrollbar"
                     >
                       <div className="px-3 py-1.5 text-[10px] font-semibold text-[#8FA3B8] uppercase tracking-wider border-b border-white/[0.04]">
                         Suggested Australian Addresses
@@ -234,160 +215,122 @@ export default function OnboardingPropertyPage() {
               </div>
             </div>
 
-            {/* Stage B: Property Type Chips */}
-            <div className="p-4 rounded-2xl bg-[#0B1D30]/60 border border-white/[0.06] space-y-2.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#00A99D]">
-                02 · Property Type
-              </span>
+            {/* 02: Property Type - Simplified into 3 clear, highly obvious pills */}
+            <div className="p-3.5 rounded-2xl bg-[#0B1D30]/70 border border-white/[0.08] space-y-2 shadow-xs">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#00A99D]">
+                Property Type
+              </label>
 
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                {PROPERTY_TYPES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setPropertyType(t.id)}
-                    className={cn(
-                      'p-2 rounded-xl border text-center flex flex-col items-center justify-center gap-1 transition-all cursor-pointer select-none',
-                      propertyType === t.id
-                        ? 'border-[#008F83] bg-[#008F83]/15 text-[#FFFFFF] shadow-sm shadow-[#008F83]/20 ring-1 ring-[#008F83]/40'
-                        : 'border-white/[0.06] bg-white/[0.02] text-[#8FA3B8] hover:border-white/[0.12] hover:bg-white/[0.04]'
-                    )}
-                  >
-                    <span className={propertyType === t.id ? 'text-[#00A99D]' : 'text-[#8FA3B8]'}>
-                      {t.icon}
-                    </span>
-                    <span className="text-[11px] font-semibold block">{t.label}</span>
-                  </button>
-                ))}
+              <div className="grid grid-cols-3 gap-2.5">
+                {PROPERTY_TYPES.map((t) => {
+                  const isSelected = propertyCategory === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setPropertyCategory(t.id as any)}
+                      className={cn(
+                        'p-2.5 rounded-xl border text-left transition-all duration-150 cursor-pointer select-none flex flex-col justify-between gap-1 relative',
+                        isSelected
+                          ? 'border-[#008F83] bg-[#008F83]/20 text-[#FFFFFF] shadow-md shadow-[#008F83]/20 ring-2 ring-[#008F83]'
+                          : 'border-white/[0.08] bg-white/[0.02] text-[#8FA3B8] hover:border-white/[0.16] hover:bg-white/[0.05]'
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className={isSelected ? 'text-[#00A99D]' : 'text-[#8FA3B8]'}>
+                          {t.icon}
+                        </span>
+                        {isSelected && (
+                          <span className="w-4 h-4 rounded-full bg-[#008F83] text-white flex items-center justify-center shrink-0">
+                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <span className={cn('text-xs font-bold block', isSelected ? 'text-white' : 'text-slate-300')}>
+                          {t.label}
+                        </span>
+                        <span className="text-[10px] text-[#64788D] block leading-tight mt-0.5">
+                          {t.desc}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Stage C: Occupancy & Management Status */}
-            <div className="p-4 rounded-2xl bg-[#0B1D30]/60 border border-white/[0.06] space-y-2.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#00A99D]">
-                03 · Current Occupancy
-              </span>
+            {/* 03: Specs — Floor Area & Car Space (Replacing bath and bedroom) */}
+            <div className="p-3.5 rounded-2xl bg-[#0B1D30]/70 border border-white/[0.08] space-y-2 shadow-xs">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#00A99D]">
+                Property Specs
+              </label>
 
-              <div className="grid grid-cols-2 gap-2">
-                {OCCUPANCY_STATUSES.map((occ) => (
-                  <button
-                    key={occ.id}
-                    type="button"
-                    onClick={() => setOccupancy(occ.id)}
-                    className={cn(
-                      'p-2.5 rounded-xl border text-left transition-all cursor-pointer select-none',
-                      occupancy === occ.id
-                        ? 'border-[#008F83] bg-[#008F83]/15 text-[#FFFFFF] shadow-sm shadow-[#008F83]/20 ring-1 ring-[#008F83]/40'
-                        : 'border-white/[0.06] bg-white/[0.02] text-[#8FA3B8] hover:border-white/[0.12] hover:bg-white/[0.04]'
-                    )}
-                  >
-                    <span className="text-xs font-semibold block leading-tight">{occ.label}</span>
-                    <span className="text-[10px] text-[#64788D] block mt-0.5">{occ.desc}</span>
-                  </button>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Floor Area */}
+                <div className="space-y-1">
+                  <label htmlFor="floorArea" className="block text-xs font-semibold text-slate-300">
+                    Floor Area
+                  </label>
+                  <div className="relative flex items-center">
+                    <Maximize2 className="absolute left-3.5 h-4 w-4 text-[#8FA3B8] pointer-events-none" />
+                    <input
+                      id="floorArea"
+                      type="number"
+                      min={0}
+                      step="any"
+                      value={floorArea}
+                      onChange={(e) => setFloorArea(e.target.value)}
+                      className={cn(inputClassName, 'pl-10 pr-12 text-xs sm:text-sm h-11 font-semibold')}
+                      placeholder="e.g. 85"
+                    />
+                    <span className="absolute right-3.5 text-xs font-bold text-[#8FA3B8] pointer-events-none">
+                      m²
+                    </span>
+                  </div>
+                </div>
+
+                {/* Car Space Segmented Selector */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-slate-300">
+                    Car Space
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#08182A] border border-white/[0.08] h-11 items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHasCarSpace(false);
+                        setCarSpacesCount(0);
+                      }}
+                      className={cn(
+                        'h-9 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none',
+                        !hasCarSpace
+                          ? 'bg-[#008F83] text-white shadow-sm ring-1 ring-[#008F83]'
+                          : 'text-[#8FA3B8] hover:text-white'
+                      )}
+                    >
+                      <span>No</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHasCarSpace(true);
+                        if (carSpacesCount === 0) setCarSpacesCount(1);
+                      }}
+                      className={cn(
+                        'h-9 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none',
+                        hasCarSpace
+                          ? 'bg-[#008F83] text-white shadow-sm ring-1 ring-[#008F83]'
+                          : 'text-[#8FA3B8] hover:text-white'
+                      )}
+                    >
+                      <Car className="w-3.5 h-3.5" />
+                      <span>Yes ({carSpacesCount})</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* Stage D: Rent & Optional Details (Progressively shown if tenanted) */}
-            <AnimatePresence>
-              {occupancy === 'Tenanted' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="p-4 rounded-2xl bg-[#0B1D30]/60 border border-white/[0.06] space-y-3 overflow-hidden"
-                >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#00A99D]">
-                    04 · Rental Income & Specs
-                  </span>
-                  <span className="text-[10px] text-[#8FA3B8]">Optional estimates</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FormField id="rent" label="Rent amount ($AUD)">
-                    <div className="relative flex items-center">
-                      <span className="absolute left-3.5 text-xs text-[#64788D] font-bold">$</span>
-                      <input
-                        id="rent"
-                        type="number"
-                        value={rentAmount}
-                        onChange={(e) => setRentAmount(e.target.value)}
-                        className={cn(inputClassName, 'pl-7 text-xs sm:text-sm')}
-                        placeholder="650"
-                      />
-                    </div>
-                  </FormField>
-
-                  <FormField id="freq" label="Frequency">
-                    <div className="grid grid-cols-2 gap-1.5 h-11 sm:h-12 p-1 rounded-xl bg-[#08182A] border border-white/[0.08]">
-                      {(['Weekly', 'Monthly'] as const).map((freq) => (
-                        <button
-                          key={freq}
-                          type="button"
-                          onClick={() => setRentFrequency(freq)}
-                          className={cn(
-                            'rounded-lg text-xs font-semibold transition-all cursor-pointer select-none flex items-center justify-center',
-                            rentFrequency === freq
-                              ? 'bg-[#008F83] text-[#FFFFFF] shadow-sm'
-                              : 'text-[#8FA3B8] hover:text-[#FFFFFF]'
-                          )}
-                        >
-                          {freq}
-                        </button>
-                      ))}
-                    </div>
-                  </FormField>
-                </div>
-
-                {/* Mini Specs chips (Bed / Bath / Car) */}
-                <div className="grid grid-cols-3 gap-2 pt-1">
-                  <div className="p-2 rounded-xl bg-[#08182A] border border-white/[0.06] flex items-center justify-between">
-                    <span className="text-xs text-[#8FA3B8] flex items-center gap-1">
-                      <Bed className="h-3.5 w-3.5" /> Beds
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={20}
-                      value={bedrooms}
-                      onChange={(e) => setBedrooms(parseInt(e.target.value) || 0)}
-                      className="w-10 text-right bg-transparent text-xs font-bold text-[#FFFFFF] focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="p-2 rounded-xl bg-[#08182A] border border-white/[0.06] flex items-center justify-between">
-                    <span className="text-xs text-[#8FA3B8] flex items-center gap-1">
-                      <Bath className="h-3.5 w-3.5" /> Baths
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={20}
-                      value={bathrooms}
-                      onChange={(e) => setBathrooms(parseInt(e.target.value) || 0)}
-                      className="w-10 text-right bg-transparent text-xs font-bold text-[#FFFFFF] focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="p-2 rounded-xl bg-[#08182A] border border-white/[0.06] flex items-center justify-between">
-                    <span className="text-xs text-[#8FA3B8] flex items-center gap-1">
-                      <Car className="h-3.5 w-3.5" /> Cars
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={20}
-                      value={carSpaces}
-                      onChange={(e) => setCarSpaces(parseInt(e.target.value) || 0)}
-                      className="w-10 text-right bg-transparent text-xs font-bold text-[#FFFFFF] focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
           </div>
 
           <OnboardingFooter
@@ -398,10 +341,10 @@ export default function OnboardingPropertyPage() {
             skipLabel="Skip for now"
             onSkip={handleSkip}
             error={error}
+            className="mt-3.5 pt-3.5"
           />
         </OnboardingStep>
       </form>
     </OnboardingContent>
   );
 }
-

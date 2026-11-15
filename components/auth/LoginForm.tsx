@@ -104,22 +104,24 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         </p>
       </div>
 
-      {/* Error Alert */}
+      {/* Error Alert — High-Visibility, High-Contrast */}
       {errorMessage && (
         <div
           role="alert"
           aria-live="assertive"
-          className="flex items-start gap-3 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 text-xs transition-all duration-200"
+          className="flex items-start gap-3.5 p-4 rounded-2xl bg-rose-500/15 dark:bg-rose-950/80 border-2 border-rose-500 dark:border-rose-500 text-rose-950 dark:text-rose-100 shadow-lg shadow-rose-950/30 transition-all duration-200 animate-in fade-in slide-in-from-top-1"
         >
-          <AlertCircle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
-          <div className="space-y-1 leading-relaxed font-medium">
-            <div>{errorMessage}</div>
+          <div className="w-8 h-8 rounded-xl bg-rose-500/25 dark:bg-rose-500/30 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0 border border-rose-500/40">
+            <AlertCircle className="w-5 h-5 stroke-[2.2]" />
+          </div>
+          <div className="flex-1 space-y-1.5 leading-snug">
+            <div className="text-sm font-semibold tracking-tight text-rose-900 dark:text-rose-100">{errorMessage}</div>
             <div>
               <Link
                 href="/forgot-password"
-                className="text-slate-900 dark:text-white underline font-bold hover:text-[#008F83] dark:hover:text-[#00A99D]"
+                className="text-xs text-rose-700 dark:text-rose-300 underline font-bold hover:text-rose-900 dark:hover:text-white inline-flex items-center gap-1"
               >
-                Forgot password?
+                Forgot your password?
               </Link>
             </div>
           </div>

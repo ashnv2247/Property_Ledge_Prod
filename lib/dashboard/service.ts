@@ -100,12 +100,16 @@ export async function createProperty(input: Tables['properties']['Insert']) {
   const imageUrlVal = (input as Record<string, unknown>).image as string || input.image_url || null;
   const customPropId = (input as Record<string, unknown>).property_id as string || ('PL-' + Math.floor(1000 + Math.random() * 9000).toString());
 
+  const floorAreaVal = (input as Record<string, unknown>).floorArea ?? (input as Record<string, unknown>).floor_area ?? (input as Record<string, unknown>).square_feet;
+
   const rawInput = { ...input } as Record<string, unknown>;
   delete rawInput.address;
   delete rawInput.image;
   delete rawInput.suburb;
   delete rawInput.postcode;
   delete rawInput.car_spaces;
+  delete rawInput.floorArea;
+  delete rawInput.floor_area;
 
   const payload = {
     ...rawInput,
@@ -115,6 +119,7 @@ export async function createProperty(input: Tables['properties']['Insert']) {
     city: suburbStr,
     postal_code: postcodeStr,
     parking_spaces: Number(carSpacesVal),
+    square_feet: floorAreaVal !== undefined && floorAreaVal !== null && floorAreaVal !== '' ? Number(floorAreaVal) : (rawInput.square_feet ? Number(rawInput.square_feet) : null),
     image_url: imageUrlVal,
     property_id: customPropId,
   };
@@ -143,12 +148,16 @@ export async function updateProperty(propertyId: string, input: Tables['properti
   const postcodeStr = (input as Record<string, unknown>).postcode as string || input.postal_code;
   const carSpacesVal = (input as Record<string, unknown>).car_spaces ?? input.parking_spaces;
 
+  const floorAreaVal = (input as Record<string, unknown>).floorArea ?? (input as Record<string, unknown>).floor_area ?? (input as Record<string, unknown>).square_feet;
+
   const rawInput = sanitizePropertyUpdateInput(input);
   delete rawInput.address;
   delete rawInput.image;
   delete rawInput.suburb;
   delete rawInput.postcode;
   delete rawInput.car_spaces;
+  delete rawInput.floorArea;
+  delete rawInput.floor_area;
 
   const payload = {
     ...rawInput,
@@ -156,6 +165,7 @@ export async function updateProperty(propertyId: string, input: Tables['properti
     ...(suburbStr ? { city: suburbStr } : {}),
     ...(postcodeStr ? { postal_code: postcodeStr } : {}),
     ...(carSpacesVal !== undefined && carSpacesVal !== null ? { parking_spaces: Number(carSpacesVal) } : {}),
+    ...(floorAreaVal !== undefined && floorAreaVal !== null ? { square_feet: floorAreaVal !== '' ? Number(floorAreaVal) : null } : {}),
   };
 
   const { data, error } = await adminClient

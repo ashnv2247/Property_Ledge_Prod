@@ -56,6 +56,7 @@ export function PropertyDrawer({
   const [postalCode, setPostalCode] = useState('');
   const [propertyCategory, setPropertyCategory] = useState<'Residential' | 'Commercial'>('Residential');
   const [propertyType, setPropertyType] = useState('Apartment');
+  const [floorArea, setFloorArea] = useState('85');
   const [bedrooms, setBedrooms] = useState('2');
   const [bathrooms, setBathrooms] = useState('2');
   const [carSpaces, setCarSpaces] = useState('1');
@@ -120,6 +121,7 @@ export function PropertyDrawer({
         setPostalCode(property.postal_code || property.postcode || '');
         setPropertyCategory((property.property_category as any) || 'Residential');
         setPropertyType(property.property_type || (property.property_category === 'Commercial' ? 'Office' : 'Apartment'));
+        setFloorArea((property as any)?.square_feet !== undefined && (property as any)?.square_feet !== null ? String((property as any).square_feet) : '');
         setBedrooms(property.bedrooms !== undefined && property.bedrooms !== null ? String(property.bedrooms) : '');
         setBathrooms(property.bathrooms !== undefined && property.bathrooms !== null ? String(property.bathrooms) : '');
         setCarSpaces(
@@ -143,6 +145,7 @@ export function PropertyDrawer({
         setPostalCode('');
         setPropertyCategory('Residential');
         setPropertyType('Apartment');
+        setFloorArea('');
         setBedrooms('');
         setBathrooms('');
         setCarSpaces('');
@@ -184,6 +187,7 @@ export function PropertyDrawer({
         bedrooms: bedrooms !== '' ? Number(bedrooms) : 0,
         bathrooms: bathrooms !== '' ? Number(bathrooms) : 0,
         parking_spaces: carSpaces !== '' ? Number(carSpaces) : 0,
+        square_feet: floorArea !== '' ? Number(floorArea) : null,
         rent_amount: rentAmount !== '' ? Number(rentAmount) : 0,
         purchase_price: purchasePrice !== '' ? Number(purchasePrice) : null,
         payment_frequency: paymentFrequency,
@@ -447,29 +451,20 @@ export function PropertyDrawer({
             />
           </div>
 
-          {/* Beds, Baths, Cars */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Floor Area & Car Spaces */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Beds"
+              label="Floor Area (m²)"
               type="number"
               min="0"
-              value={bedrooms}
-              onChange={(e) => setBedrooms(e.target.value)}
-              placeholder="e.g. 2"
-              className="bg-white dark:bg-slate-800 text-center"
+              step="any"
+              value={floorArea}
+              onChange={(e) => setFloorArea(e.target.value)}
+              placeholder="e.g. 85"
+              className="bg-white dark:bg-slate-800"
             />
             <Input
-              label="Baths"
-              type="number"
-              min="0"
-              step="0.5"
-              value={bathrooms}
-              onChange={(e) => setBathrooms(e.target.value)}
-              placeholder="e.g. 2"
-              className="bg-white dark:bg-slate-800 text-center"
-            />
-            <Input
-              label="Cars"
+              label="Car Spaces"
               type="number"
               min="0"
               value={carSpaces}

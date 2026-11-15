@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Bed, Bath, Car, Check } from 'lucide-react';
+import { Building2, Bed, Bath, Car, Check, Maximize2 } from 'lucide-react';
 import { Input, Select, useToast } from '@/components/admin/ui';
 import { fetchUserWorkspaces, handleCreateProperty } from '@/app/actions/dashboard';
 import { usePropertyContext } from '@/components/property/PropertyContext';
@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 
 const steps = [
   { id: 1, name: 'Location', desc: "Add the property's address and classification." },
-  { id: 2, name: 'Details', desc: 'Add bedrooms, bathrooms, parking and rental information.' },
+  { id: 2, name: 'Details', desc: 'Add floor area, car space, and rental terms.' },
   { id: 3, name: 'Review', desc: 'Check the property details before saving.' },
 ];
 
@@ -43,9 +43,11 @@ export function PropertyCreationWizard({
     state: 'VIC',
     propertyCategory: 'Residential' as 'Residential' | 'Commercial',
     propertyType: 'Apartment',
-    bedrooms: '2',
-    bathrooms: '2',
+    floorArea: '85',
+    hasCarSpace: true,
     carSpaces: '1',
+    bedrooms: '0',
+    bathrooms: '0',
     rentAmount: '650',
     paymentFrequency: 'Weekly',
     gstEnabled: false,
@@ -132,7 +134,9 @@ export function PropertyCreationWizard({
           property_type: formData.propertyType,
           bedrooms: formData.bedrooms !== '' ? Number(formData.bedrooms) : 0,
           bathrooms: formData.bathrooms !== '' ? Number(formData.bathrooms) : 0,
-          parking_spaces: formData.carSpaces !== '' ? Number(formData.carSpaces) : 0,
+          parking_spaces: formData.hasCarSpace ? (formData.carSpaces !== '' ? Number(formData.carSpaces) : 1) : 0,
+          car_spaces: formData.hasCarSpace ? (formData.carSpaces !== '' ? Number(formData.carSpaces) : 1) : 0,
+          square_feet: formData.floorArea !== '' ? Number(formData.floorArea) : null,
           rent_amount: formData.rentAmount !== '' ? Number(formData.rentAmount) : 0,
           payment_frequency: formData.paymentFrequency,
           status: 'active' as const,
@@ -418,39 +422,69 @@ export function PropertyCreationWizard({
               transition={{ duration: 0.18 }}
               className="space-y-4 px-0.5 py-1"
             >
-              {/* Beds, Baths, Cars */}
-              <div className="grid grid-cols-3 gap-3">
-                <Input
-                  label="Beds"
-                  name="bedrooms"
-                  type="number"
-                  min="0"
-                  placeholder="e.g. 2"
-                  value={formData.bedrooms}
-                  onChange={handleChange}
-                  className="bg-white dark:bg-slate-800 text-center"
-                />
-                <Input
-                  label="Baths"
-                  name="bathrooms"
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  placeholder="e.g. 2"
-                  value={formData.bathrooms}
-                  onChange={handleChange}
-                  className="bg-white dark:bg-slate-800 text-center"
-                />
-                <Input
-                  label="Cars"
-                  name="carSpaces"
-                  type="number"
-                  min="0"
-                  placeholder="e.g. 1"
-                  value={formData.carSpaces}
-                  onChange={handleChange}
-                  className="bg-white dark:bg-slate-800 text-center"
-                />
+              {/* Floor Area & Car Space (Replacing bedroom & bathroom) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="wizard-floorArea" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Floor Area (m²)
+                  </label>
+                  <div className="relative flex items-center">
+                    <Maximize2 className="absolute left-3.5 h-4 w-4 text-slate-400 pointer-events-none" />
+                    <input
+                      id="wizard-floorArea"
+                      name="floorArea"
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="e.g. 85"
+                      value={formData.floorArea}
+                      onChange={handleChange}
+                      className="w-full h-11 pl-10 pr-12 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#008F83]"
+                    />
+                    <span className="absolute right-3.5 text-xs font-bold text-slate-400 pointer-events-none">
+                      m²
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Car Space
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 h-11 items-center">
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, hasCarSpace: false, carSpaces: '0' }))}
+                      className={cn(
+                        'h-9 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer',
+                        !formData.hasCarSpace
+                          ? 'bg-[#008F83] text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      )}
+                    >
+                      <span>No</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          hasCarSpace: true,
+                          carSpaces: prev.carSpaces && prev.carSpaces !== '0' ? prev.carSpaces : '1',
+                        }))
+                      }
+                      className={cn(
+                        'h-9 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer',
+                        formData.hasCarSpace
+                          ? 'bg-[#008F83] text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      )}
+                    >
+                      <Car className="w-3.5 h-3.5" />
+                      <span>Yes ({formData.carSpaces && formData.carSpaces !== '0' ? formData.carSpaces : '1'})</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Advertised Rent & Payment Frequency */}
@@ -568,28 +602,16 @@ export function PropertyCreationWizard({
                 {/* Divider */}
                 <div className="h-px bg-slate-200/80 dark:bg-slate-800" />
 
-                {/* Property Statistics Row */}
-                <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center sm:text-left">
+                {/* Property Statistics Row (Floor Area & Car Space) */}
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 text-center sm:text-left">
                   <div className="flex items-center gap-2.5">
                     <div className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 shrink-0 hidden sm:block">
-                      <Bed className="h-4 w-4 text-[#008F83]" />
+                      <Maximize2 className="h-4 w-4 text-[#008F83]" />
                     </div>
                     <div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400">Bedrooms</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">Floor Area</div>
                       <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
-                        {formData.bedrooms || '0'} {Number(formData.bedrooms) === 1 ? 'Bed' : 'Beds'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 shrink-0 hidden sm:block">
-                      <Bath className="h-4 w-4 text-[#008F83]" />
-                    </div>
-                    <div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400">Bathrooms</div>
-                      <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
-                        {formData.bathrooms || '0'} {Number(formData.bathrooms) === 1 ? 'Bath' : 'Baths'}
+                        {formData.floorArea ? `${formData.floorArea} m²` : 'Not specified'}
                       </div>
                     </div>
                   </div>
@@ -599,9 +621,11 @@ export function PropertyCreationWizard({
                       <Car className="h-4 w-4 text-[#008F83]" />
                     </div>
                     <div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400">Parking</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">Car Space</div>
                       <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
-                        {formData.carSpaces || '0'} {Number(formData.carSpaces) === 1 ? 'Space' : 'Spaces'}
+                        {formData.hasCarSpace
+                          ? `${formData.carSpaces && formData.carSpaces !== '0' ? formData.carSpaces : '1'} Space(s)`
+                          : 'No parking'}
                       </div>
                     </div>
                   </div>

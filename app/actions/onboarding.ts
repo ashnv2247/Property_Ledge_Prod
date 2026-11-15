@@ -501,6 +501,7 @@ export async function createOnboardingProperty(input: {
   bedrooms?: number;
   bathrooms?: number;
   carSpaces?: number;
+  floorArea?: number;
   rentAmount?: number;
   paymentFrequency?: string;
   image?: string | null;
@@ -543,6 +544,7 @@ export async function createOnboardingProperty(input: {
       bathrooms: input.bathrooms ?? 0,
       parking_spaces: input.carSpaces ?? 0,
       car_spaces: input.carSpaces ?? 0,
+      square_feet: input.floorArea ?? null,
       rent_amount: input.rentAmount ?? 0,
       payment_frequency: input.paymentFrequency ?? 'Weekly',
       image_url: input.image ?? null,
