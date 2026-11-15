@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import Image from 'next/image';
+import { X, Camera } from 'lucide-react';
 import { Input, Select, useToast, ConfirmDialog } from '@/components/admin/ui';
 import { handleUpdateProperty, handleDeleteProperty, handleCreateProperty, fetchUserWorkspaces } from '@/app/actions/dashboard';
 import { usePropertyContext } from '@/components/property/PropertyContext';
 import { cn } from '@/lib/utils';
+import { PropertyPhotoPickerModal } from './PropertyPhotoPickerModal';
+import { getDefaultPropertyPhoto, CURATED_PROPERTY_PHOTOS } from './property-photos';
 
 export interface PropertyDrawerProps {
   isOpen: boolean;
@@ -17,6 +20,7 @@ export interface PropertyDrawerProps {
   property?: {
     id: string;
     name?: string | null;
+    image_url?: string | null;
     address_line_1?: string | null;
     address?: string | null;
     suburb?: string | null;
@@ -56,6 +60,8 @@ export function PropertyDrawer({
   const [postalCode, setPostalCode] = useState('');
   const [propertyCategory, setPropertyCategory] = useState<'Residential' | 'Commercial'>('Residential');
   const [propertyType, setPropertyType] = useState('Apartment');
+  const [imageUrl, setImageUrl] = useState('');
+  const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
   const [floorArea, setFloorArea] = useState('85');
   const [bedrooms, setBedrooms] = useState('2');
   const [bathrooms, setBathrooms] = useState('2');
@@ -121,6 +127,7 @@ export function PropertyDrawer({
         setPostalCode(property.postal_code || property.postcode || '');
         setPropertyCategory((property.property_category as any) || 'Residential');
         setPropertyType(property.property_type || (property.property_category === 'Commercial' ? 'Office' : 'Apartment'));
+        setImageUrl((property as any)?.image_url || '');
         setFloorArea((property as any)?.square_feet !== undefined && (property as any)?.square_feet !== null ? String((property as any).square_feet) : '');
         setBedrooms(property.bedrooms !== undefined && property.bedrooms !== null ? String(property.bedrooms) : '');
         setBathrooms(property.bathrooms !== undefined && property.bathrooms !== null ? String(property.bathrooms) : '');
@@ -145,6 +152,7 @@ export function PropertyDrawer({
         setPostalCode('');
         setPropertyCategory('Residential');
         setPropertyType('Apartment');
+        setImageUrl('');
         setFloorArea('');
         setBedrooms('');
         setBathrooms('');
@@ -194,6 +202,7 @@ export function PropertyDrawer({
         status: status as any,
         description: description.trim() || null,
         gst_enabled: gstEnabled,
+        image_url: imageUrl || getDefaultPropertyPhoto(propertyCategory, propertyType),
       };
 
       if (isCreate) {
@@ -306,6 +315,42 @@ export function PropertyDrawer({
               placeholder="e.g. Sunset Heights (or leave blank to use address)"
               className="bg-white dark:bg-slate-800"
             />
+          </div>
+
+          {/* Property Photo Selection */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+              Property Photo
+            </label>
+            <div className="flex items-center gap-3.5 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40">
+              <div className="relative w-16 h-12 rounded-xl overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700 bg-slate-200 dark:bg-slate-700">
+                <Image
+                  src={imageUrl || getDefaultPropertyPhoto(propertyCategory, propertyType)}
+                  alt="Property Photo"
+                  fill
+                  className="object-cover"
+                  sizes="64px"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                  {CURATED_PROPERTY_PHOTOS.find(
+                    (p) => p.url === (imageUrl || getDefaultPropertyPhoto(propertyCategory, propertyType))
+                  )?.label || 'Curated Photo'}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Select from 10 architectural photos
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPhotoPickerOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors shadow-xs"
+              >
+                <Camera className="w-3.5 h-3.5 text-[#008F83]" />
+                <span>Change</span>
+              </button>
+            </div>
           </div>
 
           {/* Street Address */}
@@ -606,6 +651,14 @@ export function PropertyDrawer({
           </button>
         </div>
       </div>
+
+      <PropertyPhotoPickerModal
+        isOpen={isPhotoPickerOpen}
+        onClose={() => setIsPhotoPickerOpen(false)}
+        currentPhotoUrl={imageUrl || getDefaultPropertyPhoto(propertyCategory, propertyType)}
+        onSelectPhoto={(url) => setImageUrl(url)}
+        categoryFilter={propertyCategory}
+      />
 
       <ConfirmDialog
         isOpen={showDeleteConfirm}

@@ -1,13 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Bed, Bath, Car, Check, Maximize2 } from 'lucide-react';
+import { Building2, Bed, Bath, Car, Check, Maximize2, Camera } from 'lucide-react';
 import { Input, Select, useToast } from '@/components/admin/ui';
 import { fetchUserWorkspaces, handleCreateProperty } from '@/app/actions/dashboard';
 import { usePropertyContext } from '@/components/property/PropertyContext';
 import { useWorkspaceStore } from '@/lib/stores/useWorkspaceStore';
 import { cn } from '@/lib/utils';
+import { PropertyPhotoPickerModal } from './PropertyPhotoPickerModal';
+import { getDefaultPropertyPhoto, CURATED_PROPERTY_PHOTOS } from './property-photos';
 
 const steps = [
   { id: 1, name: 'Location', desc: "Add the property's address and classification." },
@@ -35,6 +38,8 @@ export function PropertyCreationWizard({
   const [workspaceId, setWorkspaceId] = useState(initialWorkspaceId || activeWorkspaceId || (storeWorkspaces?.[0]?.id ?? ''));
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>(() => storeWorkspaces || []);
 
+  const [isPhotoPickerOpen, setIsPhotoPickerOpen] = useState(false);
+
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -43,6 +48,7 @@ export function PropertyCreationWizard({
     state: 'VIC',
     propertyCategory: 'Residential' as 'Residential' | 'Commercial',
     propertyType: 'Apartment',
+    image: '',
     floorArea: '85',
     hasCarSpace: true,
     carSpaces: '1',
@@ -141,6 +147,7 @@ export function PropertyCreationWizard({
           payment_frequency: formData.paymentFrequency,
           status: 'active' as const,
           gst_enabled: formData.gstEnabled,
+          image_url: formData.image || getDefaultPropertyPhoto(formData.propertyCategory, formData.propertyType),
         };
 
         const result = await handleCreateProperty(payload as any);
@@ -410,6 +417,42 @@ export function PropertyCreationWizard({
                   )}
                 </Select>
               </div>
+
+              {/* Property Photo Selection */}
+              <div className="pt-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Property Photo
+                </label>
+                <div className="flex items-center gap-3.5 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40">
+                  <div className="relative w-16 h-12 rounded-xl overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700 bg-slate-200 dark:bg-slate-700">
+                    <Image
+                      src={formData.image || getDefaultPropertyPhoto(formData.propertyCategory, formData.propertyType)}
+                      alt="Property Preview"
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                      {CURATED_PROPERTY_PHOTOS.find(
+                        (p) => p.url === (formData.image || getDefaultPropertyPhoto(formData.propertyCategory, formData.propertyType))
+                      )?.label || 'Curated Photo'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Choose from 10 curated architectural styles
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPhotoPickerOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors shadow-xs"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-[#008F83]" />
+                    <span>Change</span>
+                  </button>
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -589,8 +632,14 @@ export function PropertyCreationWizard({
                       {formData.postcode && ` ${formData.postcode}`}
                     </p>
                   </div>
-                  <div className="shrink-0 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs">
-                    <Building2 className="h-5 w-5 text-[#008F83]" />
+                  <div className="shrink-0 relative w-16 h-14 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-xs bg-slate-200 dark:bg-slate-800">
+                    <Image
+                      src={formData.image || getDefaultPropertyPhoto(formData.propertyCategory, formData.propertyType)}
+                      alt={formData.name || 'Property'}
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
                   </div>
                 </div>
 
@@ -733,6 +782,14 @@ export function PropertyCreationWizard({
             : 'Save & Continue'}
         </button>
       </div>
+
+      <PropertyPhotoPickerModal
+        isOpen={isPhotoPickerOpen}
+        onClose={() => setIsPhotoPickerOpen(false)}
+        currentPhotoUrl={formData.image || getDefaultPropertyPhoto(formData.propertyCategory, formData.propertyType)}
+        onSelectPhoto={(url) => setFormData((prev) => ({ ...prev, image: url }))}
+        categoryFilter={formData.propertyCategory}
+      />
     </div>
   );
 }

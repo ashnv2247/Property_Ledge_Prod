@@ -11,6 +11,7 @@ import {
   createOnboardingProperty,
   skipOnboardingProperty,
 } from '@/app/actions/onboarding';
+import { getDefaultPropertyPhoto } from '@/components/dashboard/properties/property-photos';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import {
@@ -137,6 +138,7 @@ export default function OnboardingPropertyPage() {
         carSpaces: hasCarSpace ? Math.max(1, carSpacesCount) : 0,
         rentAmount: 0,
         paymentFrequency: 'Weekly',
+        image: getDefaultPropertyPhoto(propertyCategory === 'Commercial' ? 'Commercial' : 'Residential', propertyCategory === 'Commercial' ? 'Commercial' : 'Apartment'),
       });
       navigate('/onboarding/complete');
     } catch (err) {

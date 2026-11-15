@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { Home, CheckCircle2, Users, DoorOpen, Plus } from 'lucide-react';
+import { Home, CheckCircle2, Users, DoorOpen, Plus, Camera } from 'lucide-react';
 import { Button } from '@/components/admin/ui';
 import { cn } from '@/lib/utils';
+import { PropertyPhotoPickerModal } from './PropertyPhotoPickerModal';
 
 export interface PortfolioOverviewBannerProps {
   totalProperties: number;
@@ -14,6 +15,8 @@ export interface PortfolioOverviewBannerProps {
   isLoading?: boolean;
   onAddProperty: () => void;
   className?: string;
+  bannerPhotoUrl?: string | null;
+  onPhotoChange?: (photoUrl: string) => void;
 }
 
 export function PortfolioOverviewBanner({
@@ -24,7 +27,12 @@ export function PortfolioOverviewBanner({
   isLoading = false,
   onAddProperty,
   className,
+  bannerPhotoUrl,
+  onPhotoChange,
 }: PortfolioOverviewBannerProps) {
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const currentPhoto = bannerPhotoUrl || '/images/property_banner_visual.jpg';
+
   return (
     <div
       className={cn(
@@ -36,7 +44,7 @@ export function PortfolioOverviewBanner({
         {/* LEFT: Generous Architectural Visual with Floating Glass/White Pill */}
         <div className="relative w-full xl:w-[320px] 2xl:w-[360px] h-52 sm:h-56 xl:h-[210px] rounded-[20px] overflow-hidden shrink-0 group border border-slate-200/80 dark:border-[#17283A] shadow-xs">
           <Image
-            src="/images/property_banner_visual.jpg"
+            src={currentPhoto}
             alt="Property Portfolio Visual"
             fill
             sizes="(max-width: 768px) 100vw, 360px"
@@ -44,6 +52,19 @@ export function PortfolioOverviewBanner({
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent pointer-events-none" />
+
+          {/* Change Photo Trigger */}
+          {onPhotoChange && (
+            <button
+              type="button"
+              onClick={() => setIsPickerOpen(true)}
+              className="absolute top-3 right-3 px-2.5 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-md opacity-90 group-hover:opacity-100 cursor-pointer"
+              title="Change portfolio cover photo"
+            >
+              <Camera className="w-3.5 h-3.5 text-[#00A99D]" />
+              <span>Change Photo</span>
+            </button>
+          )}
 
           {/* Floating Pill Card Matching Mockup */}
           <div className="absolute bottom-3.5 left-3.5 px-4 py-3 rounded-[16px] bg-white/95 dark:bg-[#07111F]/95 backdrop-blur-md border border-slate-200/80 dark:border-[#17283A] shadow-md min-w-[160px]">
@@ -60,6 +81,20 @@ export function PortfolioOverviewBanner({
             </div>
           </div>
         </div>
+
+        {/* Property Photo Picker Modal */}
+        {isPickerOpen && (
+          <PropertyPhotoPickerModal
+            isOpen={isPickerOpen}
+            onClose={() => setIsPickerOpen(false)}
+            onSelectPhoto={(url) => {
+              if (onPhotoChange) onPhotoChange(url);
+              setIsPickerOpen(false);
+            }}
+            currentPhotoUrl={currentPhoto}
+            propertyName="Portfolio"
+          />
+        )}
 
         {/* CENTER: Portfolio Overview Metrics */}
         <div className="flex-1 flex flex-col justify-center min-w-0 py-1">

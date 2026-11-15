@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Plus,
@@ -43,6 +44,7 @@ import { cn } from '@/lib/utils';
 import {
   fetchDashboardProperties,
   handleDeleteProperty,
+  handleUpdateProperty,
 } from '@/app/actions/dashboard';
 import { usePropertyContext } from '@/components/property/PropertyContext';
 import { useEntityCacheStore } from '@/lib/stores/useEntityCacheStore';
@@ -110,6 +112,12 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
   const [statusFilter, setStatusFilterState] = useState<'All' | 'Active' | 'Draft' | 'Archived'>(initialStatus);
   const [viewMode, setViewModeState] = useState<'table' | 'grid'>(initialViewMode);
   const [isTableExpanded, setIsTableExpanded] = useGridExpandedPreference(false);
+  const [customBannerPhoto, setCustomBannerPhoto] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('propertyledge_banner_photo') || null;
+    }
+    return null;
+  });
 
   const setStatusFilter = useCallback(
     (newStatus: 'All' | 'Active' | 'Draft' | 'Archived') => {
@@ -314,6 +322,26 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
               vacantProperties={occupancyStats.vacant}
               isLoading={isLoading}
               onAddProperty={() => setIsWizardOpen(true)}
+              bannerPhotoUrl={
+                customBannerPhoto ||
+                (((rows as any[]).find((p: any) => p.image_url)?.image_url) as string | undefined) ||
+                '/images/properties/residential-townhouse.jpg'
+              }
+              onPhotoChange={async (photoUrl) => {
+                setCustomBannerPhoto(photoUrl);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('propertyledge_banner_photo', photoUrl);
+                }
+                const firstProp = (rows as any[])[0];
+                if (firstProp?.id) {
+                  try {
+                    await handleUpdateProperty(String(firstProp.id), { image_url: photoUrl });
+                    refreshProperties();
+                  } catch (e) {
+                    console.error('Failed to update property photo', e);
+                  }
+                }
+              }}
             />
           )}
 
@@ -467,8 +495,18 @@ export function PropertiesClientView({ initialProperties }: PropertiesClientView
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-[#008F83]/10 text-[#008F83] dark:text-[#32D5C4] flex items-center justify-center font-bold text-sm shrink-0 border border-[#008F83]/20">
-                          <Building2 className="w-5 h-5 text-[#008F83] dark:text-[#32D5C4]" />
+                        <div className="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-slate-200/80 dark:border-[#17283A] bg-[#008F83]/10 flex items-center justify-center">
+                          {p.image_url ? (
+                            <Image
+                              src={p.image_url}
+                              alt={String(p.name || address)}
+                              fill
+                              className="object-cover"
+                              sizes="44px"
+                            />
+                          ) : (
+                            <Building2 className="w-5 h-5 text-[#008F83] dark:text-[#32D5C4]" />
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-tight truncate group-hover/card:text-[#008F83] dark:group-hover/card:text-[#32D5C4] transition-colors">

@@ -1,26 +1,40 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { ColDef } from 'ag-grid-community';
 import { Building2, Building, Home, MapPin, MoreVertical, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const PropertyNameCell = React.memo(function PropertyNameCell(params: { data?: Record<string, unknown>; rowIndex?: number }) {
   const name = String(params.data?.name || params.data?.address_line_1 || 'Property');
+  const imageUrl = (params.data?.image_url as string | undefined) || null;
   const isOdd = (params.rowIndex || 0) % 2 === 1;
 
   return (
     <div className="flex items-center gap-3 py-1 min-w-0 max-w-full overflow-hidden" title={name}>
-      <div
-        className={cn(
-          'h-8 w-8 rounded-full flex items-center justify-center shrink-0 border',
-          isOdd
-            ? 'bg-orange-50 text-orange-500 border-orange-200/80 dark:bg-orange-500/15 dark:border-orange-500/30'
-            : 'bg-rose-50 text-rose-500 border-rose-200/80 dark:bg-rose-500/15 dark:border-rose-500/30'
-        )}
-      >
-        {isOdd ? <BarChart3 className="w-4 h-4" /> : <Home className="w-4 h-4" />}
-      </div>
+      {imageUrl ? (
+        <div className="relative h-8 w-8 rounded-lg overflow-hidden shrink-0 border border-slate-200/80 dark:border-[#17283A] bg-slate-100 dark:bg-slate-800">
+          <Image
+            src={imageUrl}
+            alt={name}
+            fill
+            className="object-cover"
+            sizes="32px"
+          />
+        </div>
+      ) : (
+        <div
+          className={cn(
+            'h-8 w-8 rounded-full flex items-center justify-center shrink-0 border',
+            isOdd
+              ? 'bg-orange-50 text-orange-500 border-orange-200/80 dark:bg-orange-500/15 dark:border-orange-500/30'
+              : 'bg-rose-50 text-rose-500 border-rose-200/80 dark:bg-rose-500/15 dark:border-rose-500/30'
+          )}
+        >
+          {isOdd ? <BarChart3 className="w-4 h-4" /> : <Home className="w-4 h-4" />}
+        </div>
+      )}
       <div className="min-w-0">
         <span className="font-bold text-slate-900 dark:text-white text-xs sm:text-[13px] truncate block leading-tight">
           {name}
