@@ -54,3 +54,9 @@ test data/
 /test-data/
 /test data/
 
+# Agent hooks state & scratch
+.agents/scripts/.retry-state.json
+scratch/
+archive/
+
+
