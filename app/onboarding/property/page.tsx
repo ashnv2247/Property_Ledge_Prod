@@ -21,6 +21,8 @@ import {
   Car,
   Maximize2,
   Check,
+  Bed,
+  Bath,
 } from 'lucide-react';
 
 const AUS_PRESET_SUGGESTIONS = [
@@ -50,6 +52,9 @@ export default function OnboardingPropertyPage() {
   } | null>(null);
 
   const [propertyCategory, setPropertyCategory] = useState<'Residential' | 'Commercial' | 'Other'>('Residential');
+  const [bedrooms, setBedrooms] = useState<number | ''>('');
+  const [bathrooms, setBathrooms] = useState<number | ''>('');
+  const [carSpaces, setCarSpaces] = useState<number | ''>('');
   const [floorArea, setFloorArea] = useState<string>('');
   const [hasCarSpace, setHasCarSpace] = useState<boolean>(false);
   const [carSpacesCount, setCarSpacesCount] = useState<number>(0);
@@ -134,8 +139,12 @@ export default function OnboardingPropertyPage() {
         city: addr.city,
         state: addr.state,
         postalCode: addr.post,
+        bedrooms: propertyCategory === 'Commercial' ? 0 : (bedrooms === '' ? 0 : Number(bedrooms)),
+        bathrooms: propertyCategory === 'Commercial' ? 0 : (bathrooms === '' ? 0 : Number(bathrooms)),
+        carSpaces: propertyCategory === 'Commercial'
+          ? (hasCarSpace ? Math.max(1, carSpacesCount) : 0)
+          : (carSpaces === '' ? 0 : Number(carSpaces)),
         floorArea: floorArea ? parseFloat(floorArea) : undefined,
-        carSpaces: hasCarSpace ? Math.max(1, carSpacesCount) : 0,
         rentAmount: 0,
         paymentFrequency: 'Weekly',
         image: getDefaultPropertyPhoto(propertyCategory === 'Commercial' ? 'Commercial' : 'Residential', propertyCategory === 'Commercial' ? 'Commercial' : 'Apartment'),
@@ -262,76 +271,131 @@ export default function OnboardingPropertyPage() {
               </div>
             </div>
 
-            {/* 03: Specs — Floor Area & Car Space (Replacing bath and bedroom) */}
-            <div className="p-3.5 rounded-2xl bg-[#0B1D30]/70 border border-white/[0.08] space-y-2 shadow-xs">
+            {/* 03: Specs — Commercial (Floor Area & Car Space) vs Residential (Beds, Baths, Cars) */}
+            <div className="p-3.5 rounded-2xl bg-[#0B1D30]/70 border border-white/[0.08] space-y-2.5 shadow-xs">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#00A99D]">
                 Property Specs
               </label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Floor Area */}
-                <div className="space-y-1">
-                  <label htmlFor="floorArea" className="block text-xs font-semibold text-slate-300">
-                    Floor Area (sqm)
-                  </label>
-                  <div className="relative flex items-center">
-                    <Maximize2 className="absolute left-3.5 h-4 w-4 text-[#8FA3B8] pointer-events-none" />
+              {propertyCategory === 'Commercial' ? (
+                /* Commercial Specs: Floor Area (sqm) & Car Spaces */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Floor Area */}
+                  <div className="space-y-1">
+                    <label htmlFor="floorArea" className="block text-xs font-semibold text-slate-300">
+                      Floor Area (sqm)
+                    </label>
+                    <div className="relative flex items-center">
+                      <Maximize2 className="absolute left-3.5 h-4 w-4 text-[#8FA3B8] pointer-events-none" />
+                      <input
+                        id="floorArea"
+                        type="number"
+                        min={0}
+                        step="any"
+                        value={floorArea}
+                        onChange={(e) => setFloorArea(e.target.value)}
+                        className={cn(inputClassName, 'pl-10 pr-14 text-xs sm:text-sm h-11 font-semibold')}
+                        placeholder="e.g. 47"
+                      />
+                      <span className="absolute right-3 text-xs font-bold text-[#8FA3B8] pointer-events-none">
+                        sqm
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Car Space Segmented Selector */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-slate-300">
+                      Car Spaces
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#08182A] border border-white/[0.08] h-11 items-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHasCarSpace(false);
+                          setCarSpacesCount(0);
+                        }}
+                        className={cn(
+                          'h-9 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none',
+                          !hasCarSpace
+                            ? 'bg-[#008F83] text-white shadow-sm ring-1 ring-[#008F83]'
+                            : 'text-[#8FA3B8] hover:text-white'
+                        )}
+                      >
+                        <span>No</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHasCarSpace(true);
+                          if (carSpacesCount === 0) setCarSpacesCount(1);
+                        }}
+                        className={cn(
+                          'h-9 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none',
+                          hasCarSpace
+                            ? 'bg-[#008F83] text-white shadow-sm ring-1 ring-[#008F83]'
+                            : 'text-[#8FA3B8] hover:text-white'
+                        )}
+                      >
+                        <Car className="w-3.5 h-3.5" />
+                        <span>{hasCarSpace ? `Yes (${carSpacesCount})` : 'Yes'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Residential Specs: Beds, Baths, Cars (previous design) */
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="p-2.5 rounded-xl bg-[#08182A] border border-white/[0.08] flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                      <Bed className="h-4 w-4 text-[#00A99D]" /> Beds
+                    </span>
                     <input
-                      id="floorArea"
+                      id="bedrooms"
                       type="number"
                       min={0}
-                      step="any"
-                      value={floorArea}
-                      onChange={(e) => setFloorArea(e.target.value)}
-                      className={cn(inputClassName, 'pl-10 pr-14 text-xs sm:text-sm h-11 font-semibold')}
-                      placeholder={propertyCategory === 'Commercial' ? 'e.g. 47' : 'e.g. 85'}
+                      max={20}
+                      placeholder="e.g. 2"
+                      value={bedrooms}
+                      onChange={(e) => setBedrooms(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))}
+                      className="w-12 text-right bg-transparent text-sm font-bold text-white placeholder:text-[#64788D] focus:outline-none"
                     />
-                    <span className="absolute right-3 text-xs font-bold text-[#8FA3B8] pointer-events-none">
-                      sqm
-                    </span>
                   </div>
-                </div>
 
-                {/* Car Space Segmented Selector */}
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-slate-300">
-                    Car Spaces
-                  </label>
-                  <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#08182A] border border-white/[0.08] h-11 items-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setHasCarSpace(false);
-                        setCarSpacesCount(0);
-                      }}
-                      className={cn(
-                        'h-9 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none',
-                        !hasCarSpace
-                          ? 'bg-[#008F83] text-white shadow-sm ring-1 ring-[#008F83]'
-                          : 'text-[#8FA3B8] hover:text-white'
-                      )}
-                    >
-                      <span>No</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setHasCarSpace(true);
-                        if (carSpacesCount === 0) setCarSpacesCount(1);
-                      }}
-                      className={cn(
-                        'h-9 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none',
-                        hasCarSpace
-                          ? 'bg-[#008F83] text-white shadow-sm ring-1 ring-[#008F83]'
-                          : 'text-[#8FA3B8] hover:text-white'
-                      )}
-                    >
-                      <Car className="w-3.5 h-3.5" />
-                      <span>{hasCarSpace ? `Yes (${carSpacesCount})` : 'Yes'}</span>
-                    </button>
+                  <div className="p-2.5 rounded-xl bg-[#08182A] border border-white/[0.08] flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                      <Bath className="h-4 w-4 text-[#00A99D]" /> Baths
+                    </span>
+                    <input
+                      id="bathrooms"
+                      type="number"
+                      min={0}
+                      max={20}
+                      step="0.5"
+                      placeholder="e.g. 1"
+                      value={bathrooms}
+                      onChange={(e) => setBathrooms(e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value) || 0))}
+                      className="w-12 text-right bg-transparent text-sm font-bold text-white placeholder:text-[#64788D] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-[#08182A] border border-white/[0.08] flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                      <Car className="h-4 w-4 text-[#00A99D]" /> Cars
+                    </span>
+                    <input
+                      id="carSpaces"
+                      type="number"
+                      min={0}
+                      max={20}
+                      placeholder="e.g. 1"
+                      value={carSpaces}
+                      onChange={(e) => setCarSpaces(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))}
+                      className="w-12 text-right bg-transparent text-sm font-bold text-white placeholder:text-[#64788D] focus:outline-none"
+                    />
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
