@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { X, Trash2 } from 'lucide-react';
 import { Input, Select, Textarea, useToast, ConfirmDialog } from '@/components/admin/ui';
 import { handleCreateTenant, handleUpdateTenant, handleDeleteTenant } from '@/app/actions/dashboard';
+import { ContextualHelp } from '@/components/ui/visuals';
 import { cn } from '@/lib/utils';
 
 export interface TenantDrawerProps {
@@ -230,6 +231,16 @@ export function TenantDrawer({
 
         {/* Form Body */}
         <div className="flex-1 overflow-y-auto space-y-4 px-0.5 py-1">
+          {isCreate && (
+            <ContextualHelp
+              title="Tenancy Record & Portal Access"
+              icon="shield"
+              tone="teal"
+            >
+              Adding a tenant creates a property-linked record for rent tracking, receipts, and legal notices. To invite them to the Tenant Portal, you can send an invitation from their profile after creation.
+            </ContextualHelp>
+          )}
+
           {/* First Name & Last Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

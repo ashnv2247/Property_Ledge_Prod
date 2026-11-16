@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link2, UserSearch, Copy, Check, Building2, Search, CheckSquare, Square } from 'lucide-react';
 import { Modal, Button, useToast } from '@/components/admin/ui';
+import { RelationshipDiagram } from '@/components/ui/visuals';
 import {
   fetchAssignableRoles,
   fetchRolePermissions,
@@ -260,6 +261,29 @@ export function AddMemberModal({ workspaceId, onClose, onSuccess }: AddMemberMod
                 <Building2 className="h-4 w-4 text-admin-primary" />
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-admin-foreground">Property Access Scope</h4>
               </div>
+
+              {profilePreview && (
+                <RelationshipDiagram
+                  title="Authorization Scope Chain"
+                  nodes={[
+                    {
+                      label: 'Owner',
+                      value: 'Workspace Admin',
+                    },
+                    {
+                      label: 'Collaborator',
+                      value: profilePreview.fullName || 'Invited User',
+                      subtext: selectedRole?.name || 'Selected Role',
+                    },
+                    {
+                      label: 'Scope',
+                      value: propertyMode === 'all' ? 'All Properties' : `${selectedPropertyIds.length} Properties`,
+                      subtext: propertyMode === 'all' ? 'Full Workspace' : 'Designated Only',
+                    },
+                  ]}
+                  className="mb-1"
+                />
+              )}
 
               {/* Mode switch */}
               <div className="grid grid-cols-2 gap-1.5 p-1 rounded-lg bg-admin-surface border border-admin-border">

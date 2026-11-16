@@ -8,6 +8,7 @@ import { Input, Select, useToast, ConfirmDialog } from '@/components/admin/ui';
 import { handleUpdateProperty, handleDeleteProperty, handleCreateProperty, fetchUserWorkspaces } from '@/app/actions/dashboard';
 import { usePropertyContext } from '@/components/property/PropertyContext';
 import { cn } from '@/lib/utils';
+import { ContextualHelp } from '@/components/ui/visuals';
 import { PropertyPhotoPickerModal } from './PropertyPhotoPickerModal';
 import { getDefaultPropertyPhoto, CURATED_PROPERTY_PHOTOS } from './property-photos';
 
@@ -498,26 +499,35 @@ export function PropertyDrawer({
 
           {/* Property Specs: Commercial vs Residential */}
           {propertyCategory === 'Commercial' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                label="Floor Area (sqm)"
-                type="number"
-                min="0"
-                step="any"
-                value={floorArea}
-                onChange={(e) => setFloorArea(e.target.value)}
-                placeholder="e.g. 47"
-                className="bg-white dark:bg-slate-800"
-              />
-              <Input
-                label="Car Spaces"
-                type="number"
-                min="0"
-                value={carSpaces}
-                onChange={(e) => setCarSpaces(e.target.value)}
-                placeholder="e.g. 1"
-                className="bg-white dark:bg-slate-800 text-center"
-              />
+            <div className="space-y-3">
+              <ContextualHelp
+                title="Commercial Tenancy & Net Lettable Area (NLA)"
+                icon="info"
+                tone="teal"
+              >
+                Commercial properties require Net Lettable Area (NLA) specifications and standard 10% GST reporting for recurring lease payments and outgoings.
+              </ContextualHelp>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label="Floor Area (sqm)"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={floorArea}
+                  onChange={(e) => setFloorArea(e.target.value)}
+                  placeholder="e.g. 47"
+                  className="bg-white dark:bg-slate-800"
+                />
+                <Input
+                  label="Car Spaces"
+                  type="number"
+                  min="0"
+                  value={carSpaces}
+                  onChange={(e) => setCarSpaces(e.target.value)}
+                  placeholder="e.g. 1"
+                  className="bg-white dark:bg-slate-800 text-center"
+                />
+              </div>
             </div>
           ) : (
             <div className="space-y-4">

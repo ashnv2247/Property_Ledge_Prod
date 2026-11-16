@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Button, Input, Select, Textarea, useToast } from '@/components/admin/ui';
 import { handleRenewLease, fetchAllWorkspaceTenants } from '@/app/actions/dashboard';
+import { RelationshipDiagram } from '@/components/ui/visuals';
 import { formatCurrency } from '@/lib/format/currency';
 import { getAuTodayString } from '@/lib/format/australian-time';
 import { cn } from '@/lib/utils';
@@ -730,6 +731,33 @@ export function RenewLeaseModal({
                   This will generate a completely <strong>NEW active lease</strong> with a new immutable Lease ID, linking to <strong>{previousLeaseCode}</strong>. The previous lease will be transitioned to <strong>Renewed</strong> status and preserved in full historical records.
                 </p>
               </div>
+
+              {/* Relationship Diagram */}
+              <RelationshipDiagram
+                title="Contract Continuity Chain"
+                nodes={[
+                  {
+                    label: 'Previous',
+                    value: previousLeaseCode,
+                    subtext: `${previousLease.start_date.slice(0, 4)} Agreement`,
+                  },
+                  {
+                    label: 'Renewal Term',
+                    value: isPeriodic ? 'Periodic' : `${startDate} → ${endDate}`,
+                    subtext: `${rentFrequency} billing`,
+                  },
+                  {
+                    label: 'Residents',
+                    value: `${tenantsList.filter((t) => t.selected).length} Retained`,
+                    subtext: tenantsList.find((t) => t.isPrimary && t.selected)?.firstName || 'Assigned',
+                  },
+                  {
+                    label: 'New Lease',
+                    value: 'Active Status',
+                    subtext: 'Prior moves to Renewed',
+                  },
+                ]}
+              />
 
               {/* Comparison Summary Card */}
               <div className="border border-admin-border rounded-xl overflow-hidden">
