@@ -22,7 +22,6 @@
     "@types/pg": "^8.23.1",
     "@vercel/blob": "^2.8.0",
     "ag-grid-community": "^36.1.0",
-    "ag-grid-enterprise": "36.1.0",
     "ag-grid-react": "^36.1.0",
     "caniuse-lite": "^1.0.30001810",
     "class-variance-authority": "^0.7.1",

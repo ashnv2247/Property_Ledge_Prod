@@ -32,6 +32,8 @@ import {
   Calendar,
   Sparkles,
   FolderTree,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { Button, useToast, ConfirmDialog } from '@/components/admin/ui';
@@ -112,8 +114,10 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
   const [statusFilter, setStatusFilter] = useState('all');
   const [includeIndependent, setIncludeIndependent] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  type InvoiceGroupMode = 'scheduled' | 'property' | 'customer' | 'none';
+  type InvoiceGroupMode = 'scheduled' | 'none';
   const [groupMode, setGroupMode] = useState<InvoiceGroupMode>('scheduled');
+  const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
+  const [hasInitializedExpanded, setHasInitializedExpanded] = useState(false);
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -363,12 +367,14 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
 
   const handleBulkDeleteInvoices = async (selectedRows: InvoiceDTO[]) => {
     if (!selectedRows || selectedRows.length === 0) return;
+    const realInvoices = selectedRows.filter((inv) => !(inv as any).isBatchHeader);
+    if (realInvoices.length === 0) return;
     setIsDeleting(true);
     try {
       let successCount = 0;
       let failCount = 0;
 
-      for (const inv of selectedRows) {
+      for (const inv of realInvoices) {
         const res = await deleteInvoiceAction(inv.id);
         if (res.success) {
           successCount++;
@@ -401,15 +407,16 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
         label: 'Schedule Email',
         icon: <CalendarRange className="w-3.5 h-3.5 text-[#008F83]" />,
         onClick: (selectedRows: InvoiceDTO[]) => {
-          if (!selectedRows || selectedRows.length === 0) return;
-          setInvoiceToSchedule(selectedRows[0]);
+          const valid = (selectedRows || []).filter((inv) => !(inv as any).isBatchHeader);
+          if (valid.length === 0) return;
+          setInvoiceToSchedule(valid[0]);
           setIsScheduleEmailOpen(true);
         },
       },
       {
         label: 'Issue Selected Invoices',
         onClick: async (selectedRows: InvoiceDTO[]) => {
-          const drafts = selectedRows.filter((inv) => inv.status === 'draft');
+          const drafts = (selectedRows || []).filter((inv) => !(inv as any).isBatchHeader && inv.status === 'draft');
           if (drafts.length === 0) {
             toast({
               title: 'No Draft Invoices Selected',
@@ -519,151 +526,256 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
     return false;
   }, []);
 
-  // AG Grid Tree Data Path definition (ONLY groups scheduled invoices that were bulk generated)
-  const getInvoiceDataPath = useCallback(
-    (data: InvoiceDTO) => {
-      // 1. Strict filter: only group scheduled invoices which were bulk generated!
-      const isBulk = isScheduledBulkInvoice(data);
-      if (!isBulk) {
-        // Individual / normal invoices stay at root level (ungrouped)
-        return [data.invoiceNumber || data.id];
-      }
+  interface ScheduledBatchGroup {
+    batchKey: string;
+    batchLabel: string;
+    invoices: InvoiceDTO[];
+    total: number;
+    balance: number;
+    propertyId?: string | null;
+    customerName?: string | null;
+    customerEmail?: string | null;
+    tenantId?: string | null;
+    earliestIssueDate?: string | null;
+    latestDueDate?: string | null;
+  }
 
-      // 2. Scheduled bulk generated invoices: group according to current mode
-      const snapshot = data.snapshot as any;
-      const propName = data.propertyId ? propertyMap.get(data.propertyId) || 'Linked Property' : '';
-      const recipientName = data.recipient?.name || data.customerName || '';
+  // Pure Community Grouping: ONLY scheduled bulk-generated invoices are grouped!
+  const scheduledBatches = useMemo<ScheduledBatchGroup[]>(() => {
+    const batchesMap = new Map<string, ScheduledBatchGroup>();
 
-      if (groupMode === 'property') {
-        const groupLabel = propName ? `Scheduled · ${propName}` : 'Scheduled Invoices';
-        return [groupLabel, data.invoiceNumber || data.id];
-      }
+    for (const inv of displayedInvoices) {
+      if (!isScheduledBulkInvoice(inv)) continue;
+      const s = inv.snapshot as any;
+      const propName = inv.propertyId ? propertyMap.get(inv.propertyId) || 'Linked Property' : '';
+      const recipientName = inv.recipient?.name || inv.customerName || '';
 
-      if (groupMode === 'customer') {
-        const groupLabel = recipientName ? `Scheduled · ${recipientName}` : 'Scheduled Invoices';
-        return [groupLabel, data.invoiceNumber || data.id];
-      }
+      let key = '';
+      let label = '';
 
-      // Default 'scheduled' mode: Group by scheduled series / batch
-      let groupTitle = '';
-      if (snapshot?.bulkBatchLabel) {
-        groupTitle = `Scheduled Batch · ${snapshot.bulkBatchLabel}`;
-      } else if (propName && recipientName) {
-        groupTitle = `Scheduled Batch · ${propName} (${recipientName})`;
-      } else if (propName) {
-        groupTitle = `Scheduled Batch · ${propName}`;
-      } else if (recipientName) {
-        groupTitle = `Scheduled Batch · ${recipientName}`;
-      } else if (data.automationId) {
-        groupTitle = `Automated Scheduled Series`;
+      if (s?.bulkBatchId) {
+        key = `batch-${s.bulkBatchId}`;
+        label = s.bulkBatchLabel || (propName ? `${propName} · Scheduled Rent` : 'Scheduled Multi-Month Rent');
+      } else if (inv.automationId) {
+        key = `auto-${inv.automationId}`;
+        label = `Automated Rent Schedule · ${propName || recipientName || 'Monthly'}`;
+      } else if (inv.propertyId) {
+        key = `prop-sched-${inv.propertyId}-${inv.tenantId || recipientName || 'tenant'}`;
+        label = recipientName ? `${propName} · ${recipientName}` : `${propName} · Scheduled Rent`;
       } else {
-        groupTitle = `Scheduled Bulk Invoices`;
+        key = `sched-${recipientName || 'bulk'}`;
+        label = recipientName ? `Scheduled Series · ${recipientName}` : 'Scheduled Multi-Month Rent';
       }
 
-      return [groupTitle, data.invoiceNumber || data.id];
-    },
-    [groupMode, propertyMap, isScheduledBulkInvoice]
-  );
-
-  // Group cell renderer matching AG Grid HR Dashboard Demo
-  const InvoiceGroupCellRenderer = useCallback(
-    (params: any) => {
-      const isGroup = params.node?.group;
-      const value = params.value;
-      const count =
-        params.node?.allChildrenCount ??
-        params.node?.childrenAfterFilter?.length ??
-        0;
-
-      if (isGroup) {
-        return (
-          <div className="flex items-center gap-2.5 py-1">
-            <div className="w-7 h-7 rounded-lg bg-[#008F83]/10 text-[#008F83] border border-[#008F83]/20 flex items-center justify-center shrink-0">
-              <Calendar className="w-3.5 h-3.5 text-[#008F83]" />
-            </div>
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="font-bold text-xs text-admin-foreground truncate">{value}</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#008F83]/10 text-[#008F83] border border-[#008F83]/20 shrink-0 flex items-center gap-1">
-                <Sparkles className="w-2.5 h-2.5" /> Scheduled Batch ({count})
-              </span>
-            </div>
-          </div>
-        );
+      let group = batchesMap.get(key);
+      if (!group) {
+        group = {
+          batchKey: key,
+          batchLabel: label,
+          invoices: [],
+          total: 0,
+          balance: 0,
+          propertyId: inv.propertyId,
+          customerName: recipientName,
+          customerEmail: inv.recipient?.email || inv.customerEmail,
+          tenantId: inv.tenantId,
+          earliestIssueDate: inv.issueDate,
+          latestDueDate: inv.dueDate,
+        };
+        batchesMap.set(key, group);
       }
+      group.invoices.push(inv);
+      group.total += inv.total;
+      group.balance += inv.balance;
+    }
 
-      // Leaf child row or standalone root row: Invoice Number
-      const inv = params.data as InvoiceDTO;
-      const isBulk = inv ? isScheduledBulkInvoice(inv) : false;
-      return (
-        <div className="flex items-center gap-2 py-1">
-          <div className="w-6 h-6 rounded-md bg-admin-primary/10 text-admin-primary flex items-center justify-center shrink-0">
-            <FileText className="w-3.5 h-3.5" />
-          </div>
-          <span className="font-mono font-bold text-admin-foreground text-xs">{value}</span>
-          {isBulk && (
-            <span className="text-[9.5px] font-semibold px-1.5 py-0.2 rounded bg-[#008F83]/10 text-[#008F83] border border-[#008F83]/20 shrink-0">
-              Scheduled
-            </span>
-          )}
-        </div>
-      );
-    },
-    [isScheduledBulkInvoice]
-  );
+    return Array.from(batchesMap.values());
+  }, [displayedInvoices, isScheduledBulkInvoice, propertyMap]);
 
-  const autoGroupColumnDef: ColDef = useMemo(() => {
-    let headerName = 'Invoice # / Scheduled Batch';
-    if (groupMode === 'property') headerName = 'Property / Scheduled Invoices';
-    if (groupMode === 'customer') headerName = 'Customer / Scheduled Invoices';
+  // Batch toggling controls for pure AG Grid Community hierarchical expandable batches
+  const toggleBatch = useCallback((batchKey: string) => {
+    setExpandedBatches((prev) => {
+      const next = new Set(prev);
+      if (next.has(batchKey)) {
+        next.delete(batchKey);
+      } else {
+        next.add(batchKey);
+      }
+      return next;
+    });
+  }, []);
 
-    return {
-      headerName,
-      width: 320,
-      minWidth: 260,
-      pinned: 'left',
-      cellRenderer: 'agGroupCellRenderer',
-      cellRendererParams: {
-        suppressCount: true,
-        innerRenderer: InvoiceGroupCellRenderer,
-      },
-    };
-  }, [groupMode, InvoiceGroupCellRenderer]);
+  const expandAllBatches = useCallback(() => {
+    const allKeys = new Set<string>();
+    for (const batch of scheduledBatches) {
+      allKeys.add(batch.batchKey);
+    }
+    setExpandedBatches(allKeys);
+  }, [scheduledBatches]);
 
-  // AG Grid columns definition
+  const collapseAllBatches = useCallback(() => {
+    setExpandedBatches(new Set());
+  }, []);
+
+  // Expand batches by default on first discovery
+  useEffect(() => {
+    if (scheduledBatches.length > 0 && !hasInitializedExpanded) {
+      setExpandedBatches(new Set(scheduledBatches.map((b) => b.batchKey)));
+      setHasInitializedExpanded(true);
+    }
+  }, [scheduledBatches, hasInitializedExpanded]);
+
+  // Construct pure Community row data: expandable batches followed by standalone invoices
+  const gridRowData = useMemo(() => {
+    if (groupMode === 'none') {
+      return displayedInvoices.map((inv) => ({
+        ...inv,
+        isBatchHeader: false,
+        isBatchChild: false,
+      }));
+    }
+
+    const rows: any[] = [];
+    const processedInvoices = new Set<string>();
+
+    for (const batch of scheduledBatches) {
+      const isExpanded = expandedBatches.has(batch.batchKey);
+      rows.push({
+        isBatchHeader: true,
+        isBatchChild: false,
+        id: `batch-${batch.batchKey}`,
+        invoiceNumber: batch.batchLabel,
+        batchKey: batch.batchKey,
+        batchTitle: batch.batchLabel,
+        batchCount: batch.invoices.length,
+        invoices: batch.invoices,
+        total: batch.total,
+        balance: batch.balance,
+        propertyId: batch.propertyId,
+        customerName: batch.customerName,
+        customerEmail: batch.customerEmail,
+        tenantId: batch.tenantId,
+        recipient: { name: batch.customerName, email: batch.customerEmail },
+        issueDate: batch.earliestIssueDate,
+        dueDate: batch.latestDueDate,
+        status: 'scheduled_batch',
+        isExpanded,
+      });
+
+      for (const inv of batch.invoices) {
+        processedInvoices.add(inv.id);
+        if (isExpanded) {
+          rows.push({
+            ...inv,
+            isBatchHeader: false,
+            isBatchChild: true,
+            batchKey: batch.batchKey,
+          });
+        }
+      }
+    }
+
+    // Add standalone / non-bulk invoices as root rows
+    for (const inv of displayedInvoices) {
+      if (!processedInvoices.has(inv.id)) {
+        rows.push({
+          ...inv,
+          isBatchHeader: false,
+          isBatchChild: false,
+        });
+      }
+    }
+
+    return rows;
+  }, [groupMode, displayedInvoices, scheduledBatches, expandedBatches]);
+
+  // AG Grid Free Community columns definition with spacious widths to eliminate header truncation
   const agGridColumns: ColDef[] = useMemo(
     () => [
       {
-        headerName: 'Invoice #',
+        headerName: 'Invoice # / Scheduled Batch',
         field: 'invoiceNumber',
-        width: 140,
-        hide: groupMode !== 'none',
+        width: 280,
+        minWidth: 260,
         cellRenderer: (params: any) => {
-          const inv = params.data as InvoiceDTO;
-          if (!inv) return null;
+          const row = params.data;
+          if (!row) return null;
+
+          if (row.isBatchHeader) {
+            const isExp = row.isExpanded;
+            return (
+              <div
+                className="flex items-center gap-2 py-1 select-none cursor-pointer w-full group"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleBatch(row.batchKey);
+                }}
+              >
+                <button
+                  type="button"
+                  className="w-5 h-5 rounded hover:bg-[#008F83]/15 flex items-center justify-center text-slate-500 hover:text-[#008F83] transition-colors shrink-0"
+                  aria-label={isExp ? 'Collapse batch' : 'Expand batch'}
+                >
+                  {isExp ? (
+                    <ChevronDown className="w-4 h-4 text-[#008F83]" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#008F83]" />
+                  )}
+                </button>
+                <div className="w-6 h-6 rounded-md bg-[#008F83]/10 text-[#008F83] border border-[#008F83]/20 flex items-center justify-center shrink-0">
+                  <Calendar className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="font-bold text-xs text-admin-foreground truncate" title={row.batchTitle}>
+                    {row.batchTitle}
+                  </span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#008F83]/10 text-[#008F83] border border-[#008F83]/20 shrink-0">
+                    {row.batchCount} mo
+                  </span>
+                </div>
+              </div>
+            );
+          }
+
+          if (row.isBatchChild) {
+            return (
+              <div className="flex items-center gap-2 py-1 pl-6">
+                <span className="w-2 h-2 border-l-2 border-b-2 border-slate-300 dark:border-slate-600 rounded-bl shrink-0 -ml-3" />
+                <div className="w-6 h-6 rounded-md bg-admin-primary/10 text-admin-primary flex items-center justify-center shrink-0">
+                  <FileText className="w-3.5 h-3.5" />
+                </div>
+                <span className="font-mono font-bold text-admin-foreground text-xs">{row.invoiceNumber}</span>
+                <span className="text-[9.5px] font-semibold px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                  Monthly
+                </span>
+              </div>
+            );
+          }
+
+          // Standalone root invoice
           return (
             <div className="flex items-center gap-2 py-1">
               <div className="w-6 h-6 rounded-md bg-admin-primary/10 text-admin-primary flex items-center justify-center shrink-0">
                 <FileText className="w-3.5 h-3.5" />
               </div>
-              <span className="font-mono font-bold text-admin-foreground text-xs">{inv.invoiceNumber}</span>
+              <span className="font-mono font-bold text-admin-foreground text-xs">{row.invoiceNumber}</span>
             </div>
           );
         },
       },
       {
         headerName: 'Recipient / Bill To',
-        flex: 1.5,
+        flex: 1.3,
         minWidth: 200,
-        hide: groupMode === 'customer',
         valueGetter: (p) => p.data?.recipient?.name || p.data?.customerName || 'Customer',
         cellRenderer: (params: any) => {
-          const inv = params.data as InvoiceDTO;
-          if (!inv) return null;
-          const name = inv.recipient?.name || inv.customerName || 'Customer';
-          const email = inv.recipient?.email || inv.customerEmail || undefined;
+          const row = params.data;
+          if (!row) return null;
+          const name = row.recipient?.name || row.customerName || 'Customer';
+          const email = row.recipient?.email || row.customerEmail || undefined;
           return (
             <PersonIdentity
-              seed={inv.tenantId || inv.customerEmail || name}
+              seed={row.tenantId || email || name}
               name={name}
               subtitle={email}
               size="sm"
@@ -673,12 +785,12 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
       },
       {
         headerName: 'Property / Context',
-        width: 175,
-        hide: groupMode === 'property',
+        flex: 1,
+        minWidth: 190,
         cellRenderer: (params: any) => {
-          const inv = params.data as InvoiceDTO;
-          if (!inv) return null;
-          const propName = inv.propertyId ? propertyMap.get(inv.propertyId) : null;
+          const row = params.data;
+          if (!row) return null;
+          const propName = row.propertyId ? propertyMap.get(row.propertyId) : null;
           if (propName) {
             return (
               <div className="flex items-center gap-1.5 py-1 min-w-0">
@@ -699,7 +811,8 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
       {
         headerName: 'Issue Date',
         field: 'issueDate',
-        width: 130,
+        width: 140,
+        minWidth: 130,
         sort: 'asc',
         comparator: (d1: string, d2: string) => {
           const t1 = d1 ? new Date(d1).getTime() : 0;
@@ -707,11 +820,18 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
           return t1 - t2;
         },
         cellRenderer: (params: any) => {
-          const inv = params.data as InvoiceDTO;
-          if (!inv) return null;
+          const row = params.data;
+          if (!row) return null;
+          if (row.isBatchHeader) {
+            return (
+              <span className="text-xs text-admin-muted font-bold">
+                {row.issueDate ? formatAuDisplayDate(row.issueDate) : '—'}
+              </span>
+            );
+          }
           return (
             <span className="text-xs text-admin-muted font-medium">
-              {formatAuDisplayDate(inv.issueDate)}
+              {formatAuDisplayDate(row.issueDate)}
             </span>
           );
         },
@@ -719,19 +839,27 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
       {
         headerName: 'Due Date',
         field: 'dueDate',
-        width: 130,
+        width: 140,
+        minWidth: 130,
         comparator: (d1: string, d2: string) => {
           const t1 = d1 ? new Date(d1).getTime() : 0;
           const t2 = d2 ? new Date(d2).getTime() : 0;
           return t1 - t2;
         },
         cellRenderer: (params: any) => {
-          const inv = params.data as InvoiceDTO;
-          if (!inv) return null;
-          const isOverdue = inv.status === 'overdue' || (inv.balance > 0 && new Date(inv.dueDate) < new Date());
+          const row = params.data;
+          if (!row) return null;
+          if (row.isBatchHeader) {
+            return (
+              <span className="text-xs text-admin-foreground font-bold">
+                {row.dueDate ? formatAuDisplayDate(row.dueDate) : '—'}
+              </span>
+            );
+          }
+          const isOverdue = row.status === 'overdue' || (row.balance > 0 && new Date(row.dueDate) < new Date());
           return (
-            <span className={cn('text-xs font-medium', isOverdue && inv.balance > 0 ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-admin-foreground')}>
-              {formatAuDisplayDate(inv.dueDate)}
+            <span className={cn('text-xs font-medium', isOverdue && row.balance > 0 ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-admin-foreground')}>
+              {formatAuDisplayDate(row.dueDate)}
             </span>
           );
         },
@@ -739,24 +867,22 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
       {
         headerName: 'Total Amount',
         field: 'total',
-        width: 130,
+        width: 155,
+        minWidth: 145,
         cellRenderer: (params: any) => {
-          const inv = params.data as InvoiceDTO;
-          if (!inv) {
-            if (params.node?.group && params.node?.childrenAfterFilter) {
-              const sum = params.node.childrenAfterFilter.reduce((acc: number, c: any) => acc + (c.data?.total || 0), 0);
-              return (
-                <div className="flex items-center gap-1 py-1 font-bold text-xs text-admin-primary">
-                  <span>{formatCurrency(sum)}</span>
-                  <span className="text-[10px] font-normal opacity-70">(subtotal)</span>
-                </div>
-              );
-            }
-            return null;
+          const row = params.data;
+          if (!row) return null;
+          if (row.isBatchHeader) {
+            return (
+              <div className="flex items-center gap-1 py-1 font-black text-xs text-admin-primary">
+                <span>{formatCurrency(row.total)}</span>
+                <span className="text-[10px] font-normal opacity-70">(batch total)</span>
+              </div>
+            );
           }
           return (
             <span className="font-bold text-admin-foreground text-xs">
-              {formatCurrency(inv.total, inv.currency)}
+              {formatCurrency(row.total, row.currency)}
             </span>
           );
         },
@@ -764,24 +890,22 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
       {
         headerName: 'Balance Due',
         field: 'balance',
-        width: 130,
+        width: 155,
+        minWidth: 145,
         cellRenderer: (params: any) => {
-          const inv = params.data as InvoiceDTO;
-          if (!inv) {
-            if (params.node?.group && params.node?.childrenAfterFilter) {
-              const sum = params.node.childrenAfterFilter.reduce((acc: number, c: any) => acc + (c.data?.balance || 0), 0);
-              return (
-                <div className={cn('flex items-center gap-1 py-1 font-bold text-xs', sum > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400')}>
-                  <span>{formatCurrency(sum)}</span>
-                  <span className="text-[10px] font-normal opacity-70">(balance)</span>
-                </div>
-              );
-            }
-            return null;
+          const row = params.data;
+          if (!row) return null;
+          if (row.isBatchHeader) {
+            return (
+              <div className={cn('flex items-center gap-1 py-1 font-black text-xs', row.balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400')}>
+                <span>{formatCurrency(row.balance)}</span>
+                <span className="text-[10px] font-normal opacity-70">(balance)</span>
+              </div>
+            );
           }
           return (
-            <span className={cn('font-bold text-xs', inv.balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400')}>
-              {formatCurrency(inv.balance, inv.currency)}
+            <span className={cn('font-bold text-xs', row.balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400')}>
+              {formatCurrency(row.balance, row.currency)}
             </span>
           );
         },
@@ -789,13 +913,22 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
       {
         headerName: 'Status',
         field: 'status',
-        width: 130,
+        width: 135,
+        minWidth: 125,
         cellRenderer: (params: any) => {
-          const status = params.data?.status;
-          if (!status) return null;
+          const row = params.data;
+          if (!row) return null;
+          if (row.isBatchHeader) {
+            return (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#008F83]/10 text-[#008F83] border border-[#008F83]/20">
+                Scheduled Batch
+              </span>
+            );
+          }
+          const status = row.status;
           return (
             <span className={cn('inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border capitalize', getStatusBadge(status))}>
-              {status.replace('_', ' ')}
+              {status ? status.replace('_', ' ') : 'Draft'}
             </span>
           );
         },
@@ -803,20 +936,46 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
       {
         headerName: 'Actions',
         colId: 'actions',
-        width: 205,
+        width: 180,
+        minWidth: 170,
         pinned: 'right',
         sortable: false,
         filter: false,
         cellRenderer: (params: any) => {
-          const inv = params.data as InvoiceDTO;
-          if (!inv) return null;
-          const canEdit = inv.status !== 'paid' && inv.status !== 'cancelled' && inv.status !== 'void';
+          const row = params.data;
+          if (!row) return null;
+          if (row.isBatchHeader) {
+            return (
+              <div className="flex items-center gap-1.5 py-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleBatch(row.batchKey);
+                  }}
+                  className="px-2.5 py-1 text-xs font-bold text-[#008F83] hover:bg-[#008F83]/10 rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
+                >
+                  {row.isExpanded ? (
+                    <>
+                      <ChevronDown className="w-3.5 h-3.5" /> Collapse
+                    </>
+                  ) : (
+                    <>
+                      <ChevronRight className="w-3.5 h-3.5" /> Expand
+                    </>
+                  )}
+                </button>
+              </div>
+            );
+          }
+
+          const canEdit = row.status !== 'paid' && row.status !== 'cancelled' && row.status !== 'void';
           return (
             <div className="flex items-center gap-1 py-1">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  void handleViewInvoice(inv);
+                  void handleViewInvoice(row);
                 }}
                 className="px-2 py-1 text-admin-primary hover:bg-admin-primary/10 rounded transition-colors inline-flex items-center gap-1 font-bold text-xs"
                 title="View Invoice"
@@ -826,7 +985,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setInvoiceToSchedule(inv);
+                  setInvoiceToSchedule(row);
                   setIsScheduleEmailOpen(true);
                 }}
                 className="p-1 text-admin-muted hover:text-[#008F83] hover:bg-[#008F83]/10 rounded transition-colors"
@@ -838,7 +997,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    void handleEditInvoice(inv);
+                    void handleEditInvoice(row);
                   }}
                   className="p-1 text-admin-muted hover:text-admin-foreground hover:bg-admin-surface-subtle rounded transition-colors"
                   title="Edit Invoice"
@@ -849,7 +1008,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDownload(inv.id, 'pdf');
+                  handleDownload(row.id, 'pdf');
                 }}
                 className="p-1 text-admin-muted hover:text-admin-foreground hover:bg-admin-surface-subtle rounded transition-colors"
                 title="Download PDF"
@@ -859,7 +1018,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setInvoiceToDelete(inv);
+                  setInvoiceToDelete(row);
                 }}
                 className="p-1 text-admin-muted hover:text-rose-500 hover:bg-rose-500/10 rounded transition-colors"
                 title="Delete Invoice"
@@ -871,7 +1030,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
         },
       },
     ],
-    [propertyMap, groupMode]
+    [propertyMap, toggleBatch]
   );
 
   return (
@@ -1078,12 +1237,8 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
           <ListPageGrid>
             <AdminDataGrid
               gridId="invoices-grid"
-              rowData={displayedInvoices}
+              rowData={gridRowData}
               columnDefs={agGridColumns}
-              treeData={groupMode !== 'none'}
-              getDataPath={groupMode !== 'none' ? (getInvoiceDataPath as any) : undefined}
-              autoGroupColumnDef={groupMode !== 'none' ? autoGroupColumnDef : undefined}
-              groupDefaultExpanded={-1}
               loading={loading}
               onRefresh={() => loadInvoices(true)}
               isRefreshing={isRefreshing}
@@ -1093,53 +1248,94 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
               enableSelection={true}
               onDeleteSelected={handleBulkDeleteInvoices}
               bulkActions={bulkActions}
-              onRowClick={(row) => setSelectedInvoice(row)}
+              onRowClick={(row: any) => {
+                if (row?.isBatchHeader) {
+                  toggleBatch(row.batchKey);
+                  return;
+                }
+                void handleViewInvoice(row);
+              }}
               getRowId={(p) => p.data.id}
               enableColumnChooser
               enableExport
               exportFilename="invoices-export"
               searchPlaceholder="Search invoices by number or customer..."
               leftToolbarContent={
-                <div className="flex items-center gap-3 flex-wrap">
-                  <QuickFilterBar
-                    options={filterOptions}
-                    activeValue={statusFilter}
-                    onChange={(val) => setStatusFilter(val as string)}
-                  />
-
-                  <div className="h-4 w-px bg-admin-border hidden sm:block" />
-
-                  {/* AG Grid Grouping Selector (parities with AG Grid HR Dashboard Example) */}
-                  <div className="flex items-center gap-1 p-0.5 rounded-xl bg-admin-surface-subtle border border-admin-border text-xs">
-                    <span className="text-[11px] font-semibold text-admin-muted pl-2 pr-1 flex items-center gap-1 select-none">
-                      <FolderTree className="w-3.5 h-3.5 text-[#008F83]" /> Group:
-                    </span>
-                    {(
-                      [
-                        { id: 'scheduled', label: 'Scheduled Batches' },
-                        { id: 'property', label: 'By Property' },
-                        { id: 'customer', label: 'By Customer' },
-                        { id: 'none', label: 'Flat (No Groups)' },
-                      ] as const
-                    ).map((grp) => (
-                      <button
-                        key={grp.id}
-                        type="button"
-                        onClick={() => setGroupMode(grp.id)}
-                        className={cn(
-                          'px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer',
-                          groupMode === grp.id
-                            ? 'bg-[#008F83] text-white shadow-2xs'
-                            : 'text-admin-muted hover:text-admin-foreground hover:bg-admin-surface'
-                        )}
-                      >
-                        {grp.label}
-                      </button>
-                    ))}
+                <QuickFilterBar
+                  options={filterOptions}
+                  activeValue={statusFilter}
+                  onChange={(val) => setStatusFilter(val as string)}
+                />
+              }
+              searchExtraContent={
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Scheduled Batches vs Flat View Toggle */}
+                  <div className="flex items-center p-0.5 rounded-xl bg-admin-surface-subtle border border-admin-border text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setGroupMode('scheduled')}
+                      className={cn(
+                        'px-2.5 py-1 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer',
+                        groupMode === 'scheduled'
+                          ? 'bg-[#008F83] text-white shadow-2xs'
+                          : 'text-admin-muted hover:text-admin-foreground hover:bg-admin-surface'
+                      )}
+                      title="Group bulk-generated scheduled invoices"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Scheduled Batches</span>
+                      {scheduledBatches.length > 0 && (
+                        <span
+                          className={cn(
+                            'text-[10px] px-1.5 py-0.2 rounded-full font-black',
+                            groupMode === 'scheduled' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                          )}
+                        >
+                          {scheduledBatches.length}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGroupMode('none')}
+                      className={cn(
+                        'px-2.5 py-1 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer',
+                        groupMode === 'none'
+                          ? 'bg-[#008F83] text-white shadow-2xs'
+                          : 'text-admin-muted hover:text-admin-foreground hover:bg-admin-surface'
+                      )}
+                      title="Flat list of all invoices"
+                    >
+                      <List className="w-3.5 h-3.5" />
+                      <span>Flat View</span>
+                    </button>
                   </div>
 
+                  {/* Expand / Collapse All buttons when in scheduled mode and batches exist */}
+                  {groupMode === 'scheduled' && scheduledBatches.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={expandAllBatches}
+                        className="px-2 py-1 rounded-lg border border-admin-border bg-admin-surface hover:bg-admin-surface-subtle text-[11px] font-bold text-admin-muted hover:text-[#008F83] transition-colors cursor-pointer"
+                        title="Expand all scheduled batches"
+                      >
+                        Expand All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={collapseAllBatches}
+                        className="px-2 py-1 rounded-lg border border-admin-border bg-admin-surface hover:bg-admin-surface-subtle text-[11px] font-bold text-admin-muted hover:text-admin-foreground transition-colors cursor-pointer"
+                        title="Collapse all scheduled batches"
+                      >
+                        Collapse All
+                      </button>
+                    </div>
+                  )}
+
                   <div className="h-4 w-px bg-admin-border hidden sm:block" />
 
+                  {/* Include Independent Leases Checkbox */}
                   <label
                     className={cn(
                       'flex items-center gap-2 cursor-pointer select-none text-xs font-semibold px-2.5 py-1.5 rounded-xl border transition-all shadow-2xs',
@@ -1169,6 +1365,14 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
                   </label>
                 </div>
               }
+              gridOptions={{
+                getRowClass: (params) => {
+                  if (params.data?.isBatchHeader) return 'ag-row-batch-header';
+                  if (params.data?.isBatchChild) return 'ag-row-batch-child';
+                  return '';
+                },
+                isRowSelectable: (node) => !node.data?.isBatchHeader,
+              }}
               disablePagination={true}
             />
           </ListPageGrid>

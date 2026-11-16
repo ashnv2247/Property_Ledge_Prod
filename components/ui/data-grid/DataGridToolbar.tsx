@@ -31,6 +31,7 @@ export interface DataGridToolbarProps {
   bulkActions?: BulkAction[];
   leftContent?: React.ReactNode;
   rightContent?: React.ReactNode;
+  searchExtraContent?: React.ReactNode;
   enableColumnChooser?: boolean;
   enableExport?: boolean;
   exportFilename?: string;
@@ -59,6 +60,7 @@ export function DataGridToolbar({
   bulkActions = [],
   leftContent,
   rightContent,
+  searchExtraContent,
   enableColumnChooser = true,
   enableExport = true,
   exportFilename = 'export',
@@ -302,32 +304,35 @@ export function DataGridToolbar({
             </div>
           </div>
 
-          {/* Secondary Row: Search Bar & Async Status (if search visible or loading) */}
-          {(!hideSearch || isRefreshing || loading) && (
+          {/* Secondary Row: Search Bar, Search Extra Controls & Async Status */}
+          {(!hideSearch || isRefreshing || loading || searchExtraContent) && (
             <div className="flex flex-wrap items-center justify-between gap-2.5">
-              {!hideSearch && (
-                <div className="relative w-full sm:max-w-xs">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={searchValue}
-                    onChange={(e) => onSearchChange(e.target.value)}
-                    placeholder={searchPlaceholder}
-                    className="w-full h-9 pl-9 pr-7 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#008F83]/20 focus:border-[#008F83] transition-all shadow-xs"
-                    aria-label={searchPlaceholder}
-                  />
-                  {searchValue && (
-                    <button
-                      type="button"
-                      onClick={() => onSearchChange('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                      aria-label="Clear search"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+                {!hideSearch && (
+                  <div className="relative w-full sm:w-72 shrink-0">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={searchValue}
+                      onChange={(e) => onSearchChange(e.target.value)}
+                      placeholder={searchPlaceholder}
+                      className="w-full h-9 pl-9 pr-7 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#008F83]/20 focus:border-[#008F83] transition-all shadow-xs"
+                      aria-label={searchPlaceholder}
+                    />
+                    {searchValue && (
+                      <button
+                        type="button"
+                        onClick={() => onSearchChange('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                        aria-label="Clear search"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                {searchExtraContent}
+              </div>
 
               {isRefreshing ? (
                 <div

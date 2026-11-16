@@ -61,6 +61,7 @@ export interface AdminDataGridProps<TData = any> {
   onDeleteSelected?: (selectedRows: TData[]) => Promise<void> | void;
   leftToolbarContent?: React.ReactNode;
   rightToolbarContent?: React.ReactNode;
+  searchExtraContent?: React.ReactNode;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyIcon?: React.ReactNode;
@@ -110,6 +111,7 @@ export function AdminDataGrid<TData = any>({
   onDeleteSelected,
   leftToolbarContent,
   rightToolbarContent,
+  searchExtraContent,
   emptyTitle,
   emptyDescription,
   emptyIcon,
@@ -522,6 +524,7 @@ export function AdminDataGrid<TData = any>({
     bulkActions: effectiveBulkActions,
     leftContent: leftToolbarContent,
     rightContent: rightToolbarContent,
+    searchExtraContent,
     enableColumnChooser,
     enableExport,
     exportFilename,
@@ -611,10 +614,6 @@ export function AdminDataGrid<TData = any>({
               defaultColDef={defaultGridColDef}
               gridOptions={mergedGridOptions}
               rowHeight={rowHeight}
-              treeData={treeData}
-              getDataPath={getDataPath as any}
-              autoGroupColumnDef={autoGroupColumnDef as any}
-              groupDefaultExpanded={groupDefaultExpanded}
               components={components}
               pagination={!disablePagination}
               paginationAutoPageSize={false}

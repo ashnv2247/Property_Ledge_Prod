@@ -1,9 +1,8 @@
 import { ModuleRegistry, AllCommunityModule, ColDef, GridOptions } from 'ag-grid-community';
-import { RowGroupingModule, TreeDataModule } from 'ag-grid-enterprise';
 
-// Register AG Grid Community & Enterprise Modules
+// Register AG Grid Community Modules (Free version)
 if (typeof window !== 'undefined') {
-  ModuleRegistry.registerModules([AllCommunityModule, RowGroupingModule, TreeDataModule]);
+  ModuleRegistry.registerModules([AllCommunityModule]);
 }
 
 export const defaultGridColDef: ColDef = {

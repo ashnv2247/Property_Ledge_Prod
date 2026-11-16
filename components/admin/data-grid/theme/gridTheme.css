@@ -300,3 +300,14 @@
   font-weight: 600;
   background-color: var(--admin-surface-subtle) !important;
 }
+
+/* Custom Community Expandable Scheduled Batch Styling */
+.ag-theme-propertyledge .ag-row-batch-header {
+  font-weight: 600;
+  background-color: var(--admin-surface-subtle) !important;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ag-theme-propertyledge .ag-row-batch-child {
+  background-color: var(--admin-surface) !important;
+}
