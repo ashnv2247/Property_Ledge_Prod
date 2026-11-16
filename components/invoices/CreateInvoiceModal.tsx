@@ -752,17 +752,17 @@ export function CreateInvoiceModal({
                     {/* Visual Asset Illustration Header (Dark & Light Mode) */}
                     <div className="relative w-full h-36 rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 shadow-2xs group-hover:shadow-md transition-all">
                       <Image
-                        src="/images/invoices/standalone_light.jpg"
+                        src="/images/invoices/standalone_light.png"
                         alt="Independent Customer Invoicing"
                         fill
-                        className="object-cover dark:hidden"
+                        className="object-contain p-1.5 dark:hidden"
                         sizes="(max-width: 768px) 100vw, 360px"
                       />
                       <Image
-                        src="/images/invoices/standalone_dark.jpg"
+                        src="/images/invoices/standalone_dark.png"
                         alt="Independent Customer Invoicing"
                         fill
-                        className="object-cover hidden dark:block"
+                        className="object-contain p-1.5 hidden dark:block"
                         sizes="(max-width: 768px) 100vw, 360px"
                       />
                       <div className="absolute top-2.5 right-2.5">
@@ -846,17 +846,17 @@ export function CreateInvoiceModal({
                     {/* Visual Asset Illustration Header (Dark & Light Mode) */}
                     <div className="relative w-full h-36 rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 shadow-2xs group-hover:shadow-md transition-all">
                       <Image
-                        src="/images/invoices/lease_light.jpg"
+                        src="/images/invoices/lease_light.png"
                         alt="Property Lease Rent Invoicing"
                         fill
-                        className="object-cover dark:hidden"
+                        className="object-contain p-1.5 dark:hidden"
                         sizes="(max-width: 768px) 100vw, 360px"
                       />
                       <Image
-                        src="/images/invoices/lease_dark.jpg"
+                        src="/images/invoices/lease_dark.png"
                         alt="Property Lease Rent Invoicing"
                         fill
-                        className="object-cover hidden dark:block"
+                        className="object-contain p-1.5 hidden dark:block"
                         sizes="(max-width: 768px) 100vw, 360px"
                       />
                       <div className="absolute top-2.5 right-2.5">
