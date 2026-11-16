@@ -272,3 +272,31 @@
   width: 0;
   height: 0;
 }
+
+/* Tree Data & Group Row Styling (parities with HR Dashboard Demo) */
+.ag-theme-propertyledge .ag-group-expanded {
+  opacity: 1;
+}
+
+.ag-theme-propertyledge .ag-icon-tree-closed,
+.ag-theme-propertyledge .ag-icon-tree-open {
+  height: 24px;
+  width: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 6px;
+  color: #008F83;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.ag-theme-propertyledge .ag-icon-tree-closed:hover,
+.ag-theme-propertyledge .ag-icon-tree-open:hover {
+  background-color: rgba(0, 143, 131, 0.15);
+}
+
+.ag-theme-propertyledge .ag-row-group {
+  font-weight: 600;
+  background-color: var(--admin-surface-subtle) !important;
+}

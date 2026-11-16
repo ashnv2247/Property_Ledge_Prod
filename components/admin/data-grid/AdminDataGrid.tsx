@@ -88,6 +88,10 @@ export interface AdminDataGridProps<TData = any> {
   refreshLabel?: string;
   rowHeight?: number;
   gridOptions?: GridOptions;
+  treeData?: boolean;
+  getDataPath?: (data: TData) => string[];
+  autoGroupColumnDef?: any;
+  groupDefaultExpanded?: number;
 }
 
 export function AdminDataGrid<TData = any>({
@@ -132,6 +136,10 @@ export function AdminDataGrid<TData = any>({
   refreshLabel,
   rowHeight,
   gridOptions: customGridOptions,
+  treeData,
+  getDataPath,
+  autoGroupColumnDef,
+  groupDefaultExpanded,
 }: AdminDataGridProps<TData>) {
   const [gridApi, setGridApi] = useState<GridApi | null>(null);
   const [searchValue, setSearchValue] = useState('');
@@ -603,6 +611,10 @@ export function AdminDataGrid<TData = any>({
               defaultColDef={defaultGridColDef}
               gridOptions={mergedGridOptions}
               rowHeight={rowHeight}
+              treeData={treeData}
+              getDataPath={getDataPath as any}
+              autoGroupColumnDef={autoGroupColumnDef as any}
+              groupDefaultExpanded={groupDefaultExpanded}
               components={components}
               pagination={!disablePagination}
               paginationAutoPageSize={false}

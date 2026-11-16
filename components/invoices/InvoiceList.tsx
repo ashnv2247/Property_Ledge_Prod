@@ -29,6 +29,7 @@ import {
   Edit3,
   LayoutTemplate,
   CalendarRange,
+  FolderTree,
 } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
 import { Button, useToast, ConfirmDialog } from '@/components/admin/ui';
@@ -109,6 +110,8 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
   const [statusFilter, setStatusFilter] = useState('all');
   const [includeIndependent, setIncludeIndependent] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  type InvoiceGroupMode = 'none' | 'property' | 'customer' | 'status';
+  const [groupMode, setGroupMode] = useState<InvoiceGroupMode>('property');
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -491,6 +494,122 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
     }
   };
 
+  // AG Grid Tree Data Path definition (parities with HR Dashboard Demo)
+  const getInvoiceDataPath = useCallback(
+    (data: InvoiceDTO) => {
+      if (groupMode === 'property') {
+        const propName = data.propertyId
+          ? propertyMap.get(data.propertyId) || 'Linked Property'
+          : 'Independent Direct Invoices';
+        return [propName, data.invoiceNumber || data.id];
+      }
+      if (groupMode === 'customer') {
+        const customer = data.recipient?.name || data.customerName || 'Other Customer';
+        return [customer, data.invoiceNumber || data.id];
+      }
+      if (groupMode === 'status') {
+        const statusLabel = (data.status || 'draft').replace('_', ' ').toUpperCase();
+        return [statusLabel, data.invoiceNumber || data.id];
+      }
+      return [data.invoiceNumber || data.id];
+    },
+    [groupMode, propertyMap]
+  );
+
+  // Group cell renderer matching AG Grid HR Dashboard Demo
+  const InvoiceGroupCellRenderer = useCallback(
+    (params: any) => {
+      const isGroup = params.node?.group;
+      const value = params.value;
+      const count =
+        params.node?.allChildrenCount ??
+        params.node?.childrenAfterFilter?.length ??
+        0;
+
+      if (isGroup) {
+        if (groupMode === 'property') {
+          const isIndependent = value === 'Independent Direct Invoices';
+          return (
+            <div className="flex items-center gap-2.5 py-1">
+              <div className="w-7 h-7 rounded-lg bg-[#008F83]/10 text-[#008F83] border border-[#008F83]/20 flex items-center justify-center shrink-0">
+                {isIndependent ? <User className="w-3.5 h-3.5" /> : <Building className="w-3.5 h-3.5" />}
+              </div>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-bold text-xs text-admin-foreground truncate">{value}</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                  {count} {count === 1 ? 'Invoice' : 'Invoices'}
+                </span>
+              </div>
+            </div>
+          );
+        }
+
+        if (groupMode === 'customer') {
+          return (
+            <div className="flex items-center gap-2.5 py-1">
+              <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                <User className="w-3.5 h-3.5" />
+              </div>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-bold text-xs text-admin-foreground truncate">{value}</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                  {count} {count === 1 ? 'Invoice' : 'Invoices'}
+                </span>
+              </div>
+            </div>
+          );
+        }
+
+        if (groupMode === 'status') {
+          return (
+            <div className="flex items-center gap-2.5 py-1">
+              <span
+                className={cn(
+                  'inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border capitalize',
+                  getStatusBadge(String(value).toLowerCase().replace(' ', '_'))
+                )}
+              >
+                {value}
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                {count} {count === 1 ? 'Invoice' : 'Invoices'}
+              </span>
+            </div>
+          );
+        }
+      }
+
+      // Leaf child row: Invoice Number
+      return (
+        <div className="flex items-center gap-2 py-1">
+          <div className="w-6 h-6 rounded-md bg-admin-primary/10 text-admin-primary flex items-center justify-center shrink-0">
+            <FileText className="w-3.5 h-3.5" />
+          </div>
+          <span className="font-mono font-bold text-admin-foreground text-xs">{value}</span>
+        </div>
+      );
+    },
+    [groupMode]
+  );
+
+  const autoGroupColumnDef: ColDef = useMemo(() => {
+    let headerName = 'Property / Invoices';
+    if (groupMode === 'customer') headerName = 'Customer / Invoices';
+    if (groupMode === 'status') headerName = 'Status / Invoices';
+
+    return {
+      headerName,
+      width: 320,
+      minWidth: 260,
+      pinned: 'left',
+      cellRenderer: 'agGroupCellRenderer',
+      cellRendererParams: {
+        suppressCount: true,
+        innerRenderer: InvoiceGroupCellRenderer,
+      },
+    };
+  }, [groupMode, InvoiceGroupCellRenderer]);
+
   // AG Grid columns definition
   const agGridColumns: ColDef[] = useMemo(
     () => [
@@ -498,6 +617,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
         headerName: 'Invoice #',
         field: 'invoiceNumber',
         width: 140,
+        hide: groupMode !== 'none',
         cellRenderer: (params: any) => {
           const inv = params.data as InvoiceDTO;
           if (!inv) return null;
@@ -515,6 +635,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
         headerName: 'Recipient / Bill To',
         flex: 1.5,
         minWidth: 200,
+        hide: groupMode === 'customer',
         valueGetter: (p) => p.data?.recipient?.name || p.data?.customerName || 'Customer',
         cellRenderer: (params: any) => {
           const inv = params.data as InvoiceDTO;
@@ -534,6 +655,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
       {
         headerName: 'Property / Context',
         width: 175,
+        hide: groupMode === 'property',
         cellRenderer: (params: any) => {
           const inv = params.data as InvoiceDTO;
           if (!inv) return null;
@@ -601,7 +723,18 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
         width: 130,
         cellRenderer: (params: any) => {
           const inv = params.data as InvoiceDTO;
-          if (!inv) return null;
+          if (!inv) {
+            if (params.node?.group && params.node?.childrenAfterFilter) {
+              const sum = params.node.childrenAfterFilter.reduce((acc: number, c: any) => acc + (c.data?.total || 0), 0);
+              return (
+                <div className="flex items-center gap-1 py-1 font-bold text-xs text-admin-primary">
+                  <span>{formatCurrency(sum)}</span>
+                  <span className="text-[10px] font-normal opacity-70">(subtotal)</span>
+                </div>
+              );
+            }
+            return null;
+          }
           return (
             <span className="font-bold text-admin-foreground text-xs">
               {formatCurrency(inv.total, inv.currency)}
@@ -615,7 +748,18 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
         width: 130,
         cellRenderer: (params: any) => {
           const inv = params.data as InvoiceDTO;
-          if (!inv) return null;
+          if (!inv) {
+            if (params.node?.group && params.node?.childrenAfterFilter) {
+              const sum = params.node.childrenAfterFilter.reduce((acc: number, c: any) => acc + (c.data?.balance || 0), 0);
+              return (
+                <div className={cn('flex items-center gap-1 py-1 font-bold text-xs', sum > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400')}>
+                  <span>{formatCurrency(sum)}</span>
+                  <span className="text-[10px] font-normal opacity-70">(balance)</span>
+                </div>
+              );
+            }
+            return null;
+          }
           return (
             <span className={cn('font-bold text-xs', inv.balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400')}>
               {formatCurrency(inv.balance, inv.currency)}
@@ -628,7 +772,8 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
         field: 'status',
         width: 130,
         cellRenderer: (params: any) => {
-          const status = params.data?.status || 'draft';
+          const status = params.data?.status;
+          if (!status) return null;
           return (
             <span className={cn('inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border capitalize', getStatusBadge(status))}>
               {status.replace('_', ' ')}
@@ -707,7 +852,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
         },
       },
     ],
-    [propertyMap]
+    [propertyMap, groupMode]
   );
 
   return (
@@ -916,6 +1061,10 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
               gridId="invoices-grid"
               rowData={displayedInvoices}
               columnDefs={agGridColumns}
+              treeData={groupMode !== 'none'}
+              getDataPath={groupMode !== 'none' ? (getInvoiceDataPath as any) : undefined}
+              autoGroupColumnDef={groupMode !== 'none' ? autoGroupColumnDef : undefined}
+              groupDefaultExpanded={-1}
               loading={loading}
               onRefresh={() => loadInvoices(true)}
               isRefreshing={isRefreshing}
@@ -938,6 +1087,37 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
                     activeValue={statusFilter}
                     onChange={(val) => setStatusFilter(val as string)}
                   />
+
+                  <div className="h-4 w-px bg-admin-border hidden sm:block" />
+
+                  {/* AG Grid Grouping Selector (parities with AG Grid HR Dashboard Example) */}
+                  <div className="flex items-center gap-1 p-0.5 rounded-xl bg-admin-surface-subtle border border-admin-border text-xs">
+                    <span className="text-[11px] font-semibold text-admin-muted pl-2 pr-1 flex items-center gap-1 select-none">
+                      <FolderTree className="w-3.5 h-3.5 text-[#008F83]" /> Group:
+                    </span>
+                    {(
+                      [
+                        { id: 'property', label: 'Property' },
+                        { id: 'customer', label: 'Customer' },
+                        { id: 'status', label: 'Status' },
+                        { id: 'none', label: 'Flat' },
+                      ] as const
+                    ).map((grp) => (
+                      <button
+                        key={grp.id}
+                        type="button"
+                        onClick={() => setGroupMode(grp.id)}
+                        className={cn(
+                          'px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer',
+                          groupMode === grp.id
+                            ? 'bg-[#008F83] text-white shadow-2xs'
+                            : 'text-admin-muted hover:text-admin-foreground hover:bg-admin-surface'
+                        )}
+                      >
+                        {grp.label}
+                      </button>
+                    ))}
+                  </div>
 
                   <div className="h-4 w-px bg-admin-border hidden sm:block" />
 
