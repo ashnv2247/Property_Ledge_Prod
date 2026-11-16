@@ -524,23 +524,23 @@ export function CreateAutomationModal({
                   )}
                 >
                   <div className="space-y-4">
-                    {/* Visual Asset Illustration Header (Dark & Light Mode) */}
-                    <div className="relative w-full h-36 rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 shadow-2xs group-hover:shadow-md transition-all">
+                    {/* Visual Asset Illustration (Directly blends into the card background) */}
+                    <div className="relative w-full h-36 flex items-center justify-center transition-all">
                       <Image
                         src="/images/invoices/lease_light.png"
                         alt="Lease Automation"
                         fill
-                        className="object-contain p-1.5 dark:hidden"
+                        className="object-contain dark:hidden"
                         sizes="(max-width: 768px) 100vw, 360px"
                       />
                       <Image
                         src="/images/invoices/lease_dark.png"
                         alt="Lease Automation"
                         fill
-                        className="object-contain p-1.5 hidden dark:block"
+                        className="object-contain hidden dark:block"
                         sizes="(max-width: 768px) 100vw, 360px"
                       />
-                      <div className="absolute top-2.5 right-2.5">
+                      <div className="absolute top-1 right-1">
                         <span className={cn(
                           'text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs backdrop-blur-md',
                           automationType === 'lease'
@@ -606,23 +606,23 @@ export function CreateAutomationModal({
                   )}
                 >
                   <div className="space-y-4">
-                    {/* Visual Asset Illustration Header (Dark & Light Mode) */}
-                    <div className="relative w-full h-36 rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 shadow-2xs group-hover:shadow-md transition-all">
+                    {/* Visual Asset Illustration (Directly blends into the card background) */}
+                    <div className="relative w-full h-36 flex items-center justify-center transition-all">
                       <Image
                         src="/images/invoices/standalone_light.png"
                         alt="Standalone Invoice Automation"
                         fill
-                        className="object-contain p-1.5 dark:hidden"
+                        className="object-contain dark:hidden"
                         sizes="(max-width: 768px) 100vw, 360px"
                       />
                       <Image
                         src="/images/invoices/standalone_dark.png"
                         alt="Standalone Invoice Automation"
                         fill
-                        className="object-contain p-1.5 hidden dark:block"
+                        className="object-contain hidden dark:block"
                         sizes="(max-width: 768px) 100vw, 360px"
                       />
-                      <div className="absolute top-2.5 right-2.5">
+                      <div className="absolute top-1 right-1">
                         <span className={cn(
                           'text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs backdrop-blur-md',
                           automationType === 'invoice'
