@@ -17,6 +17,7 @@ import {
   AlertCircle,
   CheckCircle2,
   FileSpreadsheet,
+  ChevronDown,
 } from 'lucide-react';
 import { Button, Input, Select, Textarea, useToast } from '@/components/admin/ui';
 import {
@@ -89,6 +90,7 @@ export function TransactionModal({
   const [gstInclusive, setGstInclusive] = useState(false);
   const [gstAmount, setGstAmount] = useState('');
   const [taxClassificationId, setTaxClassificationId] = useState('');
+  const [isTaxSectionExpanded, setIsTaxSectionExpanded] = useState(false);
 
   // Loaded Options (Instantly available from synchronous cache)
   const [categories, setCategories] = useState<CategoryDTO[]>(syncCache.categories || []);
@@ -193,6 +195,7 @@ export function TransactionModal({
         setGstInclusive(false);
         setGstAmount('');
         setTaxClassificationId('');
+        setIsTaxSectionExpanded(false);
         setExistingReceipt(null);
         setSelectedReceiptFile(null);
       }
@@ -718,96 +721,116 @@ export function TransactionModal({
               />
             </div>
 
-            {/* DEDICATED TAX & GST SECTION */}
-            <div className="p-4 rounded-2xl border border-sky-200 bg-sky-50/50 dark:border-sky-900/50 dark:bg-sky-950/20 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-sky-900 dark:text-sky-300 flex items-center gap-1.5">
-                  <span>🇦🇺</span> Tax & GST Treatment
-                </span>
-                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  {gstTreatment === 'exclusive'
-                    ? '10% GST (Added to Base)'
-                    : 'GST Free / No Tax'}
-                </span>
-              </div>
-
-              {/* 2-Way GST Treatment Selector */}
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleAmountOrGstChange(amount, 'exclusive')}
-                  className={cn(
-                    'py-2.5 px-3 rounded-xl text-xs font-bold border transition-all text-center flex flex-col items-center justify-center',
-                    gstTreatment === 'exclusive'
-                      ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
-                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-sky-300'
+            {/* DEDICATED TAX & GST SECTION (COLLAPSED BY DEFAULT) */}
+            <div className="p-3.5 sm:p-4 rounded-2xl border border-sky-200 bg-sky-50/50 dark:border-sky-900/50 dark:bg-sky-950/20 space-y-3 transition-all">
+              <div
+                onClick={() => setIsTaxSectionExpanded(!isTaxSectionExpanded)}
+                className="flex items-center justify-between cursor-pointer select-none group"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-sky-900 dark:text-sky-300 flex items-center gap-1.5">
+                    <span>🇦🇺</span> AU Tax & GST Treatment
+                  </span>
+                  {!isTaxSectionExpanded && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+                      {gstTreatment === 'exclusive' ? (gstAmount ? `+10% ($${gstAmount})` : '10% GST') : 'GST Free'}
+                    </span>
                   )}
-                >
-                  <span>10% GST</span>
-                  <span className="text-[10px] opacity-80 font-normal">10% of Amount ($100 on $1,000)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAmountOrGstChange(amount, 'none')}
-                  className={cn(
-                    'py-2.5 px-3 rounded-xl text-xs font-bold border transition-all text-center flex flex-col items-center justify-center',
-                    gstTreatment === 'none'
-                      ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
-                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-sky-300'
-                  )}
-                >
-                  <span>No GST / Free</span>
-                  <span className="text-[10px] opacity-80 font-normal">$0.00 GST</span>
-                </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    {gstTreatment === 'exclusive'
+                      ? '10% GST (Added to Base)'
+                      : 'GST Free / No Tax'}
+                  </span>
+                  <div className="p-1 rounded-md text-sky-700 dark:text-sky-300 group-hover:bg-sky-200/50 dark:group-hover:bg-sky-900/50 transition-colors">
+                    <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", isTaxSectionExpanded && "rotate-180")} />
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <Select
-                  label="Tax Classification (BAS Mapping)"
-                  value={taxClassificationId}
-                  onChange={(e) => {
-                    const tcId = e.target.value;
-                    setTaxClassificationId(tcId);
-                    const tc = taxClassifications.find((t) => t.id === tcId);
-                    if (tc?.bas_code === 'G3' || tc?.bas_code === 'G14' || tc?.rate === 0) {
-                      handleAmountOrGstChange(amount, 'none');
-                    } else if (tc && amount) {
-                      handleAmountOrGstChange(amount, 'exclusive');
-                    }
-                  }}
-                  className="bg-white dark:bg-slate-800 text-xs"
-                >
-                  <option value="">Default Standard Classification</option>
-                  {filteredTaxClassifications.map((tc: any) => (
-                    <option key={tc.id} value={tc.id}>
-                      {tc.name} {tc.bas_code ? `[${tc.bas_code}]` : ''}
-                    </option>
-                  ))}
-                </Select>
+              {isTaxSectionExpanded && (
+                <div className="space-y-3 pt-1 animate-in fade-in duration-150">
+                  {/* 2-Way GST Treatment Selector */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAmountOrGstChange(amount, 'exclusive')}
+                      className={cn(
+                        'py-2.5 px-3 rounded-xl text-xs font-bold border transition-all text-center flex flex-col items-center justify-center',
+                        gstTreatment === 'exclusive'
+                          ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-sky-300'
+                      )}
+                    >
+                      <span>10% GST</span>
+                      <span className="text-[10px] opacity-80 font-normal">10% of Amount ($100 on $1,000)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAmountOrGstChange(amount, 'none')}
+                      className={cn(
+                        'py-2.5 px-3 rounded-xl text-xs font-bold border transition-all text-center flex flex-col items-center justify-center',
+                        gstTreatment === 'none'
+                          ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-sky-300'
+                      )}
+                    >
+                      <span>No GST / Free</span>
+                      <span className="text-[10px] opacity-80 font-normal">$0.00 GST</span>
+                    </button>
+                  </div>
 
-                <Input
-                  label="GST Portion ($ AUD)"
-                  type="number"
-                  step="0.01"
-                  value={gstAmount}
-                  onChange={(e) => setGstAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="bg-white dark:bg-slate-800 text-xs font-mono font-bold"
-                />
-              </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <Select
+                      label="Tax Classification (BAS Mapping)"
+                      value={taxClassificationId}
+                      onChange={(e) => {
+                        const tcId = e.target.value;
+                        setTaxClassificationId(tcId);
+                        const tc = taxClassifications.find((t) => t.id === tcId);
+                        if (tc?.bas_code === 'G3' || tc?.bas_code === 'G14' || tc?.rate === 0) {
+                          handleAmountOrGstChange(amount, 'none');
+                        } else if (tc && amount) {
+                          handleAmountOrGstChange(amount, 'exclusive');
+                        }
+                      }}
+                      className="bg-white dark:bg-slate-800 text-xs"
+                    >
+                      <option value="">Default Standard Classification</option>
+                      {filteredTaxClassifications.map((tc: any) => (
+                        <option key={tc.id} value={tc.id}>
+                          {tc.name} {tc.bas_code ? `[${tc.bas_code}]` : ''}
+                        </option>
+                      ))}
+                    </Select>
 
-              {/* Informational BAS & Calculation Readout */}
-              <div className="text-[11px] text-sky-800 dark:text-sky-300 bg-sky-100/60 dark:bg-sky-900/40 px-3 py-2 rounded-xl flex items-center justify-between">
-                <span>
-                  <strong>Calculation:</strong>{' '}
-                  {gstTreatment === 'exclusive'
-                    ? `Amount: $${amount || '0'} + 10% GST ($${gstAmount || '0.00'}) = Total: $${(parseFloat(amount || '0') + parseFloat(gstAmount || '0')).toFixed(2)}`
-                    : `GST-Free ($0.00 GST)`}
-                </span>
-                <span className="font-semibold font-mono">
-                  BAS: {transactionType === 'income' ? '1A / G1' : '1B / G11'}
-                </span>
-              </div>
+                    <Input
+                      label="GST Portion ($ AUD)"
+                      type="number"
+                      step="0.01"
+                      value={gstAmount}
+                      onChange={(e) => setGstAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="bg-white dark:bg-slate-800 text-xs font-mono font-bold"
+                    />
+                  </div>
+
+                  {/* Informational BAS & Calculation Readout */}
+                  <div className="text-[11px] text-sky-800 dark:text-sky-300 bg-sky-100/60 dark:bg-sky-900/40 px-3 py-2 rounded-xl flex items-center justify-between">
+                    <span>
+                      <strong>Calculation:</strong>{' '}
+                      {gstTreatment === 'exclusive'
+                        ? `Amount: $${amount || '0'} + 10% GST ($${gstAmount || '0.00'}) = Total: $${(parseFloat(amount || '0') + parseFloat(gstAmount || '0')).toFixed(2)}`
+                        : `GST-Free ($0.00 GST)`}
+                    </span>
+                    <span className="font-semibold font-mono">
+                      BAS: {transactionType === 'income' ? '1A / G1' : '1B / G11'}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Row 3: Description & Reference */}
