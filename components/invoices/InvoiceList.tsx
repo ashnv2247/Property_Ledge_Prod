@@ -69,10 +69,6 @@ const InvoiceDetailModal = dynamic(
   () => import('./InvoiceDetailModal').then((mod) => mod.InvoiceDetailModal),
   { ssr: false }
 );
-const BulkInvoiceModal = dynamic(
-  () => import('./BulkInvoiceModal').then((mod) => mod.BulkInvoiceModal),
-  { ssr: false }
-);
 const ScheduleEmailModal = dynamic(
   () => import('./ScheduleEmailModal').then((mod) => mod.ScheduleEmailModal),
   { ssr: false }
@@ -121,7 +117,6 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isScheduleEmailOpen, setIsScheduleEmailOpen] = useState(false);
   const [invoiceToSchedule, setInvoiceToSchedule] = useState<InvoiceDTO | null>(null);
   const [invoiceToEdit, setInvoiceToEdit] = useState<InvoiceDTO | null>(null);
@@ -1095,16 +1090,6 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
           </Link>
 
           <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsBulkOpen(true)}
-            className="font-bold border-admin-border hover:bg-admin-surface-subtle text-admin-foreground text-xs flex items-center gap-1.5"
-          >
-            <CalendarRange className="w-3.5 h-3.5 text-[#008F83]" />
-            Bulk Multi-Month
-          </Button>
-
-          <Button
             onClick={() => {
               setInvoiceToEdit(null);
               setIsCreateOpen(true);
@@ -1563,19 +1548,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
           onSubmit={handleCreateSubmit}
           invoiceToEdit={invoiceToEdit}
           onUpdate={handleUpdateSubmit}
-          onOpenBulkModal={() => setIsBulkOpen(true)}
           initialPropertyId={activePropertyId || undefined}
-        />
-      )}
-
-      {/* Bulk Multi-Month Invoice Generation Modal */}
-      {isBulkOpen && (
-        <BulkInvoiceModal
-          isOpen={isBulkOpen}
-          onClose={() => setIsBulkOpen(false)}
-          onSuccess={() => {
-            loadInvoices();
-          }}
         />
       )}
 

@@ -26,7 +26,6 @@ import {
   ChevronUp,
   LayoutTemplate,
   Building2,
-  CalendarRange,
 } from 'lucide-react';
 import { Button, Input, Select, Textarea } from '@/components/admin/ui';
 import { CreateInvoiceDTO, UpdateInvoiceDTO, InvoiceDTO, InvoiceTemplateDTO } from '@/modules/invoices';
@@ -65,7 +64,6 @@ interface CreateInvoiceModalProps {
   onUpdate?: (id: string, dto: UpdateInvoiceDTO) => Promise<void>;
   initialTemplateId?: string;
   initialPropertyId?: string;
-  onOpenBulkModal?: () => void;
 }
 
 const WIZARD_STEPS = [
@@ -83,7 +81,6 @@ export function CreateInvoiceModal({
   onUpdate,
   initialTemplateId,
   initialPropertyId,
-  onOpenBulkModal,
 }: CreateInvoiceModalProps) {
   const isEditMode = Boolean(invoiceToEdit);
 
@@ -954,35 +951,6 @@ export function CreateInvoiceModal({
                   </div>
                 </div>
               </div>
-
-              {/* Multi-month recurring bulk generator callout */}
-              {onOpenBulkModal && (
-                <div className="max-w-3xl mx-auto p-4 rounded-2xl bg-[#008F83]/5 border border-[#008F83]/20 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#008F83]/10 text-[#008F83] flex items-center justify-center shrink-0 border border-[#008F83]/20">
-                      <CalendarRange className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h5 className="text-xs font-bold text-slate-900 dark:text-white">Need to create multiple months at once?</h5>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Generate 1 to 24 months of scheduled invoices in a single bulk batch with automated due dates.
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      onClose();
-                      onOpenBulkModal();
-                    }}
-                    className="text-xs font-bold border-[#008F83]/30 text-[#008F83] hover:bg-[#008F83]/10 shrink-0 whitespace-nowrap"
-                  >
-                    Bulk Multi-Month Generator <ArrowRight className="w-3 h-3 ml-1" />
-                  </Button>
-                </div>
-              )}
             </div>
           )}
 
