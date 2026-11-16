@@ -58,5 +58,6 @@ test data/
 .agents/scripts/.retry-state.json
 scratch/
 archive/
+*.mp4
 
 
