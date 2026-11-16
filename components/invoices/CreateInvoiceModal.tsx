@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   X,
   Plus,
@@ -741,40 +742,61 @@ export function CreateInvoiceModal({
                 <div
                   onClick={() => setInvoiceType('standalone')}
                   className={cn(
-                    'cursor-pointer rounded-3xl p-6 border-2 transition-all flex flex-col justify-between relative group hover:shadow-xl',
+                    'cursor-pointer rounded-3xl p-5 border-2 transition-all flex flex-col justify-between relative group hover:shadow-xl',
                     invoiceType === 'standalone'
                       ? 'border-[#008F83] bg-[#008F83]/5 dark:bg-[#008F83]/10 shadow-lg ring-4 ring-[#008F83]/15'
                       : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm'
                   )}
                 >
                   <div className="space-y-4">
-                    <div className="flex items-start justify-between">
+                    {/* Visual Asset Illustration Header (Dark & Light Mode) */}
+                    <div className="relative w-full h-36 rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 shadow-2xs group-hover:shadow-md transition-all">
+                      <Image
+                        src="/images/invoices/standalone_light.jpg"
+                        alt="Independent Customer Invoicing"
+                        fill
+                        className="object-cover dark:hidden"
+                        sizes="(max-width: 768px) 100vw, 360px"
+                      />
+                      <Image
+                        src="/images/invoices/standalone_dark.jpg"
+                        alt="Independent Customer Invoicing"
+                        fill
+                        className="object-cover hidden dark:block"
+                        sizes="(max-width: 768px) 100vw, 360px"
+                      />
+                      <div className="absolute top-2.5 right-2.5">
+                        <span className={cn(
+                          'text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs backdrop-blur-md',
+                          invoiceType === 'standalone'
+                            ? 'bg-[#008F83] text-white border-[#008F83]'
+                            : 'bg-white/85 dark:bg-slate-900/85 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        )}>
+                          Standard Direct
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
                       <div className={cn(
-                        'w-12 h-12 rounded-2xl flex items-center justify-center transition-colors',
+                        'w-10 h-10 rounded-xl flex items-center justify-center transition-colors shrink-0',
                         invoiceType === 'standalone'
                           ? 'bg-[#008F83] text-white shadow-md'
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 group-hover:bg-[#008F83]/10 group-hover:text-[#008F83]'
                       )}>
-                        <User className="w-6 h-6" />
+                        <User className="w-5 h-5" />
                       </div>
-                      <span className={cn(
-                        'text-[10.5px] font-bold px-2.5 py-1 rounded-full border',
-                        invoiceType === 'standalone'
-                          ? 'bg-[#008F83]/15 text-[#008F83] border-[#008F83]/30'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
-                      )}>
-                        Standard Direct
-                      </span>
+                      <div>
+                        <h4 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#008F83] transition-colors leading-tight">
+                          Independent Customer Invoice
+                        </h4>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">Direct client billing</span>
+                      </div>
                     </div>
 
-                    <div>
-                      <h4 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#008F83] transition-colors">
-                        Independent Customer Invoice
-                      </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-                        Bill external clients, contractors, or customers directly for consulting, maintenance services, or custom ad-hoc charges.
-                      </p>
-                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                      Bill external clients, contractors, or customers directly for consulting, maintenance services, or custom ad-hoc charges.
+                    </p>
 
                     <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-2">
@@ -792,7 +814,7 @@ export function CreateInvoiceModal({
                     </div>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                  <div className="mt-5 pt-3.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
                     <span className={cn(
                       'text-xs font-bold transition-colors',
                       invoiceType === 'standalone' ? 'text-[#008F83]' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'
@@ -814,40 +836,61 @@ export function CreateInvoiceModal({
                 <div
                   onClick={() => setInvoiceType('lease')}
                   className={cn(
-                    'cursor-pointer rounded-3xl p-6 border-2 transition-all flex flex-col justify-between relative group hover:shadow-xl',
+                    'cursor-pointer rounded-3xl p-5 border-2 transition-all flex flex-col justify-between relative group hover:shadow-xl',
                     invoiceType === 'lease'
                       ? 'border-[#008F83] bg-[#008F83]/5 dark:bg-[#008F83]/10 shadow-lg ring-4 ring-[#008F83]/15'
                       : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm'
                   )}
                 >
                   <div className="space-y-4">
-                    <div className="flex items-start justify-between">
+                    {/* Visual Asset Illustration Header (Dark & Light Mode) */}
+                    <div className="relative w-full h-36 rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 shadow-2xs group-hover:shadow-md transition-all">
+                      <Image
+                        src="/images/invoices/lease_light.jpg"
+                        alt="Property Lease Rent Invoicing"
+                        fill
+                        className="object-cover dark:hidden"
+                        sizes="(max-width: 768px) 100vw, 360px"
+                      />
+                      <Image
+                        src="/images/invoices/lease_dark.jpg"
+                        alt="Property Lease Rent Invoicing"
+                        fill
+                        className="object-cover hidden dark:block"
+                        sizes="(max-width: 768px) 100vw, 360px"
+                      />
+                      <div className="absolute top-2.5 right-2.5">
+                        <span className={cn(
+                          'text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs backdrop-blur-md',
+                          invoiceType === 'lease'
+                            ? 'bg-[#008F83] text-white border-[#008F83]'
+                            : 'bg-white/85 dark:bg-slate-900/85 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        )}>
+                          Tenancy Linked
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
                       <div className={cn(
-                        'w-12 h-12 rounded-2xl flex items-center justify-center transition-colors',
+                        'w-10 h-10 rounded-xl flex items-center justify-center transition-colors shrink-0',
                         invoiceType === 'lease'
                           ? 'bg-[#008F83] text-white shadow-md'
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 group-hover:bg-[#008F83]/10 group-hover:text-[#008F83]'
                       )}>
-                        <Building2 className="w-6 h-6" />
+                        <Building2 className="w-5 h-5" />
                       </div>
-                      <span className={cn(
-                        'text-[10.5px] font-bold px-2.5 py-1 rounded-full border',
-                        invoiceType === 'lease'
-                          ? 'bg-[#008F83]/15 text-[#008F83] border-[#008F83]/30'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
-                      )}>
-                        Tenancy Linked
-                      </span>
+                      <div>
+                        <h4 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#008F83] transition-colors leading-tight">
+                          Property Lease Rent Invoice
+                        </h4>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">Tenancy schedule billing</span>
+                      </div>
                     </div>
 
-                    <div>
-                      <h4 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#008F83] transition-colors">
-                        Property Lease Rent Invoice
-                      </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-                        Formal tenancy billing tied to active leases. Automatically synchronizes tenant details, property address, and recurring rent schedule.
-                      </p>
-                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                      Formal tenancy billing tied to active leases. Automatically synchronizes tenant details, property address, and recurring rent schedule.
+                    </p>
 
                     <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-2">
@@ -893,7 +936,7 @@ export function CreateInvoiceModal({
                     )}
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                  <div className="mt-5 pt-3.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
                     <span className={cn(
                       'text-xs font-bold transition-colors',
                       invoiceType === 'lease' ? 'text-[#008F83]' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'
