@@ -165,6 +165,7 @@ export class InvoiceService {
         accentColor: predefinedTmpl.accentColor,
         templateId: predefinedTmpl.id,
       } : {}),
+      ...(dto.snapshot ? (dto.snapshot as any) : {}),
     } as any;
 
     const createData = {
@@ -412,6 +413,8 @@ export class InvoiceService {
     const dueDays = dto.dueDays ?? 7;
 
     const createdInvoices: Invoice[] = [];
+    const bulkBatchId = crypto.randomUUID();
+    const bulkBatchLabel = `${dto.description || 'Monthly Rent'} (${months} mo)`;
 
     for (let i = 0; i < months; i++) {
       const cycleDate = new Date(startYear, startMonth - 1 + i, 1);
@@ -457,6 +460,15 @@ export class InvoiceService {
         notes: `Scheduled invoice for ${monthLabel}`,
         templateId: dto.templateId,
         autoIssue: dto.autoIssue ?? false,
+        snapshot: {
+          isBulkGenerated: true,
+          isScheduled: true,
+          bulkBatchId,
+          bulkBatchLabel,
+          scheduleDescription: dto.description,
+          monthLabel,
+          monthsCount: months,
+        } as any,
       };
 
       const result = await this.createInvoice(singleDto, context);

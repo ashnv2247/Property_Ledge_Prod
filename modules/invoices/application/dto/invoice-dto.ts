@@ -68,6 +68,7 @@ export interface CreateInvoiceDTO {
   templateId?: string | null;
   automationId?: string | null;
   autoIssue?: boolean; // if true, issues immediately upon creation
+  snapshot?: any;
 }
 
 export interface UpdateInvoiceDraftDTO {

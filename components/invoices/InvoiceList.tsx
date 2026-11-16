@@ -29,6 +29,8 @@ import {
   Edit3,
   LayoutTemplate,
   CalendarRange,
+  Calendar,
+  Sparkles,
   FolderTree,
 } from 'lucide-react';
 import { ColDef } from 'ag-grid-community';
@@ -110,8 +112,8 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
   const [statusFilter, setStatusFilter] = useState('all');
   const [includeIndependent, setIncludeIndependent] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  type InvoiceGroupMode = 'none' | 'property' | 'customer' | 'status';
-  const [groupMode, setGroupMode] = useState<InvoiceGroupMode>('property');
+  type InvoiceGroupMode = 'scheduled' | 'property' | 'customer' | 'none';
+  const [groupMode, setGroupMode] = useState<InvoiceGroupMode>('scheduled');
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -494,26 +496,73 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
     }
   };
 
-  // AG Grid Tree Data Path definition (parities with HR Dashboard Demo)
+  // Helper to determine if an invoice was bulk generated / part of a recurring schedule
+  const isScheduledBulkInvoice = useCallback((data: InvoiceDTO): boolean => {
+    if (!data) return false;
+    if (data.automationId) return true;
+    const s = data.snapshot as any;
+    if (s?.isBulkGenerated || s?.isScheduled || s?.bulkBatchId) return true;
+    if (data.notes?.toLowerCase().includes('scheduled invoice')) return true;
+    if ((data as any).description?.toLowerCase().includes('rent invoice month')) return true;
+    if (data.billingPeriodStart && data.billingPeriodEnd) {
+      if (
+        data.items?.some(
+          (i) =>
+            i.description?.includes(' — ') ||
+            i.description?.toLowerCase().includes('monthly') ||
+            i.description?.toLowerCase().includes('rent')
+        )
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }, []);
+
+  // AG Grid Tree Data Path definition (ONLY groups scheduled invoices that were bulk generated)
   const getInvoiceDataPath = useCallback(
     (data: InvoiceDTO) => {
+      // 1. Strict filter: only group scheduled invoices which were bulk generated!
+      const isBulk = isScheduledBulkInvoice(data);
+      if (!isBulk) {
+        // Individual / normal invoices stay at root level (ungrouped)
+        return [data.invoiceNumber || data.id];
+      }
+
+      // 2. Scheduled bulk generated invoices: group according to current mode
+      const snapshot = data.snapshot as any;
+      const propName = data.propertyId ? propertyMap.get(data.propertyId) || 'Linked Property' : '';
+      const recipientName = data.recipient?.name || data.customerName || '';
+
       if (groupMode === 'property') {
-        const propName = data.propertyId
-          ? propertyMap.get(data.propertyId) || 'Linked Property'
-          : 'Independent Direct Invoices';
-        return [propName, data.invoiceNumber || data.id];
+        const groupLabel = propName ? `Scheduled · ${propName}` : 'Scheduled Invoices';
+        return [groupLabel, data.invoiceNumber || data.id];
       }
+
       if (groupMode === 'customer') {
-        const customer = data.recipient?.name || data.customerName || 'Other Customer';
-        return [customer, data.invoiceNumber || data.id];
+        const groupLabel = recipientName ? `Scheduled · ${recipientName}` : 'Scheduled Invoices';
+        return [groupLabel, data.invoiceNumber || data.id];
       }
-      if (groupMode === 'status') {
-        const statusLabel = (data.status || 'draft').replace('_', ' ').toUpperCase();
-        return [statusLabel, data.invoiceNumber || data.id];
+
+      // Default 'scheduled' mode: Group by scheduled series / batch
+      let groupTitle = '';
+      if (snapshot?.bulkBatchLabel) {
+        groupTitle = `Scheduled Batch · ${snapshot.bulkBatchLabel}`;
+      } else if (propName && recipientName) {
+        groupTitle = `Scheduled Batch · ${propName} (${recipientName})`;
+      } else if (propName) {
+        groupTitle = `Scheduled Batch · ${propName}`;
+      } else if (recipientName) {
+        groupTitle = `Scheduled Batch · ${recipientName}`;
+      } else if (data.automationId) {
+        groupTitle = `Automated Scheduled Series`;
+      } else {
+        groupTitle = `Scheduled Bulk Invoices`;
       }
-      return [data.invoiceNumber || data.id];
+
+      return [groupTitle, data.invoiceNumber || data.id];
     },
-    [groupMode, propertyMap]
+    [groupMode, propertyMap, isScheduledBulkInvoice]
   );
 
   // Group cell renderer matching AG Grid HR Dashboard Demo
@@ -527,75 +576,45 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
         0;
 
       if (isGroup) {
-        if (groupMode === 'property') {
-          const isIndependent = value === 'Independent Direct Invoices';
-          return (
-            <div className="flex items-center gap-2.5 py-1">
-              <div className="w-7 h-7 rounded-lg bg-[#008F83]/10 text-[#008F83] border border-[#008F83]/20 flex items-center justify-center shrink-0">
-                {isIndependent ? <User className="w-3.5 h-3.5" /> : <Building className="w-3.5 h-3.5" />}
-              </div>
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="font-bold text-xs text-admin-foreground truncate">{value}</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                  {count} {count === 1 ? 'Invoice' : 'Invoices'}
-                </span>
-              </div>
+        return (
+          <div className="flex items-center gap-2.5 py-1">
+            <div className="w-7 h-7 rounded-lg bg-[#008F83]/10 text-[#008F83] border border-[#008F83]/20 flex items-center justify-center shrink-0">
+              <Calendar className="w-3.5 h-3.5 text-[#008F83]" />
             </div>
-          );
-        }
-
-        if (groupMode === 'customer') {
-          return (
-            <div className="flex items-center gap-2.5 py-1">
-              <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center justify-center shrink-0">
-                <User className="w-3.5 h-3.5" />
-              </div>
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="font-bold text-xs text-admin-foreground truncate">{value}</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                  {count} {count === 1 ? 'Invoice' : 'Invoices'}
-                </span>
-              </div>
-            </div>
-          );
-        }
-
-        if (groupMode === 'status') {
-          return (
-            <div className="flex items-center gap-2.5 py-1">
-              <span
-                className={cn(
-                  'inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border capitalize',
-                  getStatusBadge(String(value).toLowerCase().replace(' ', '_'))
-                )}
-              >
-                {value}
-              </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                {count} {count === 1 ? 'Invoice' : 'Invoices'}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-bold text-xs text-admin-foreground truncate">{value}</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#008F83]/10 text-[#008F83] border border-[#008F83]/20 shrink-0 flex items-center gap-1">
+                <Sparkles className="w-2.5 h-2.5" /> Scheduled Batch ({count})
               </span>
             </div>
-          );
-        }
+          </div>
+        );
       }
 
-      // Leaf child row: Invoice Number
+      // Leaf child row or standalone root row: Invoice Number
+      const inv = params.data as InvoiceDTO;
+      const isBulk = inv ? isScheduledBulkInvoice(inv) : false;
       return (
         <div className="flex items-center gap-2 py-1">
           <div className="w-6 h-6 rounded-md bg-admin-primary/10 text-admin-primary flex items-center justify-center shrink-0">
             <FileText className="w-3.5 h-3.5" />
           </div>
           <span className="font-mono font-bold text-admin-foreground text-xs">{value}</span>
+          {isBulk && (
+            <span className="text-[9.5px] font-semibold px-1.5 py-0.2 rounded bg-[#008F83]/10 text-[#008F83] border border-[#008F83]/20 shrink-0">
+              Scheduled
+            </span>
+          )}
         </div>
       );
     },
-    [groupMode]
+    [isScheduledBulkInvoice]
   );
 
   const autoGroupColumnDef: ColDef = useMemo(() => {
-    let headerName = 'Property / Invoices';
-    if (groupMode === 'customer') headerName = 'Customer / Invoices';
-    if (groupMode === 'status') headerName = 'Status / Invoices';
+    let headerName = 'Invoice # / Scheduled Batch';
+    if (groupMode === 'property') headerName = 'Property / Scheduled Invoices';
+    if (groupMode === 'customer') headerName = 'Customer / Scheduled Invoices';
 
     return {
       headerName,
@@ -1097,10 +1116,10 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
                     </span>
                     {(
                       [
-                        { id: 'property', label: 'Property' },
-                        { id: 'customer', label: 'Customer' },
-                        { id: 'status', label: 'Status' },
-                        { id: 'none', label: 'Flat' },
+                        { id: 'scheduled', label: 'Scheduled Batches' },
+                        { id: 'property', label: 'By Property' },
+                        { id: 'customer', label: 'By Customer' },
+                        { id: 'none', label: 'Flat (No Groups)' },
                       ] as const
                     ).map((grp) => (
                       <button
