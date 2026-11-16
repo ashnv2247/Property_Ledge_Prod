@@ -55,16 +55,33 @@ export class InvoiceDocumentService {
 
     const currency = invoice.currency || 'AUD';
 
-    const billTo = invoice.snapshot?.billTo || {
-      name: invoice.customerName || 'Customer',
-      email: invoice.customerEmail,
-      address: invoice.customerAddress,
+    const defaultIssuerName = (invoice as any).workspaceName || context?.workspaceName || 'Property Management';
+    const defaultIssuerEmail = (context as any)?.userEmail || 'billing@propertyledge.com.au';
+
+    const billTo = {
+      name:
+        invoice.snapshot?.billTo?.name && invoice.snapshot.billTo.name !== 'Tenant' && invoice.snapshot.billTo.name !== 'Customer'
+          ? invoice.snapshot.billTo.name
+          : invoice.customerName || (invoice as any).recipient?.name || invoice.snapshot?.billTo?.name || 'Valued Client',
+      email: invoice.snapshot?.billTo?.email || invoice.customerEmail || (invoice as any).recipient?.email || null,
+      address: invoice.snapshot?.billTo?.address || invoice.customerAddress || (invoice as any).recipient?.address || null,
     };
 
-    const issuer = invoice.snapshot?.issuer || {
-      name: 'Property Ledge Management',
-      email: 'manager@propertyledge.com.au',
-      phone: '+61 2 9000 0000',
+    const issuer = {
+      name:
+        invoice.snapshot?.issuer?.name && invoice.snapshot.issuer.name !== 'Property Ledge Management'
+          ? invoice.snapshot.issuer.name
+          : defaultIssuerName,
+      email:
+        invoice.snapshot?.issuer?.email && invoice.snapshot.issuer.email !== 'manager@propertyledge.com.au' && invoice.snapshot.issuer.email !== 'billing@propertyledge.com.au'
+          ? invoice.snapshot.issuer.email
+          : defaultIssuerEmail,
+      phone:
+        invoice.snapshot?.issuer?.phone && invoice.snapshot.issuer.phone !== '+61 2 9000 0000'
+          ? invoice.snapshot.issuer.phone
+          : null,
+      address: invoice.snapshot?.issuer?.address || null,
+      taxId: invoice.snapshot?.issuer?.taxId || null,
     };
 
     const amountPaid = invoice.totalAmount - invoice.balanceDue;

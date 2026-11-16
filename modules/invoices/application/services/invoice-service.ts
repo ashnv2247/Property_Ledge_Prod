@@ -116,16 +116,19 @@ export class InvoiceService {
       rawDtoIssuer.issuerName
     );
 
+    const defaultIssuerName = dto.workspaceName || context?.workspaceName || 'Property Management';
+    const defaultIssuerEmail = (context as any)?.userEmail || 'billing@propertyledge.com.au';
+
     const issuerData: InvoiceSnapshotParty = hasIssuerInput ? {
-      name: rawDtoIssuer.name || rawDtoIssuer.issuerName || dto.issuerName || dto.senderCompanyName || 'Property Ledge Management',
-      email: rawDtoIssuer.email || rawDtoIssuer.issuerEmail || dto.issuerEmail || dto.senderEmail || 'billing@propertyledge.com.au',
+      name: rawDtoIssuer.name || rawDtoIssuer.issuerName || dto.issuerName || dto.senderCompanyName || defaultIssuerName,
+      email: rawDtoIssuer.email || rawDtoIssuer.issuerEmail || dto.issuerEmail || dto.senderEmail || defaultIssuerEmail,
       phone: rawDtoIssuer.phone || rawDtoIssuer.issuerPhone || dto.issuerPhone || dto.senderPhone || null,
       address: rawDtoIssuer.address || rawDtoIssuer.issuerAddress || dto.issuerAddress || dto.senderCompanyAddress || null,
       taxId: rawDtoIssuer.taxId || rawDtoIssuer.issuerTaxId || (dto as any).issuerTaxId || dto.senderTaxNumber || null,
     } : {
-      name: 'Property Ledge Management',
-      email: 'billing@propertyledge.com.au',
-      phone: '+61 2 9000 0000',
+      name: defaultIssuerName,
+      email: defaultIssuerEmail,
+      phone: null,
       address: null,
       taxId: null,
     };
@@ -285,14 +288,21 @@ export class InvoiceService {
 
     // Build minimal immutable billing snapshot to freeze historical details
     const existingSnapshot = invoice.snapshot;
-    const issuer = existingSnapshot?.issuer || {
-      name: 'Property Ledge Management',
-      email: 'billing@propertyledge.com.au',
-    };
+    const defaultIssuerName = (invoice as any).workspaceName || context?.workspaceName || 'Property Management';
+    const defaultIssuerEmail = (context as any)?.userEmail || 'billing@propertyledge.com.au';
+
+    const issuer = (existingSnapshot?.issuer?.name && existingSnapshot.issuer.name !== 'Property Ledge Management')
+      ? existingSnapshot.issuer
+      : {
+          name: defaultIssuerName,
+          email: existingSnapshot?.issuer?.email && existingSnapshot.issuer.email !== 'billing@propertyledge.com.au'
+            ? existingSnapshot.issuer.email
+            : defaultIssuerEmail,
+        };
 
     const snapshot: InvoiceSnapshot = {
       billTo: existingSnapshot?.billTo || {
-        name: invoice.customerName || invoice.recipient?.name || 'Customer',
+        name: invoice.customerName || invoice.recipient?.name || 'Valued Client',
         email: invoice.customerEmail || invoice.recipient?.email || null,
         address: invoice.customerAddress || invoice.recipient?.address || null,
       },
@@ -590,6 +600,35 @@ export class InvoiceService {
     const brandColor = template?.brandColor || snapshot.brandColor || predefined.brandColor || '#22333b';
     const accentColor = template?.accentColor || snapshot.accentColor || predefined.accentColor || '#a9927d';
 
+    const defaultIssuerName = (invoice as any).workspaceName || context?.workspaceName || 'Property Management';
+    const defaultIssuerEmail = (context as any)?.userEmail || 'billing@propertyledge.com.au';
+
+    const effectiveIssuer = {
+      name:
+        invoice.snapshot?.issuer?.name && invoice.snapshot.issuer.name !== 'Property Ledge Management'
+          ? invoice.snapshot.issuer.name
+          : defaultIssuerName,
+      email:
+        invoice.snapshot?.issuer?.email && invoice.snapshot.issuer.email !== 'manager@propertyledge.com.au' && invoice.snapshot.issuer.email !== 'billing@propertyledge.com.au'
+          ? invoice.snapshot.issuer.email
+          : defaultIssuerEmail,
+      phone:
+        invoice.snapshot?.issuer?.phone && invoice.snapshot.issuer.phone !== '+61 2 9000 0000'
+          ? invoice.snapshot.issuer.phone
+          : null,
+      address: invoice.snapshot?.issuer?.address || null,
+      taxId: invoice.snapshot?.issuer?.taxId || null,
+    };
+
+    const effectiveBillTo = {
+      name:
+        invoice.snapshot?.billTo?.name && invoice.snapshot.billTo.name !== 'Tenant' && invoice.snapshot.billTo.name !== 'Customer'
+          ? invoice.snapshot.billTo.name
+          : invoice.customerName || invoice.recipient?.name || invoice.snapshot?.billTo?.name || 'Valued Client',
+      email: invoice.snapshot?.billTo?.email || invoice.customerEmail || invoice.recipient?.email || null,
+      address: invoice.snapshot?.billTo?.address || invoice.customerAddress || invoice.recipient?.address || null,
+    };
+
     return {
       invoiceId: invoice.id,
       invoiceNumber: invoice.invoiceNumber,
@@ -602,16 +641,8 @@ export class InvoiceService {
         invoice.billingPeriodStart && invoice.billingPeriodEnd
           ? `${formatAuDisplayDate(invoice.billingPeriodStart)} – ${formatAuDisplayDate(invoice.billingPeriodEnd)}`
           : null,
-      billTo: invoice.snapshot?.billTo || {
-        name: invoice.customerName || invoice.recipient?.name || 'Customer',
-        email: invoice.customerEmail || invoice.recipient?.email || null,
-        address: invoice.customerAddress || invoice.recipient?.address || null,
-      },
-      issuer: invoice.snapshot?.issuer || {
-        name: 'Property Ledge Management',
-        email: 'manager@propertyledge.com.au',
-        phone: '+61 2 9000 0000',
-      },
+      billTo: effectiveBillTo,
+      issuer: effectiveIssuer,
       propertyAddress: invoice.snapshot?.propertyAddress || invoice.customerAddress || null,
       items: invoice.items.map((item) => ({
         description: item.description,

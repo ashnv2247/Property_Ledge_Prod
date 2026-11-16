@@ -79,10 +79,25 @@ export async function fetchInvoiceByIdAction(id: string): Promise<InvoiceDTO | n
 
 export async function createInvoiceAction(dto: CreateInvoiceDTO) {
   try {
-    const { context, invoiceService } = await getContextAndService();
+    const { context, user, invoiceService } = await getContextAndService();
+    const effectiveIssuer = {
+      name: dto.issuer?.name?.trim() || dto.issuerName?.trim() || context.workspaceName || 'Property Management',
+      email: dto.issuer?.email?.trim() || dto.issuerEmail?.trim() || user.email || 'billing@propertyledge.com.au',
+      phone: dto.issuer?.phone?.trim() || dto.issuerPhone?.trim() || null,
+      address: dto.issuer?.address?.trim() || dto.issuerAddress?.trim() || null,
+      taxId: dto.issuer?.taxId?.trim() || (dto as any).issuerTaxId?.trim() || null,
+    };
     const res = await invoiceService.createInvoice({
       ...dto,
       workspaceId: context.workspaceId,
+      issuer: effectiveIssuer,
+      issuerName: effectiveIssuer.name,
+      issuerEmail: effectiveIssuer.email,
+    }, {
+      userId: user.id,
+      workspaceId: context.workspaceId,
+      workspaceName: context.workspaceName,
+      userEmail: user.email,
     });
     if (!res.success) {
       return { success: false, error: res.error.message || 'Failed to create invoice' };
@@ -323,7 +338,7 @@ export async function sendInvoiceEmailAction(
   subject?: string
 ) {
   try {
-    const { invoiceService, invoiceDocService } = await getContextAndService();
+    const { user, context, invoiceService, invoiceDocService } = await getContextAndService();
     const invoice = await invoiceService.getInvoiceById(invoiceId);
     if (!invoice) throw new Error('Invoice not found');
 
@@ -332,12 +347,19 @@ export async function sendInvoiceEmailAction(
       throw new Error('Invoice recipient does not have an email address');
     }
 
+    const reqContext = {
+      userId: user.id,
+      workspaceId: context.workspaceId,
+      workspaceName: context.workspaceName,
+      userEmail: user.email,
+    };
+
     // If draft, issue it first
     if (invoice.status === 'draft') {
-      await invoiceService.issueInvoice(invoiceId);
+      await invoiceService.issueInvoice(invoiceId, reqContext);
     }
 
-    const renderDto = await invoiceService.getInvoiceRenderData(invoiceId);
+    const renderDto = await invoiceService.getInvoiceRenderData(invoiceId, reqContext);
 
     let pdfBuffer: Buffer | undefined;
     let downloadUrl: string | undefined;
@@ -390,7 +412,7 @@ export async function sendInvoiceTestEmailAction(
   subject?: string
 ) {
   try {
-    const { user, invoiceService, invoiceDocService } = await getContextAndService();
+    const { user, context, invoiceService, invoiceDocService } = await getContextAndService();
     const invoice = await invoiceService.getInvoiceById(invoiceId);
     if (!invoice) throw new Error('Invoice not found');
 
@@ -399,7 +421,14 @@ export async function sendInvoiceTestEmailAction(
       throw new Error('Please provide a valid test recipient email address');
     }
 
-    const renderDto = await invoiceService.getInvoiceRenderData(invoiceId);
+    const reqContext = {
+      userId: user.id,
+      workspaceId: context.workspaceId,
+      workspaceName: context.workspaceName,
+      userEmail: user.email,
+    };
+
+    const renderDto = await invoiceService.getInvoiceRenderData(invoiceId, reqContext);
 
     let pdfBuffer: Buffer | undefined;
     let downloadUrl: string | undefined;
@@ -557,7 +586,7 @@ export async function checkResendStatusAction() {
 
 export async function sendInvoiceTemplateTestEmailAction(templateId: string, testRecipient: string) {
   try {
-    const { invoiceService } = await getContextAndService();
+    const { context, user, invoiceService } = await getContextAndService();
     const template = await invoiceService.getTemplate(templateId);
     if (!template) throw new Error('Template not found');
 
@@ -569,15 +598,18 @@ export async function sendInvoiceTemplateTestEmailAction(templateId: string, tes
     const taxAmount = (subtotal * taxRate) / 100;
     const totalAmount = subtotal + taxAmount;
 
+    const senderName = context.workspaceName || 'Property Management';
+    const senderEmail = user.email || 'billing@propertyledge.com.au';
+
     const res = await emailService.sendEmail({
       to: testRecipient,
-      subject: `[TEST] ${template.emailConfig?.subjectTemplate || `Invoice from Property Ledge`} (Sample Preview)`,
+      subject: `[TEST] ${template.emailConfig?.subjectTemplate || `Invoice from ${senderName}`} (Sample Preview)`,
       templateType: 'invoice',
       variables: {
         tenantName: template.defaultCustomerName || 'Sample Customer',
         propertyAddress: '123 Sample St, Sydney NSW 2000',
-        senderName: 'Property Ledge Management',
-        senderEmail: 'manager@propertyledge.com.au',
+        senderName,
+        senderEmail,
         invoiceNumber: 'INV-TEST-PREVIEW',
         dueDate: new Date(Date.now() + (template.paymentTermsDays || 14) * 86400000).toISOString().split('T')[0],
         totalAmount: totalAmount.toFixed(2),

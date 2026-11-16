@@ -145,7 +145,7 @@ export class PdfInvoiceAdapter {
       color: white,
     });
 
-    const issuerLine = `${dto.issuer.name || 'Property Ledge Management'} • ${dto.issuer.email || 'manager@propertyledge.com.au'}`;
+    const issuerLine = `${dto.issuer.name || 'Property Management'}${dto.issuer.email ? ` • ${dto.issuer.email}` : ''}`;
     page.drawText(issuerLine.substring(0, 55), {
       x: margin + 18,
       y: currentY - 68,
@@ -232,7 +232,7 @@ export class PdfInvoiceAdapter {
     // Issued By
     const issuedX = margin + contentWidth / 2 + 10;
     page.drawText('ISSUED BY', { x: issuedX, y: currentY - 18, size: 8, font: fontBold, color: slateMuted });
-    page.drawText((dto.issuer.name || 'Property Ledge Management').substring(0, 35), {
+    page.drawText((dto.issuer.name || 'Property Management').substring(0, 35), {
       x: issuedX,
       y: currentY - 32,
       size: 10.5,
@@ -242,8 +242,10 @@ export class PdfInvoiceAdapter {
     if (dto.issuer.email) {
       page.drawText(dto.issuer.email.substring(0, 40), { x: issuedX, y: currentY - 46, size: 8.5, font: fontRegular, color: slateMuted });
     }
-    const phoneOrAddress = dto.issuer.phone || dto.issuer.address || '+61 2 9000 0000';
-    page.drawText(phoneOrAddress.substring(0, 42), { x: issuedX, y: currentY - 60, size: 8.5, font: fontRegular, color: slateMuted });
+    const phoneOrAddress = dto.issuer.phone || dto.issuer.address || '';
+    if (phoneOrAddress) {
+      page.drawText(phoneOrAddress.substring(0, 42), { x: issuedX, y: currentY - 60, size: 8.5, font: fontRegular, color: slateMuted });
+    }
 
     currentY -= billingHeight + 12;
 

@@ -5,6 +5,8 @@
 export interface RequestContext {
   readonly userId: string;
   readonly workspaceId?: string | null;
+  readonly workspaceName?: string | null;
+  readonly userEmail?: string | null;
   readonly permissions?: readonly string[];
   readonly roleName?: string | null;
   readonly requestId?: string;

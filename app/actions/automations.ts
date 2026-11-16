@@ -826,6 +826,7 @@ export interface SendAutomationTestEmailDTO {
   customerName?: string;
   customerEmail?: string;
   customerAddress?: string;
+  customerPhone?: string;
   description?: string;
   amount?: number;
   currency?: string;
@@ -957,12 +958,54 @@ export async function sendAutomationTestEmailAction(dto: SendAutomationTestEmail
     }
 
     // 2. Invoice Automation (or Lease Recurring Invoice Automation)
-    const amount = Number(dto.amount) || Number(dto.recipientOverride?.rentAmount) || 500;
-    const customer = dto.customerName || dto.recipientOverride?.tenantName || 'Sample Customer';
+    let customer = dto.customerName?.trim() || dto.recipientOverride?.tenantName?.trim() || (dto as any).recipientName?.trim();
+    let customerEmail = dto.customerEmail?.trim() || dto.recipientOverride?.tenantEmail?.trim();
+    let customerPhone = dto.customerPhone?.trim() || dto.recipientOverride?.tenantPhone?.trim();
+    let customerAddress = dto.customerAddress?.trim();
+    let propertyAddress = dto.customerAddress?.trim();
+    let amount = Number(dto.amount) || Number(dto.recipientOverride?.rentAmount);
+
+    if (dto.leaseId) {
+      const { data: lease } = await (supabase as any)
+        .from('leases')
+        .select('*, property:properties!inner(*), lease_tenants:lease_tenants(tenant:tenants(*))')
+        .eq('id', dto.leaseId)
+        .eq('property.workspace_id', context.workspaceId)
+        .maybeSingle();
+
+      if (lease) {
+        const tenant = lease.lease_tenants?.[0]?.tenant;
+        if (!customer && tenant) {
+          customer = [tenant.first_name, tenant.last_name].filter(Boolean).join(' ') || tenant.company_name;
+        }
+        if (!customerEmail && tenant) {
+          customerEmail = tenant.email;
+        }
+        if (!customerPhone && tenant) {
+          customerPhone = tenant.phone;
+        }
+        if (!propertyAddress && lease.property) {
+          propertyAddress = [lease.property.address_line_1, lease.property.suburb, lease.property.state, lease.property.postcode].filter(Boolean).join(', ') || lease.property.name;
+          customerAddress = propertyAddress;
+        }
+        if (!amount && lease.rent_amount) {
+          amount = Number(lease.rent_amount);
+        }
+      }
+    }
+
+    customer = customer || 'Valued Client';
+    amount = amount || 500;
     const desc = dto.description || 'Monthly Lease & Property Services';
     const currency = dto.currency || 'AUD';
     const dueDays = dto.paymentDueDays || 14;
     const dueDate = new Date(Date.now() + dueDays * 86400000).toLocaleDateString('en-AU');
+
+    const issuerName = dto.issuedByOverride?.name?.trim() || context.workspaceName || 'Property Management';
+    const issuerEmail = dto.issuedByOverride?.email?.trim() || user.email || 'billing@propertyledge.com.au';
+    const issuerPhone = dto.issuedByOverride?.phone?.trim() || null;
+    const issuerAddress = dto.issuedByOverride?.address?.trim() || null;
+    const issuerTaxId = dto.issuedByOverride?.taxId?.trim() || null;
 
     const subject = dto.emailSubject?.trim()
       ? `[TEST EMAIL] ${dto.emailSubject}`
@@ -980,18 +1023,25 @@ export async function sendAutomationTestEmailAction(dto: SendAutomationTestEmail
         dueDate: dueDate,
         currency,
         issuer: {
-          name: dto.issuedByOverride?.name || 'Property Ledge Management',
-          email: dto.issuedByOverride?.email || null,
-          phone: dto.issuedByOverride?.phone || null,
-          address: dto.issuedByOverride?.address || null,
-          taxId: dto.issuedByOverride?.taxId || null,
+          name: issuerName,
+          email: issuerEmail,
+          phone: issuerPhone,
+          address: issuerAddress,
+          taxId: issuerTaxId,
+        },
+        billTo: {
+          name: customer,
+          email: customerEmail || null,
+          phone: customerPhone || null,
+          address: customerAddress || null,
         },
         recipient: {
           name: customer,
-          email: dto.customerEmail || null,
-          phone: null,
-          address: dto.customerAddress || null,
+          email: customerEmail || null,
+          phone: customerPhone || null,
+          address: customerAddress || null,
         },
+        propertyAddress,
         items: [
           {
             description: desc,

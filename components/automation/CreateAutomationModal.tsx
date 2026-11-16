@@ -40,6 +40,7 @@ import { PREDEFINED_INVOICE_TEMPLATES, getPredefinedTemplateById } from '@/modul
 import { AutomationScheduleType, AutomationType } from '@/modules/automation';
 import { formatAuDisplayDateTime } from '@/lib/format/australian-time';
 import { cn } from '@/lib/utils';
+import { useWorkspaceStore } from '@/lib/stores/useWorkspaceStore';
 
 interface CreateAutomationModalProps {
   isOpen: boolean;
@@ -57,6 +58,7 @@ export function CreateAutomationModal({
   // Step navigation: 0 = Choose Type, 1 = Config, 2 = Review
   const [currentStep, setCurrentStep] = useState<number>(preselectedLeaseId ? 1 : 0);
   const [automationType, setAutomationType] = useState<AutomationType>('lease');
+  const workspaceName = useWorkspaceStore((s) => s.workspaceName);
 
   // Shared Data
   const [leases, setLeases] = useState<any[]>([]);
@@ -229,15 +231,16 @@ export function CreateAutomationModal({
         issuerAddress.trim() ||
         issuerTaxId.trim()
       );
+      const effectiveIssuerName = issuerName.trim() || workspaceName || undefined;
 
-      const issuedByPayload = hasAnyIssuerDetails
+      const issuedByPayload = (hasAnyIssuerDetails || effectiveIssuerName)
         ? {
-            name: issuerName.trim() || undefined,
+            name: effectiveIssuerName,
             email: issuerEmail.trim() || undefined,
             phone: issuerPhone.trim() || undefined,
             address: issuerAddress.trim() || undefined,
             taxId: issuerTaxId.trim() || undefined,
-            issuerName: issuerName.trim() || undefined,
+            issuerName: effectiveIssuerName,
             issuerEmail: issuerEmail.trim() || undefined,
             issuerPhone: issuerPhone.trim() || undefined,
             issuerAddress: issuerAddress.trim() || undefined,
@@ -320,19 +323,33 @@ export function CreateAutomationModal({
     setError(null);
     setTestEmailSuccess(null);
     try {
+      const effectiveCustomerName = automationType === 'invoice'
+        ? (customerName.trim() || 'Valued Recipient')
+        : effectiveTenantName;
+      const effectiveCustomerEmail = automationType === 'invoice'
+        ? customerEmail.trim()
+        : effectiveTenantEmail;
+      const effectiveCustomerAddress = automationType === 'invoice'
+        ? customerAddress.trim()
+        : resolvedPropertyAddress;
+      const effectiveCustomerPhone = automationType === 'invoice'
+        ? customerPhone.trim()
+        : effectiveTenantPhone;
+
       const res = await sendAutomationTestEmailAction({
         automationType,
         testRecipient,
         leaseId: selectedLeaseId,
         leaseActionType,
         invoiceTemplateId: selectedTemplateId,
-        customerName: effectiveTenantName,
-        customerEmail: effectiveTenantEmail,
-        customerAddress,
-        description: invoiceDescription,
-        amount: Number(invoiceAmount) || undefined,
+        customerName: effectiveCustomerName,
+        customerEmail: effectiveCustomerEmail || undefined,
+        customerAddress: effectiveCustomerAddress || undefined,
+        customerPhone: effectiveCustomerPhone || undefined,
+        description: invoiceDescription.trim() || (automationType === 'lease' ? `${resolvedPropertyName} - Recurring Rent` : 'Professional Property Management Services'),
+        amount: Number(invoiceAmount) || (automationType === 'lease' ? (customRentAmount !== '' ? Number(customRentAmount) : Number(selectedLease?.rent_amount)) : undefined),
         currency,
-        recipientOverride: hasCustomOverrides
+        recipientOverride: automationType === 'lease' && hasCustomOverrides
           ? {
               tenantName: effectiveTenantName,
               tenantEmail: effectiveTenantEmail,
@@ -340,9 +357,9 @@ export function CreateAutomationModal({
               rentAmount: customRentAmount !== '' ? Number(customRentAmount) : undefined,
             }
           : undefined,
-        issuedByOverride: (issuerName.trim() || issuerEmail.trim() || issuerPhone.trim() || issuerAddress.trim() || issuerTaxId.trim())
+        issuedByOverride: (issuerName.trim() || issuerEmail.trim() || issuerPhone.trim() || issuerAddress.trim() || issuerTaxId.trim() || workspaceName)
           ? {
-              name: issuerName.trim() || undefined,
+              name: issuerName.trim() || workspaceName || undefined,
               email: issuerEmail.trim() || undefined,
               phone: issuerPhone.trim() || undefined,
               address: issuerAddress.trim() || undefined,
@@ -1026,7 +1043,7 @@ export function CreateAutomationModal({
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div className="flex items-center gap-1.5">
                           <span className="text-slate-500 dark:text-slate-400 font-medium">Issued By:</span>
-                          <strong className="text-slate-900 dark:text-white">{issuerName || 'Your Business Name'}</strong>
+                          <strong className="text-slate-900 dark:text-white">{issuerName || workspaceName || 'Your Business Name'}</strong>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -1429,7 +1446,7 @@ export function CreateAutomationModal({
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex items-center gap-1.5">
                       <span className="text-slate-500 dark:text-slate-400 font-medium">Issued By:</span>
-                      <strong className="text-slate-900 dark:text-white">{issuerName || 'Your Business Name'}</strong>
+                      <strong className="text-slate-900 dark:text-white">{issuerName || workspaceName || 'Your Business Name'}</strong>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -1628,7 +1645,7 @@ export function CreateAutomationModal({
                         </div>
                         <div className="flex justify-between py-0.5">
                           <span className="text-slate-500 dark:text-slate-400">Issuer Name:</span>
-                          <strong className="text-slate-900 dark:text-white">{issuerName || 'Default Business Profile'}</strong>
+                          <strong className="text-slate-900 dark:text-white">{issuerName || workspaceName || 'Default Business Profile'}</strong>
                         </div>
                         <div className="flex justify-between py-0.5">
                           <span className="text-slate-500 dark:text-slate-400">Billing Email:</span>
@@ -1727,7 +1744,7 @@ export function CreateAutomationModal({
                       </div>
                       <div className="flex justify-between py-0.5">
                         <span className="text-slate-500 dark:text-slate-400">Issuer Name:</span>
-                        <strong className="text-slate-900 dark:text-white">{issuerName || 'Default Business Profile'}</strong>
+                        <strong className="text-slate-900 dark:text-white">{issuerName || workspaceName || 'Default Business Profile'}</strong>
                       </div>
                       <div className="flex justify-between py-0.5">
                         <span className="text-slate-500 dark:text-slate-400">Billing Email:</span>

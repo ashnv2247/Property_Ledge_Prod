@@ -80,8 +80,53 @@ function escapeHtml(str?: string | null): string {
 }
 
 function normalizeDto(dto: InvoiceRenderDTO) {
-  const billTo = dto.billTo || (dto as any).customer || { name: 'Tenant', address: dto.propertyAddress || '' };
-  const issuer = dto.issuer || { name: 'Property Ledge', address: '' };
+  const rawRecipient = (dto as any).recipient || (dto as any).customer;
+  const rawRecipientName =
+    dto.billTo?.name && dto.billTo.name !== 'Tenant' && dto.billTo.name !== 'Customer'
+      ? dto.billTo.name
+      : rawRecipient?.name && rawRecipient.name !== 'Tenant' && rawRecipient.name !== 'Customer'
+      ? rawRecipient.name
+      : (dto as any).customerName ||
+        (dto as any).recipientName ||
+        dto.billTo?.name ||
+        rawRecipient?.name ||
+        'Valued Client';
+
+  const billTo = {
+    name: rawRecipientName,
+    email: dto.billTo?.email || rawRecipient?.email || (dto as any).customerEmail || (dto as any).recipientEmail || '',
+    phone: dto.billTo?.phone || rawRecipient?.phone || (dto as any).customerPhone || (dto as any).recipientPhone || '',
+    address:
+      dto.billTo?.address ||
+      rawRecipient?.address ||
+      (dto as any).customerAddress ||
+      (dto as any).recipientAddress ||
+      dto.propertyAddress ||
+      '',
+    taxId: (dto.billTo as any)?.taxId || rawRecipient?.taxId || '',
+  };
+
+  const rawIssuer = (dto as any).issuer;
+  const candidateIssuerName =
+    dto.issuer?.name && dto.issuer.name !== 'Property Ledge Management' && dto.issuer.name !== 'Property Ledge'
+      ? dto.issuer.name
+      : rawIssuer?.name && rawIssuer.name !== 'Property Ledge Management' && rawIssuer.name !== 'Property Ledge'
+      ? rawIssuer.name
+      : (dto as any).issuerName ||
+        (dto as any).senderCompanyName ||
+        (dto as any).workspaceName ||
+        dto.issuer?.name ||
+        rawIssuer?.name ||
+        'Property Management';
+
+  const issuer = {
+    name: candidateIssuerName,
+    email: dto.issuer?.email || rawIssuer?.email || (dto as any).issuerEmail || (dto as any).senderEmail || '',
+    phone: dto.issuer?.phone || rawIssuer?.phone || (dto as any).issuerPhone || (dto as any).senderPhone || '',
+    address: dto.issuer?.address || rawIssuer?.address || (dto as any).issuerAddress || (dto as any).senderAddress || '',
+    taxId: dto.issuer?.taxId || rawIssuer?.taxId || (dto as any).issuerTaxId || (dto as any).taxId || '',
+  };
+
   const currency = dto.currencyCode || (dto as any).currency || 'AUD';
   const totalDisplay = dto.balanceDueFormatted || dto.totalAmountFormatted || '$0.00';
   return { billTo, issuer, currency, totalDisplay };
@@ -253,7 +298,7 @@ function renderClassicTemplate(dto: InvoiceRenderDTO): string {
         </div>
         <div>
           <div class="classic-col-title">Invoice Sent To</div>
-          <div class="classic-party-name">${escapeHtml(billTo.name || 'Tenant')}</div>
+          <div class="classic-party-name">${escapeHtml(billTo.name || 'Valued Client')}</div>
           ${billTo.taxId ? `<div class="classic-party-text">ABN: ${escapeHtml(billTo.taxId)}</div>` : ''}
           <div class="classic-party-text whitespace-pre">${escapeHtml(billTo.address || dto.propertyAddress)}</div>
           ${billTo.email ? `<div class="classic-party-text">${escapeHtml(billTo.email)}</div>` : ''}
@@ -479,7 +524,7 @@ function renderModernTemplate(dto: InvoiceRenderDTO): string {
           </div>
           <div>
             <div class="modern-col-label">Bill To</div>
-            <div class="modern-party-name">${escapeHtml(billTo.name || 'Tenant')}</div>
+            <div class="modern-party-name">${escapeHtml(billTo.name || 'Valued Client')}</div>
             <div class="modern-party-addr whitespace-pre">${escapeHtml(billTo.address || dto.propertyAddress)}</div>
           </div>
           <div class="modern-due-box">
@@ -651,7 +696,7 @@ function renderMinimalistTemplate(dto: InvoiceRenderDTO): string {
 
       <div class="minimalist-divider">
         <div class="minimalist-recipient-label">Bill To</div>
-        <div class="minimalist-sender-name">${escapeHtml(billTo.name || 'Tenant')}</div>
+        <div class="minimalist-sender-name">${escapeHtml(billTo.name || 'Valued Client')}</div>
         <div class="minimalist-sender-addr whitespace-pre">${escapeHtml(billTo.address || dto.propertyAddress)}</div>
       </div>
 
@@ -812,7 +857,7 @@ function renderCorporateTemplate(dto: InvoiceRenderDTO): string {
           </div>
           <div style="text-align: right;">
             <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px;">Bill To:</div>
-            <div class="corporate-party-title">${escapeHtml(billTo.name || 'Tenant')}</div>
+            <div class="corporate-party-title">${escapeHtml(billTo.name || 'Valued Client')}</div>
             <div class="corporate-party-addr whitespace-pre">${escapeHtml(billTo.address || dto.propertyAddress)}</div>
           </div>
         </div>
@@ -986,7 +1031,7 @@ function renderCreativeTemplate(dto: InvoiceRenderDTO): string {
       <div class="creative-grid">
         <div>
           <div class="creative-tag">Invoice To</div>
-          <div style="font-size: 22px; font-weight: 800; margin-bottom: 4px;">${escapeHtml(billTo.name || 'Tenant')}</div>
+          <div style="font-size: 22px; font-weight: 800; margin-bottom: 4px;">${escapeHtml(billTo.name || 'Valued Client')}</div>
           <div style="font-size: 13px; color: #71717a; line-height: 1.6;" class="whitespace-pre">${escapeHtml(billTo.address || dto.propertyAddress)}</div>
         </div>
         <div style="text-align: right;">
@@ -1152,7 +1197,7 @@ function renderElegantTemplate(dto: InvoiceRenderDTO): string {
         </div>
         <div>
           <div class="elegant-tag">To</div>
-          <div class="elegant-party-name">${escapeHtml(billTo.name || 'Tenant')}</div>
+          <div class="elegant-party-name">${escapeHtml(billTo.name || 'Valued Client')}</div>
           <div class="elegant-party-addr whitespace-pre">${escapeHtml(billTo.address || dto.propertyAddress)}</div>
         </div>
       </div>
@@ -1360,7 +1405,7 @@ function renderGoogleTemplate(dto: InvoiceRenderDTO): string {
       <div class="google-grid-cards">
         <div class="google-card-billed">
           <div style="font-size: 11px; font-weight: 700; color: ${brand}; text-transform: uppercase; margin-bottom: 8px;">Billed To</div>
-          <div style="font-size: 18px; font-weight: 500; color: #202124; margin-bottom: 4px;">${escapeHtml(billTo.name || 'Tenant')}</div>
+          <div style="font-size: 18px; font-weight: 500; color: #202124; margin-bottom: 4px;">${escapeHtml(billTo.name || 'Valued Client')}</div>
           <div style="font-size: 12px; color: #5f6368; line-height: 1.6;" class="whitespace-pre">${escapeHtml(billTo.address || dto.propertyAddress)}</div>
         </div>
         <div class="google-card-dates">
@@ -1548,7 +1593,7 @@ function renderMonochromeTemplate(dto: InvoiceRenderDTO): string {
         </div>
         <div style="text-align: right;">
           <div class="mono-badge">BILL TO</div>
-          <div class="mono-party-name">${escapeHtml(billTo.name || 'Tenant')}</div>
+          <div class="mono-party-name">${escapeHtml(billTo.name || 'Valued Client')}</div>
           <div class="mono-party-addr whitespace-pre">${escapeHtml(billTo.address || dto.propertyAddress)}</div>
         </div>
       </div>

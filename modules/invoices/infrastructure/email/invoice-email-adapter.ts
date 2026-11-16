@@ -16,9 +16,17 @@ export class InvoiceEmailAdapter {
   async sendInvoice(options: SendInvoiceEmailOptions): Promise<EmailResult> {
     const { to, recipientName, invoice, pdfBuffer, customMessage, driveFolderUrl, subject: customSubject } = options;
 
-    const rawName = recipientName || invoice.billTo.name || 'Customer';
+    const rawName =
+      recipientName && recipientName !== 'Tenant' && recipientName !== 'Customer'
+        ? recipientName
+        : invoice.billTo?.name && invoice.billTo.name !== 'Tenant' && invoice.billTo.name !== 'Customer'
+        ? invoice.billTo.name
+        : recipientName || invoice.billTo?.name || 'Valued Client';
     const firstName = rawName.trim().split(' ')[0] || rawName;
-    const issuerName = invoice.issuer?.name || 'Property Ledge Management';
+    const issuerName =
+      invoice.issuer?.name && invoice.issuer.name !== 'Property Ledge Management'
+        ? invoice.issuer.name
+        : 'Property Management';
 
     // Interpolation Helper
     const interpolate = (text: string): string => {

@@ -602,11 +602,11 @@ export function CreateInvoiceModal({
         currency,
         invoiceTemplateId: selectedTemplate.id,
         issuedByOverride: {
-          name: issuerName.trim(),
-          email: issuerEmail.trim(),
-          phone: issuerPhone.trim(),
-          address: issuerAddress.trim(),
-          taxId: issuerTaxId.trim(),
+          name: issuerName.trim() || workspaceName || 'Property Management',
+          email: issuerEmail.trim() || undefined,
+          phone: issuerPhone.trim() || undefined,
+          address: issuerAddress.trim() || undefined,
+          taxId: issuerTaxId.trim() || undefined,
         },
       });
 

@@ -24,6 +24,7 @@ export interface InvoiceItemDTO {
 
 export interface CreateInvoiceDTO {
   workspaceId?: string;
+  workspaceName?: string | null;
   currency?: string; // default 'AUD'
   
   // Optional Source Entities (Nullable)
