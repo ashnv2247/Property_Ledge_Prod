@@ -156,8 +156,8 @@ export default function OnboardingWorkspacePage() {
                 hint={slug ? `Your private link: propertyledge.com/${slug}` : 'Used for team and portal links'}
                 error={errors.slug}
               >
-                <div className="relative flex items-center">
-                  <span className="absolute left-3.5 text-xs text-[#64788D] select-none font-mono">
+                <div className="flex items-center w-full h-11 sm:h-12 rounded-xl border border-white/[0.08] bg-[#0B1D30] focus-within:ring-2 focus-within:ring-[#008F83]/30 focus-within:border-[#008F83] transition-all duration-150 overflow-hidden px-3.5">
+                  <span className="text-xs sm:text-sm text-[#64788D] select-none font-mono shrink-0">
                     propertyledge.com/
                   </span>
                   <input
@@ -165,7 +165,7 @@ export default function OnboardingWorkspacePage() {
                     type="text"
                     value={slug}
                     onChange={(e) => handleSlugChange(e.target.value)}
-                    className={cn(inputClassName, "pl-[124px] font-mono text-xs sm:text-sm")}
+                    className="flex-1 min-w-0 bg-transparent border-0 p-0 pl-1 text-xs sm:text-sm text-[#FFFFFF] placeholder:text-[#64788D] font-mono focus:outline-none focus:ring-0"
                     placeholder="jenkins-property"
                   />
                 </div>
