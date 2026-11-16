@@ -609,6 +609,11 @@ export function CreatePropertyWorkflow({
         title="Add Real Estate Asset"
         badge="Guided Workflow"
         description="Follow this visual guide to record an asset, set up rental expectations, and prepare for tenancy."
+        illustration={{
+          lightSrc: '/images/workflows/property_workflow_light.webp',
+          darkSrc: '/images/workflows/property_workflow_dark.webp',
+          alt: 'Property Asset Setup',
+        }}
         initialContext={INITIAL_CONTEXT}
         steps={steps}
         onSubmit={handleFinalSubmit}

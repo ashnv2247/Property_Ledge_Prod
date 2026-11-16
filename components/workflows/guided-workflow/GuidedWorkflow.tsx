@@ -29,6 +29,11 @@ export interface GuidedWorkflowProps<T = any> {
   title: string;
   badge?: string;
   description?: string;
+  illustration?: {
+    lightSrc: string;
+    darkSrc?: string;
+    alt: string;
+  };
   initialContext: T;
   steps: GuidedWorkflowStepConfig<T>[];
   onSubmit: (finalContext: T) => Promise<any> | any;
@@ -43,6 +48,7 @@ export function GuidedWorkflow<T extends Record<string, any>>({
   title,
   badge,
   description,
+  illustration,
   initialContext,
   steps,
   onSubmit,
@@ -167,6 +173,7 @@ export function GuidedWorkflow<T extends Record<string, any>>({
           title={title}
           badge={badge}
           description={description}
+          illustration={illustration}
           onClose={handleRequestClose}
         />
 

@@ -525,6 +525,11 @@ export function InviteTeamMemberWorkflow({
         title="Invite Team Member"
         badge="Workspace Access"
         description="Safely invite collaborators, assign RBAC roles, and control scoped property access."
+        illustration={{
+          lightSrc: '/images/workflows/team_workflow_light.webp',
+          darkSrc: '/images/workflows/team_workflow_dark.webp',
+          alt: 'Team Collaboration',
+        }}
         initialContext={INITIAL_CONTEXT}
         steps={steps}
         onSubmit={handleFinalSubmit}

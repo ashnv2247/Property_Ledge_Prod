@@ -586,6 +586,11 @@ export function CreateLeaseWorkflow({
         title="Create Tenancy Lease"
         badge="Lease Agreement"
         description="Follow this visual workflow to bind a property, assign tenants, and establish recurring payment covenants."
+        illustration={{
+          lightSrc: '/images/workflows/lease_workflow_light.webp',
+          darkSrc: '/images/workflows/lease_workflow_dark.webp',
+          alt: 'Lease Agreement',
+        }}
         initialContext={{
           ...INITIAL_CONTEXT,
           propertyId: defaultPropId,

@@ -465,6 +465,11 @@ export function CreateMaintenanceWorkflow({
         title="Lodge Maintenance Request"
         badge="Property Maintenance"
         description="Follow this visual guide to triage repair issues, set urgency, and notify trade contractors."
+        illustration={{
+          lightSrc: '/images/workflows/maintenance_workflow_light.webp',
+          darkSrc: '/images/workflows/maintenance_workflow_dark.webp',
+          alt: 'Maintenance Diagnostics',
+        }}
         initialContext={{
           ...INITIAL_CONTEXT,
           propertyId: defaultPropId,

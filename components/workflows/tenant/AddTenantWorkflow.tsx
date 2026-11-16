@@ -394,6 +394,11 @@ export function AddTenantWorkflow({
         title="Add Tenant"
         badge="Tenancy Onboarding"
         description="Record a new resident, set up emergency contact information, and link them to an active property."
+        illustration={{
+          lightSrc: '/images/workflows/tenant_workflow_light.webp',
+          darkSrc: '/images/workflows/tenant_workflow_dark.webp',
+          alt: 'Tenant Onboarding',
+        }}
         initialContext={{
           ...INITIAL_CONTEXT,
           propertyId: defaultPropId,

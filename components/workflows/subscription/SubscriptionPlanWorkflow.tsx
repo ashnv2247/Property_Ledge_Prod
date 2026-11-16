@@ -490,6 +490,11 @@ export function SubscriptionPlanWorkflow({
         title="Upgrade Subscription"
         badge="Workspace Plan"
         description="Follow this visual workflow to select your portfolio tier, generate bank transfer instructions, and submit verification."
+        illustration={{
+          lightSrc: '/images/workflows/subscription_workflow_light.webp',
+          darkSrc: '/images/workflows/subscription_workflow_dark.webp',
+          alt: 'Subscription Plan',
+        }}
         initialContext={initialContext}
         steps={steps}
         onSubmit={handleFinalSubmit}
