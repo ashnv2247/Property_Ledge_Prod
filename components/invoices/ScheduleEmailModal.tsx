@@ -578,23 +578,23 @@ export function ScheduleEmailModal({
                     )}
                   >
                     <div className="space-y-3">
-                      {/* Visual Asset Illustration Banner (Dark & Light Mode) */}
-                      <div className="relative w-full h-32 rounded-xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 shadow-2xs group-hover:shadow-sm transition-all">
+                      {/* Visual 3D Asset Illustration (Seamless blend into card) */}
+                      <div className="relative w-full h-36 flex items-center justify-center transition-all">
                         <Image
-                          src="/images/invoices/email_auto_light.jpg"
+                          src="/images/invoices/email_auto_light.png"
                           alt="Automatic Email Sending"
                           fill
-                          className="object-cover dark:hidden"
+                          className="object-contain dark:hidden"
                           sizes="(max-width: 768px) 100vw, 320px"
                         />
                         <Image
-                          src="/images/invoices/email_auto_dark.jpg"
+                          src="/images/invoices/email_auto_dark.png"
                           alt="Automatic Email Sending"
                           fill
-                          className="object-cover hidden dark:block"
+                          className="object-contain hidden dark:block"
                           sizes="(max-width: 768px) 100vw, 320px"
                         />
-                        <div className="absolute top-2 right-2">
+                        <div className="absolute top-1 right-1">
                           <span className={cn(
                             'text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs backdrop-blur-md',
                             emailMode === 'automatic'
@@ -649,23 +649,23 @@ export function ScheduleEmailModal({
                     )}
                   >
                     <div className="space-y-3">
-                      {/* Visual Asset Illustration Banner (Dark & Light Mode) */}
-                      <div className="relative w-full h-32 rounded-xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 shadow-2xs group-hover:shadow-sm transition-all">
+                      {/* Visual 3D Asset Illustration (Seamless blend into card) */}
+                      <div className="relative w-full h-36 flex items-center justify-center transition-all">
                         <Image
-                          src="/images/invoices/email_manual_light.jpg"
+                          src="/images/invoices/email_manual_light.png"
                           alt="Manual Email Sending"
                           fill
-                          className="object-cover dark:hidden"
+                          className="object-contain dark:hidden"
                           sizes="(max-width: 768px) 100vw, 320px"
                         />
                         <Image
-                          src="/images/invoices/email_manual_dark.jpg"
+                          src="/images/invoices/email_manual_dark.png"
                           alt="Manual Email Sending"
                           fill
-                          className="object-cover hidden dark:block"
+                          className="object-contain hidden dark:block"
                           sizes="(max-width: 768px) 100vw, 320px"
                         />
-                        <div className="absolute top-2 right-2">
+                        <div className="absolute top-1 right-1">
                           <span className={cn(
                             'text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs backdrop-blur-md',
                             emailMode === 'manual'
