@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -570,31 +571,70 @@ export function ScheduleEmailModal({
                   <div
                     onClick={() => setEmailMode('automatic')}
                     className={cn(
-                      'cursor-pointer rounded-2xl p-4 border transition-all text-left flex flex-col justify-between gap-3',
+                      'cursor-pointer rounded-2xl p-4 border-2 transition-all text-left flex flex-col justify-between gap-3 relative group hover:shadow-lg',
                       emailMode === 'automatic'
-                        ? 'border-[#008F83] bg-[#008F83]/5 dark:bg-[#008F83]/10 ring-2 ring-[#008F83]/20 shadow-xs'
-                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300'
+                        ? 'border-[#008F83] bg-[#008F83]/5 dark:bg-[#008F83]/10 ring-2 ring-[#008F83]/20 shadow-md'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs'
                     )}
                   >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="w-8 h-8 rounded-lg bg-[#008F83]/10 text-[#008F83] flex items-center justify-center">
+                    <div className="space-y-3">
+                      {/* Visual Asset Illustration Banner (Dark & Light Mode) */}
+                      <div className="relative w-full h-32 rounded-xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 shadow-2xs group-hover:shadow-sm transition-all">
+                        <Image
+                          src="/images/invoices/email_auto_light.jpg"
+                          alt="Automatic Email Sending"
+                          fill
+                          className="object-cover dark:hidden"
+                          sizes="(max-width: 768px) 100vw, 320px"
+                        />
+                        <Image
+                          src="/images/invoices/email_auto_dark.jpg"
+                          alt="Automatic Email Sending"
+                          fill
+                          className="object-cover hidden dark:block"
+                          sizes="(max-width: 768px) 100vw, 320px"
+                        />
+                        <div className="absolute top-2 right-2">
+                          <span className={cn(
+                            'text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs backdrop-blur-md',
+                            emailMode === 'automatic'
+                              ? 'bg-[#008F83] text-white border-[#008F83]'
+                              : 'bg-white/85 dark:bg-slate-900/85 text-[#008F83] border-[#008F83]/30'
+                          )}>
+                            Automated
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5">
+                        <div className={cn(
+                          'w-8 h-8 rounded-lg flex items-center justify-center transition-colors shrink-0',
+                          emailMode === 'automatic'
+                            ? 'bg-[#008F83] text-white shadow-xs'
+                            : 'bg-[#008F83]/10 text-[#008F83]'
+                        )}>
                           <Send className="w-4 h-4" />
                         </div>
-                        <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-[#008F83] text-white">
-                          Automated
-                        </span>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">
+                          Automatic Email Sending
+                        </h4>
                       </div>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                        Automatic Email Sending
-                      </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                        Invoices are sent automatically to the tenant on the configured generation date.
-                        Includes retry and delivery logs.
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Invoices are sent automatically to the tenant on the configured generation date. Includes retry and delivery logs.
                       </p>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#008F83]">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Hands-free delivery
+
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#008F83]">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Hands-free delivery
+                      </div>
+                      <span className={cn(
+                        'text-[10.5px] font-bold transition-colors',
+                        emailMode === 'automatic' ? 'text-[#008F83]' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'
+                      )}>
+                        {emailMode === 'automatic' ? '✓ Selected' : 'Select'}
+                      </span>
                     </div>
                   </div>
 
@@ -602,31 +642,70 @@ export function ScheduleEmailModal({
                   <div
                     onClick={() => setEmailMode('manual')}
                     className={cn(
-                      'cursor-pointer rounded-2xl p-4 border transition-all text-left flex flex-col justify-between gap-3',
+                      'cursor-pointer rounded-2xl p-4 border-2 transition-all text-left flex flex-col justify-between gap-3 relative group hover:shadow-lg',
                       emailMode === 'manual'
-                        ? 'border-[#008F83] bg-[#008F83]/5 dark:bg-[#008F83]/10 ring-2 ring-[#008F83]/20 shadow-xs'
-                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300'
+                        ? 'border-[#008F83] bg-[#008F83]/5 dark:bg-[#008F83]/10 ring-2 ring-[#008F83]/20 shadow-md'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs'
                     )}
                   >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                    <div className="space-y-3">
+                      {/* Visual Asset Illustration Banner (Dark & Light Mode) */}
+                      <div className="relative w-full h-32 rounded-xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 shadow-2xs group-hover:shadow-sm transition-all">
+                        <Image
+                          src="/images/invoices/email_manual_light.jpg"
+                          alt="Manual Email Sending"
+                          fill
+                          className="object-cover dark:hidden"
+                          sizes="(max-width: 768px) 100vw, 320px"
+                        />
+                        <Image
+                          src="/images/invoices/email_manual_dark.jpg"
+                          alt="Manual Email Sending"
+                          fill
+                          className="object-cover hidden dark:block"
+                          sizes="(max-width: 768px) 100vw, 320px"
+                        />
+                        <div className="absolute top-2 right-2">
+                          <span className={cn(
+                            'text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs backdrop-blur-md',
+                            emailMode === 'manual'
+                              ? 'bg-amber-600 text-white border-amber-600'
+                              : 'bg-white/85 dark:bg-slate-900/85 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                          )}>
+                            Review First
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5">
+                        <div className={cn(
+                          'w-8 h-8 rounded-lg flex items-center justify-center transition-colors shrink-0',
+                          emailMode === 'manual'
+                            ? 'bg-amber-600 text-white shadow-xs'
+                            : 'bg-amber-500/10 text-amber-600'
+                        )}>
                           <Edit3 className="w-4 h-4" />
                         </div>
-                        <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                          Review First
-                        </span>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">
+                          Manual Email Sending
+                        </h4>
                       </div>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                        Manual Email Sending
-                      </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                        Generates all monthly invoices in pending-send state. You can review, add custom charges,
-                        and send each invoice individually.
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Generates all monthly invoices in pending-send state. You can review, add custom charges, and send each invoice individually.
                       </p>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-600">
-                      <Clock className="w-3.5 h-3.5" /> Manual send control
+
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-600">
+                        <Clock className="w-3.5 h-3.5" /> Manual send control
+                      </div>
+                      <span className={cn(
+                        'text-[10.5px] font-bold transition-colors',
+                        emailMode === 'manual' ? 'text-[#008F83]' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'
+                      )}>
+                        {emailMode === 'manual' ? '✓ Selected' : 'Select'}
+                      </span>
                     </div>
                   </div>
                 </div>
