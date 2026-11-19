@@ -3,7 +3,7 @@
 import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import { createClient } from '@/lib/supabase/server';
-import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import {
   getCurrentFinancialYearNumber,
   parseFinancialYear,
@@ -121,7 +121,7 @@ export async function fetchFinancialYearsOverviewAction(propertyId?: string): Pr
   try {
     const { context } = await getAuthContext();
     const cacheKey = `workspace:${context.workspaceId}:fy_overview:${propertyId || 'all'}`;
-    const cached = serverCache.get<FinancialYearsOverviewData>(cacheKey);
+    const cached = requestCache.get<FinancialYearsOverviewData>(cacheKey);
     if (cached) {
       return {
         success: true,
@@ -245,7 +245,7 @@ export async function fetchFinancialYearsOverviewAction(propertyId?: string): Pr
       properties,
     };
 
-    serverCache.set(cacheKey, overviewData, 30_000); // 30s TTL
+    requestCache.set(cacheKey, overviewData, 30_000); // 30s TTL
 
     return {
       success: true,

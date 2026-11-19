@@ -1,0 +1,154 @@
+node.exe : npm notice run propertyledge-v3@0.1.0 build
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\DELL\AppData\Roaming\n ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm notice run ...-v3@0.1.0 build:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice run next build
+   ▲ Next.js 15.5.24
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     · optimizePackageImports
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 22.6s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/19) ...
+   Generating static pages (4/19) 
+   Generating static pages (9/19) 
+   Generating static pages (14/19) 
+ ✓ Generating static pages (19/19)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                          Size  First Load JS
+┌ ○ /                                             63.4 kB         349 kB
+├ ○ /_not-found                                     232 B         104 kB
+├ ƒ /admin                                          140 B         209 kB
+├ ƒ /admin/activity                                2.5 kB         548 kB
+├ ƒ /admin/audit-logs                              2.6 kB         548 kB
+├ ƒ /admin/billing-events                          2.2 kB         547 kB
+├ ƒ /admin/entitlements                           10.3 kB         565 kB
+├ ƒ /admin/notifications                          8.15 kB         215 kB
+├ ƒ /admin/organizations                            232 B         104 kB
+├ ƒ /admin/payments                               2.87 kB         548 kB
+├ ƒ /admin/plans                                  4.37 kB         550 kB
+├ ƒ /admin/plans/[id]                               141 B         209 kB
+├ ƒ /admin/platform-roles                         5.21 kB         567 kB
+├ ƒ /admin/subscriptions                          3.54 kB         549 kB
+├ ƒ /admin/subscriptions/[id]                     2.28 kB         211 kB
+├ ƒ /admin/team-roles                             4.46 kB         567 kB
+├ ƒ /admin/users                                  5.01 kB         550 kB
+├ ƒ /api/admin/notifications/dispatch-emails        232 B         104 kB
+├ ƒ /api/automation/process                         232 B         104 kB
+├ ƒ /api/cron/evaluate-automations                  232 B         104 kB
+├ ƒ /api/cron/process-email-schedules               232 B         104 kB
+├ ƒ /api/invoices/[id]/docx                         232 B         104 kB
+├ ƒ /api/invoices/[id]/pdf                          232 B         104 kB
+├ ƒ /api/properties/[id]/expenses                   232 B         104 kB
+├ ƒ /api/properties/[id]/export-pdf                 232 B         104 kB
+├ ƒ /api/properties/[id]/performance                232 B         104 kB
+├ ƒ /api/properties/[id]/summary                    232 B         104 kB
+├ ƒ /api/properties/accessible                      232 B         104 kB
+├ ƒ /api/transactions/[transactionId]/receipt       232 B         104 kB
+├ ƒ /api/webhooks/billing                           232 B         104 kB
+├ ƒ /api/workspaces/accessible                      232 B         104 kB
+├ ○ /audit-templates                               3.7 kB         222 kB
+├ ƒ /auth/callback                                  232 B         104 kB
+├ ƒ /checkout                                     11.7 kB         119 kB
+├ ƒ /dashboard                                    16.8 kB         234 kB
+├ ƒ /dashboard/accountant-reports                 3.96 kB         173 kB
+├ ƒ /dashboard/activity                             165 B         577 kB
+├ ƒ /dashboard/automations                        8.82 kB         559 kB
+├ ƒ /dashboard/autopilot                          9.63 kB         138 kB
+├ ƒ /dashboard/autopilot/create                   7.49 kB         174 kB
+├ ƒ /dashboard/autopilot/manage                   3.73 kB         179 kB
+├ ƒ /dashboard/autopilot/manage/[propertyId]        180 B         175 kB
+├ ƒ /dashboard/bas                                12.6 kB         563 kB
+├ ƒ /dashboard/condition-report-wizard/[id]         232 B         104 kB
+├ ƒ /dashboard/condition-reports                  3.87 kB         230 kB
+├ ƒ /dashboard/condition-reports/[id]              175 kB         387 kB
+├ ƒ /dashboard/documents                          13.3 kB         228 kB
+├ ƒ /dashboard/expenses                           9.78 kB         562 kB
+├ ƒ /dashboard/financial-years                    2.96 kB         220 kB
+├ ƒ /dashboard/inspections                          232 B         104 kB
+├ ƒ /dashboard/inspections/[id]                     232 B         104 kB
+├ ƒ /dashboard/invoices                           14.7 kB         565 kB
+├ ƒ /dashboard/invoices/schedule-email            6.46 kB         557 kB
+├ ƒ /dashboard/invoices/templates                 26.9 kB         255 kB
+├ ƒ /dashboard/invoices/templates/[id]              232 B         104 kB
+├ ƒ /dashboard/leases                             17.9 kB         563 kB
+├ ƒ /dashboard/leases/[leaseId]                   16.6 kB         246 kB
+├ ƒ /dashboard/leases/[leaseId]/renew             1.32 kB         223 kB
+├ ƒ /dashboard/maintenance                        1.91 kB         149 kB
+├ ƒ /dashboard/maintenance/[id]                   4.66 kB         219 kB
+├ ƒ /dashboard/money                              9.28 kB         561 kB
+├ ƒ /dashboard/money/templates                    17.2 kB         229 kB
+├ ƒ /dashboard/payments                           5.83 kB         557 kB
+├ ƒ /dashboard/people                               164 B         565 kB
+├ ƒ /dashboard/people/[tenantId]                  13.9 kB         241 kB
+├ ƒ /dashboard/properties                         16.3 kB         569 kB
+├ ƒ /dashboard/properties/[id]                    20.4 kB         599 kB
+├ ƒ /dashboard/properties/[id]/accountant-report  11.7 kB         119 kB
+├ ƒ /dashboard/properties/[id]/units/[unitId]       232 B         104 kB
+├ ƒ /dashboard/properties/new                       466 B         104 kB
+├ ƒ /dashboard/reports                            20.4 kB         569 kB
+├ ƒ /dashboard/schedules                          10.3 kB         560 kB
+├ ƒ /dashboard/settings                           5.04 kB         216 kB
+├ ƒ /dashboard/settings/notifications             2.55 kB         210 kB
+├ ƒ /dashboard/settings/security                  2.94 kB         210 kB
+├ ƒ /dashboard/settings/subscription                142 B         212 kB
+├ ƒ /dashboard/settings/team                        232 B         104 kB
+├ ƒ /dashboard/settings/team/roles                  232 B         104 kB
+├ ƒ /dashboard/settings/workspace                 2.23 kB         209 kB
+├ ƒ /dashboard/tasks                                166 B         577 kB
+├ ƒ /dashboard/team                               11.4 kB         576 kB
+├ ƒ /dashboard/team/roles                         5.65 kB         573 kB
+├ ƒ /dashboard/tenants                              165 B         565 kB
+├ ƒ /dashboard/units                                232 B         104 kB
+├ ○ /forgot-password                              4.84 kB         115 kB
+├ ƒ /invite/[token]                                 232 B         104 kB
+├ ƒ /join/[token]                                   140 B         209 kB
+├ ○ /login                                        3.75 kB         183 kB
+├ ƒ /onboarding                                   5.63 kB         164 kB
+├ ƒ /onboarding/complete                          2.81 kB         150 kB
+├ ƒ /onboarding/leases                              232 B         104 kB
+├ ƒ /onboarding/member                            2.16 kB         217 kB
+├ ƒ /onboarding/payment                           5.91 kB         161 kB
+├ ƒ /onboarding/plan                                232 B         104 kB
+├ ƒ /onboarding/plans                             7.28 kB         163 kB
+├ ƒ /onboarding/profile                             232 B         104 kB
+├ ƒ /onboarding/property                          6.27 kB         164 kB
+├ ƒ /onboarding/subscription                      3.83 kB         162 kB
+├ ƒ /onboarding/team                                232 B         104 kB
+├ ƒ /onboarding/tenants                             232 B         104 kB
+├ ƒ /onboarding/units                               232 B         104 kB
+├ ƒ /onboarding/workspace                         4.13 kB         159 kB
+├ ƒ /pricing                                        945 B         108 kB
+├ ƒ /profile                                        896 B         291 kB
+├ ƒ /properties/[id]/accountant-report              232 B         104 kB
+├ ○ /reset-password                               5.62 kB         116 kB
+├ ○ /signup                                       4.82 kB         184 kB
+├ ○ /solutions/owners                             16.7 kB         303 kB
+├ ƒ /subscription                                   142 B         212 kB
+├ ƒ /tenant                                         140 B         209 kB
+├ ƒ /tenant/documents                             1.74 kB         209 kB
+├ ƒ /tenant/maintenance                             141 B         209 kB
+├ ƒ /tenant/notifications                           141 B         209 kB
+├ ƒ /tenant/profile                                 140 B         209 kB
+├ ƒ /tenant/rent                                    141 B         209 kB
+└ ○ /verify-email                                  4.2 kB         114 kB
++ First Load JS shared by all                      104 kB
+  ├ chunks/8322-72093c2baed4851f.js               46.2 kB
+  ├ chunks/e6154bf1-7bb0f82eae4a566d.js           54.2 kB
+  └ other shared chunks (total)                   3.06 kB
+
+
+ƒ Middleware                                      93.5 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

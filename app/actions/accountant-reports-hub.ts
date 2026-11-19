@@ -3,7 +3,7 @@
 import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import { createClient } from '@/lib/supabase/server';
-import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import {
   FinanceReportFilters,
 } from '@/modules/finance/domain/reporting-types';
@@ -60,7 +60,7 @@ export async function fetchAccountantBasSummaryAction(filters: AccountantHubFilt
     const dateRange = resolveBasDateRange(fy, period);
 
     const cacheKey = `workspace:${context.workspaceId}:bas_summary:${fy}:${period}:${filters.propertyId || 'all'}`;
-    const cached = serverCache.get<any>(cacheKey);
+    const cached = requestCache.get<any>(cacheKey);
     if (cached) {
       return { success: true, data: cached };
     }
@@ -129,7 +129,7 @@ export async function fetchAccountantBasSummaryAction(filters: AccountantHubFilt
       propertyId: filters.propertyId === 'all' ? undefined : filters.propertyId,
     });
 
-    serverCache.set(cacheKey, worksheet, 30_000);
+    requestCache.set(cacheKey, worksheet, 30_000);
 
     return {
       success: true,

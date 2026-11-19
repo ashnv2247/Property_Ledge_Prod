@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import { createClient } from '@/lib/supabase/server';
-import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import * as financeService from '@/lib/finance/service';
 import {
   CategoryDTO,
@@ -44,7 +44,7 @@ export async function fetchFormDropdownOptionsAction() {
   try {
     const { context } = await getAuthContext();
     const cacheKey = `workspace:${context.workspaceId}:form_dropdown_options`;
-    const cached = serverCache.get<{
+    const cached = requestCache.get<{
       categories: CategoryDTO[];
       properties: any[];
       leases: any[];
@@ -125,7 +125,7 @@ export async function fetchFormDropdownOptionsAction() {
       tenants: tenantsRes.data || [],
       taxClassifications: taxClassificationsRes.data || [],
     };
-    serverCache.set(cacheKey, result, 30_000);
+    requestCache.set(cacheKey, result, 30_000);
     return result;
   } catch (err) {
     console.error('Error in fetchFormDropdownOptionsAction:', err);

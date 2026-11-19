@@ -74,7 +74,6 @@ import {
   finalizeConditionReportAction,
 } from '@/app/actions/condition-reports';
 import { compareConditionReports } from '@/lib/inspections/comparison-engine';
-import { downloadConditionReportPDF } from '@/lib/pdf/condition-report-pdf';
 import { compressImageForUpload } from '@/lib/images/compression';
 import { SignaturePad } from './SignaturePad';
 import { cn } from '@/lib/utils';
@@ -699,6 +698,7 @@ export function ConditionReportWizard({
     if (!data) return;
     setIsSubmitting(true);
     try {
+      const { downloadConditionReportPDF } = await import('@/lib/pdf/condition-report-pdf');
       await downloadConditionReportPDF({
         ...data,
         schedule2Data: statutoryData,

@@ -1,6 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getPropertyStats, getUserProperties } from '@/lib/properties/queries';
-import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import { getActiveWorkspaceId } from '@/lib/auth/authorization';
 
 export async function getDashboardOverview(propertyId: string) {
@@ -23,7 +23,7 @@ export async function getDashboardOverview(propertyId: string) {
 
 export async function getWorkspaceDashboardOverview(workspaceId: string) {
   const cacheKey = `workspace:${workspaceId}:dashboard_overview`;
-  const cached = serverCache.get<any>(cacheKey);
+  const cached = requestCache.get<any>(cacheKey);
   if (cached) {
     return cached;
   }
@@ -76,7 +76,7 @@ export async function getWorkspaceDashboardOverview(workspaceId: string) {
     recentActivity: activityResult.data || [],
   };
 
-  serverCache.set(cacheKey, result, 30_000);
+  requestCache.set(cacheKey, result, 30_000);
   return result;
 }
 
@@ -87,7 +87,7 @@ export async function getPropertiesForUser(userId: string) {
 export async function getPropertiesList(workspaceId?: string | null) {
   const wsId = workspaceId ?? (await getActiveWorkspaceId().catch(() => null));
   const cacheKey = `workspace:${wsId || 'all'}:dashboard_properties`;
-  const cached = serverCache.get<Record<string, unknown>[]>(cacheKey);
+  const cached = requestCache.get<Record<string, unknown>[]>(cacheKey);
   if (cached) {
     return cached;
   }
@@ -120,7 +120,7 @@ export async function getPropertiesList(workspaceId?: string | null) {
   }));
 
   if (wsId) {
-    serverCache.set(cacheKey, result, 60_000);
+    requestCache.set(cacheKey, result, 60_000);
   }
   return result;
 }
@@ -168,7 +168,7 @@ export async function getAllWorkspaceTenants(workspaceId?: string | null) {
   const wsId = workspaceId ?? (await getActiveWorkspaceId().catch(() => null));
   if (wsId) {
     const cacheKey = `workspace:${wsId}:all_tenants`;
-    const cached = serverCache.get<any[]>(cacheKey);
+    const cached = requestCache.get<any[]>(cacheKey);
     if (cached) return cached;
   }
 
@@ -187,7 +187,7 @@ export async function getAllWorkspaceTenants(workspaceId?: string | null) {
     .order('created_at', { ascending: false });
 
   if (wsId) {
-    query = query.eq('properties.workspace_id', wsId);
+    query = query.eq('property.workspace_id', wsId);
   }
 
   const { data, error } = await query;
@@ -199,7 +199,7 @@ export async function getAllWorkspaceTenants(workspaceId?: string | null) {
 
   const result = data || [];
   if (wsId) {
-    serverCache.set(`workspace:${wsId}:all_tenants`, result, 60_000);
+    requestCache.set(`workspace:${wsId}:all_tenants`, result, 60_000);
   }
   return result;
 }
@@ -226,11 +226,38 @@ export async function getLeases(propertyId: string) {
   return data || [];
 }
 
+/** Dashboard cards only display upcoming active leases, never tenant details. */
+export async function getDashboardUpcomingLeases(scope: { propertyId: string } | { workspaceId: string }) {
+  const supabase = await createClient();
+  const now = new Date();
+  const until = new Date(now.getTime() + 60 * 86400000);
+  let query = supabase.from('leases')
+    .select('id, property_id, end_date, status, rent_amount, properties!inner(workspace_id)')
+    .eq('status', 'active')
+    .gt('end_date', now.toISOString().slice(0, 10))
+    .lte('end_date', until.toISOString().slice(0, 10))
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(6);
+  query = 'propertyId' in scope
+    ? query.eq('property_id', scope.propertyId)
+    : query.eq('properties.workspace_id', scope.workspaceId);
+  const { data, error } = await query;
+  if (error) throw new Error(`Failed to load upcoming leases: ${error.message}`);
+  // The generated database types omit relationship metadata for leases.
+  const rows = (data || []) as unknown as Array<{
+    id: string; property_id: string; end_date: string; status: string; rent_amount: number;
+  }>;
+  return rows.map(({ id, property_id, end_date, status, rent_amount }) => ({
+    id, property_id, end_date, status, rent_amount,
+  }));
+}
+
 export async function getAllWorkspaceLeases(workspaceId?: string | null) {
   const wsId = workspaceId ?? (await getActiveWorkspaceId().catch(() => null));
   if (wsId) {
     const cacheKey = `workspace:${wsId}:all_leases`;
-    const cached = serverCache.get<any[]>(cacheKey);
+    const cached = requestCache.get<any[]>(cacheKey);
     if (cached) return cached;
   }
 
@@ -249,40 +276,21 @@ export async function getAllWorkspaceLeases(workspaceId?: string | null) {
       .order('created_at', { ascending: false });
 
     if (wsId) {
-      query = query.eq('properties.workspace_id', wsId);
+      query = query.eq('property.workspace_id', wsId);
     }
 
     const { data, error } = await query;
     if (error) {
       console.error('Error fetching all workspace leases with inner join:', error);
-      // Fallback with outer join on properties
-      const { data: outerData, error: outerError } = await supabase
-        .from('leases')
-        .select(`
-          *,
-          property:properties(id, name, address_line_1, city, suburb, postal_code, state),
-          lease_tenants!lease_tenants_lease_id_fkey(
-            tenant_id, role, is_primary,
-            tenant:tenants!lease_tenants_tenant_id_fkey(id, first_name, last_name, email, phone, status, emergency_contact_name, emergency_contact_phone)
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (outerError) {
-        console.error('Error fetching all workspace leases fallback:', outerError);
-        return [];
-      }
-      const fallbackResult = outerData || [];
-      if (wsId) serverCache.set(`workspace:${wsId}:all_leases`, fallbackResult, 60_000);
-      return fallbackResult;
+      throw new Error(`Failed to fetch workspace leases: ${error.message}`);
     }
 
     const result = data || [];
-    if (wsId) serverCache.set(`workspace:${wsId}:all_leases`, result, 60_000);
+    if (wsId) requestCache.set(`workspace:${wsId}:all_leases`, result, 60_000);
     return result;
   } catch (err) {
     console.error('Exception in getAllWorkspaceLeases:', err);
-    return [];
+    throw err;
   }
 }
 
@@ -573,7 +581,7 @@ export async function getActivityLogs(propertyId: string) {
 
 export async function getWorkspaceActivityLogs(workspaceId: string, propertyId?: string | null) {
   const cacheKey = `workspace:${workspaceId}:activity_logs:${propertyId || 'all'}`;
-  const cached = serverCache.get<any[]>(cacheKey);
+  const cached = requestCache.get<any[]>(cacheKey);
   if (cached) return cached;
 
   const supabase = await createClient();
@@ -597,7 +605,7 @@ export async function getWorkspaceActivityLogs(workspaceId: string, propertyId?:
 
   const logItems = (logs || []) as any[];
   if (!logItems.length) {
-    serverCache.set(cacheKey, [], 30_000);
+    requestCache.set(cacheKey, [], 30_000);
     return [];
   }
 
@@ -620,7 +628,7 @@ export async function getWorkspaceActivityLogs(workspaceId: string, propertyId?:
     };
   });
 
-  serverCache.set(cacheKey, result, 30_000);
+  requestCache.set(cacheKey, result, 30_000);
   return result;
 }
 
@@ -724,7 +732,7 @@ function calculateGrowthTrend(
 
 export async function getReportsSummary(propertyId: string) {
   const cacheKey = `property:${propertyId}:dashboard_reports_summary`;
-  const cached = serverCache.get<any>(cacheKey);
+  const cached = requestCache.get<any>(cacheKey);
   if (cached) {
     return cached;
   }
@@ -804,13 +812,13 @@ export async function getReportsSummary(propertyId: string) {
     propertyBreakdown: [],
   };
 
-  serverCache.set(cacheKey, result, 30_000);
+  requestCache.set(cacheKey, result, 30_000);
   return result;
 }
 
 export async function getWorkspaceReportsSummary(workspaceId: string) {
   const cacheKey = `workspace:${workspaceId}:dashboard_reports_summary`;
-  const cached = serverCache.get<any>(cacheKey);
+  const cached = requestCache.get<any>(cacheKey);
   if (cached) {
     return cached;
   }
@@ -970,7 +978,7 @@ export async function getWorkspaceReportsSummary(workspaceId: string) {
     propertyBreakdown,
   };
 
-  serverCache.set(cacheKey, result, 30_000);
+  requestCache.set(cacheKey, result, 30_000);
   return result;
 }
 
@@ -1041,7 +1049,7 @@ export async function getPropertyTeam(propertyId: string) {
 
 export async function getNeedsAttention(propertyId: string) {
   const cacheKey = `property:${propertyId}:needs_attention`;
-  const cached = serverCache.get<any>(cacheKey);
+  const cached = requestCache.get<any>(cacheKey);
   if (cached) {
     return cached;
   }
@@ -1079,13 +1087,13 @@ export async function getNeedsAttention(propertyId: string) {
     vacantUnits: [],
   };
 
-  serverCache.set(cacheKey, result, 30_000);
+  requestCache.set(cacheKey, result, 30_000);
   return result;
 }
 
 export async function getWorkspaceNeedsAttention(workspaceId: string) {
   const cacheKey = `workspace:${workspaceId}:needs_attention`;
-  const cached = serverCache.get<any>(cacheKey);
+  const cached = requestCache.get<any>(cacheKey);
   if (cached) {
     return cached;
   }
@@ -1123,7 +1131,7 @@ export async function getWorkspaceNeedsAttention(workspaceId: string) {
     vacantUnits: [],
   };
 
-  serverCache.set(cacheKey, result, 30_000);
+  requestCache.set(cacheKey, result, 30_000);
   return result;
 }
 

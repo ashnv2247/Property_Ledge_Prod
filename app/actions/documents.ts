@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import {
   UnifiedDocument,
   DocumentStats,
@@ -37,7 +38,7 @@ export async function fetchWorkspaceDocumentsAction(filters?: {
 
     const workspaceId = context.workspaceId;
     const cacheKey = `workspace:${workspaceId}:documents:${filters?.propertyId || 'all'}`;
-    const cached = serverCache.get<{ list: UnifiedDocument[]; stats: DocumentStats }>(cacheKey);
+    const cached = requestCache.get<{ list: UnifiedDocument[]; stats: DocumentStats }>(cacheKey);
     if (cached) {
       const filtered =
         filters?.category && filters.category !== 'all'
@@ -394,7 +395,7 @@ export async function fetchWorkspaceDocumentsAction(filters?: {
       otherCount,
     };
 
-    serverCache.set(cacheKey, { list: unifiedList, stats }, 30_000);
+    requestCache.set(cacheKey, { list: unifiedList, stats }, 30_000);
 
     // Filter if category requested
     let finalData = unifiedList;

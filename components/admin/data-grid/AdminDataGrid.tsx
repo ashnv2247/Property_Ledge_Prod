@@ -1,3 +1,4 @@
+import { shouldPersistColumnEvent } from '@/lib/grid/persistence';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Trash2 } from 'lucide-react';
@@ -355,7 +356,8 @@ export function AdminDataGrid<TData = any>({
     [effectiveGridStateKey, getGridState, isServerSide, syncPaginationFromGrid]
   );
 
-  const onColumnChanged = useCallback(() => {
+  const onColumnChanged = useCallback((event: { type: string; finished?: boolean }) => {
+    if (!shouldPersistColumnEvent(event)) return;
     if (gridApi) {
       try {
         const colState = gridApi.getColumnState();

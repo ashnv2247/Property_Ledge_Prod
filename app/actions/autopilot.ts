@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth/queries';
 import { authorizeOrThrow } from '@/lib/auth/authorize';
 import { createAdminClient } from '@/lib/supabase/server';
 import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import { calculateNextDueDate, calculateOverdueAndLate } from '@/lib/activity/recurrence';
 import type {
   AutopilotConfig,
@@ -929,7 +930,7 @@ export async function fetchAutopilotDashboardAction(filters?: {
       : null;
 
     if (cacheKey) {
-      const cached = serverCache.get<AutopilotDashboardData>(cacheKey);
+      const cached = requestCache.get<AutopilotDashboardData>(cacheKey);
       if (cached) {
         return { success: true, data: cached };
       }
@@ -1297,7 +1298,7 @@ export async function fetchAutopilotDashboardAction(filters?: {
     };
 
     if (cacheKey) {
-      serverCache.set(cacheKey, dashboardData, 30_000);
+      requestCache.set(cacheKey, dashboardData, 30_000);
     }
 
     return {

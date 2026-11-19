@@ -1,0 +1,13 @@
+{
+  "scenario": "Synthetic 300-event column drag, 30 columns, 50 measured runs; real Zustand store. No browser, storage I/O, network, or rendering measured.",
+  "before": {
+    "stateWrites": 300,
+    "medianMs": 1.8210000000000264,
+    "p95Ms": 5.831399999999974
+  },
+  "after": {
+    "stateWrites": 1,
+    "medianMs": 0.052099999999995816,
+    "p95Ms": 0.09699999999997999
+  }
+}

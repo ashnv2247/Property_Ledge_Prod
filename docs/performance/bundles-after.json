@@ -1,0 +1,554 @@
+{
+  "capturedAt": "2026-11-17T21:24:24.825Z",
+  "note": "Manifest entry JS only; not browser total transfer, RSC payload, or deferred chunks.",
+  "pages": {
+    "/_not-found/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/global-error": {
+      "rawBytes": 359596,
+      "gzipBytes": 106639
+    },
+    "/not-found": {
+      "rawBytes": 700732,
+      "gzipBytes": 209449
+    },
+    "/layout": {
+      "rawBytes": 389304,
+      "gzipBytes": 115834
+    },
+    "/error": {
+      "rawBytes": 368845,
+      "gzipBytes": 110238
+    },
+    "/loading": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/admin/notifications/dispatch-emails/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/automation/process/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/cron/evaluate-automations/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/invoices/[id]/docx/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/properties/[id]/expenses/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/invoices/[id]/pdf/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/properties/[id]/performance/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/properties/[id]/export-pdf/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/properties/[id]/summary/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/properties/accessible/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/transactions/[transactionId]/receipt/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/workspaces/accessible/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/webhooks/billing/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/auth/callback/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/api/cron/process-email-schedules/route": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(marketing)/page": {
+      "rawBytes": 1221981,
+      "gzipBytes": 350490
+    },
+    "/audit-templates/page": {
+      "rawBytes": 773709,
+      "gzipBytes": 222517
+    },
+    "/invite/[token]/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/join/[token]/page": {
+      "rawBytes": 700845,
+      "gzipBytes": 209541
+    },
+    "/properties/[id]/accountant-report/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(auth)/forgot-password/page": {
+      "rawBytes": 389808,
+      "gzipBytes": 115111
+    },
+    "/(auth)/reset-password/page": {
+      "rawBytes": 392952,
+      "gzipBytes": 115895
+    },
+    "/(auth)/login/page": {
+      "rawBytes": 647118,
+      "gzipBytes": 183920
+    },
+    "/(auth)/signup/page": {
+      "rawBytes": 652708,
+      "gzipBytes": 184991
+    },
+    "/(auth)/verify-email/page": {
+      "rawBytes": 387260,
+      "gzipBytes": 114478
+    },
+    "/(marketing)/solutions/owners/page": {
+      "rawBytes": 1087113,
+      "gzipBytes": 303801
+    },
+    "/checkout/page": {
+      "rawBytes": 408458,
+      "gzipBytes": 119012
+    },
+    "/profile/page": {
+      "rawBytes": 1013012,
+      "gzipBytes": 291972
+    },
+    "/pricing/page": {
+      "rawBytes": 363863,
+      "gzipBytes": 108210
+    },
+    "/(app)/layout": {
+      "rawBytes": 1071624,
+      "gzipBytes": 307036
+    },
+    "/(app)/error": {
+      "rawBytes": 700799,
+      "gzipBytes": 209679
+    },
+    "/(app)/dashboard/loading": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(app)/dashboard/condition-reports/[id]/page": {
+      "rawBytes": 854530,
+      "gzipBytes": 240834
+    },
+    "/(app)/dashboard/condition-report-wizard/[id]/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(app)/dashboard/inspections/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(app)/dashboard/invoices/templates/[id]/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(app)/dashboard/inspections/[id]/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(app)/dashboard/invoices/templates/page": {
+      "rawBytes": 906281,
+      "gzipBytes": 255989
+    },
+    "/(app)/dashboard/leases/[leaseId]/page": {
+      "rawBytes": 822659,
+      "gzipBytes": 246722
+    },
+    "/(app)/dashboard/maintenance/[id]/page": {
+      "rawBytes": 734164,
+      "gzipBytes": 219840
+    },
+    "/(app)/dashboard/leases/[leaseId]/renew/page": {
+      "rawBytes": 747075,
+      "gzipBytes": 223921
+    },
+    "/(app)/dashboard/money/loading": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(app)/dashboard/money/templates/page": {
+      "rawBytes": 784075,
+      "gzipBytes": 229790
+    },
+    "/(app)/dashboard/maintenance/page": {
+      "rawBytes": 489672,
+      "gzipBytes": 149027
+    },
+    "/(app)/dashboard/people/[tenantId]/page": {
+      "rawBytes": 803006,
+      "gzipBytes": 241789
+    },
+    "/(app)/dashboard/payments/page": {
+      "rawBytes": 1944155,
+      "gzipBytes": 559129
+    },
+    "/(app)/dashboard/properties/loading": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(app)/dashboard/properties/[id]/units/[unitId]/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(app)/dashboard/properties/new/page": {
+      "rawBytes": 353963,
+      "gzipBytes": 104326
+    },
+    "/(app)/dashboard/properties/[id]/page": {
+      "rawBytes": 2092460,
+      "gzipBytes": 600589
+    },
+    "/(app)/dashboard/properties/[id]/accountant-report/page": {
+      "rawBytes": 415258,
+      "gzipBytes": 119103
+    },
+    "/(app)/dashboard/tenants/page": {
+      "rawBytes": 1976348,
+      "gzipBytes": 566581
+    },
+    "/(app)/dashboard/team/loading": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(app)/dashboard/team/roles/page": {
+      "rawBytes": 2001383,
+      "gzipBytes": 574538
+    },
+    "/(app)/dashboard/units/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(app)/dashboard/automations/page": {
+      "rawBytes": 1956997,
+      "gzipBytes": 560722
+    },
+    "/(app)/dashboard/accountant-reports/page": {
+      "rawBytes": 581299,
+      "gzipBytes": 173973
+    },
+    "/(app)/dashboard/activity/page": {
+      "rawBytes": 2038579,
+      "gzipBytes": 579214
+    },
+    "/(app)/dashboard/bas/page": {
+      "rawBytes": 1980691,
+      "gzipBytes": 564549
+    },
+    "/(app)/dashboard/autopilot/create/page": {
+      "rawBytes": 572233,
+      "gzipBytes": 174735
+    },
+    "/(app)/dashboard/autopilot/manage/[propertyId]/page": {
+      "rawBytes": 578919,
+      "gzipBytes": 175779
+    },
+    "/(app)/dashboard/expenses/page": {
+      "rawBytes": 1963978,
+      "gzipBytes": 563672
+    },
+    "/(app)/dashboard/condition-reports/page": {
+      "rawBytes": 779100,
+      "gzipBytes": 230593
+    },
+    "/(app)/dashboard/documents/page": {
+      "rawBytes": 773629,
+      "gzipBytes": 228563
+    },
+    "/(app)/dashboard/financial-years/page": {
+      "rawBytes": 745714,
+      "gzipBytes": 220841
+    },
+    "/(app)/dashboard/autopilot/manage/page": {
+      "rawBytes": 590700,
+      "gzipBytes": 179324
+    },
+    "/(app)/dashboard/autopilot/page": {
+      "rawBytes": 466042,
+      "gzipBytes": 138781
+    },
+    "/(app)/dashboard/invoices/page": {
+      "rawBytes": 1980026,
+      "gzipBytes": 566566
+    },
+    "/(app)/dashboard/invoices/schedule-email/page": {
+      "rawBytes": 1945913,
+      "gzipBytes": 558347
+    },
+    "/(app)/dashboard/leases/page": {
+      "rawBytes": 1977145,
+      "gzipBytes": 564556
+    },
+    "/(app)/dashboard/page": {
+      "rawBytes": 799139,
+      "gzipBytes": 235034
+    },
+    "/(app)/dashboard/money/page": {
+      "rawBytes": 1967478,
+      "gzipBytes": 563191
+    },
+    "/(app)/dashboard/people/page": {
+      "rawBytes": 1976348,
+      "gzipBytes": 566581
+    },
+    "/(app)/dashboard/schedules/page": {
+      "rawBytes": 1962189,
+      "gzipBytes": 562228
+    },
+    "/(app)/dashboard/properties/page": {
+      "rawBytes": 1988739,
+      "gzipBytes": 571041
+    },
+    "/(app)/dashboard/reports/page": {
+      "rawBytes": 2037382,
+      "gzipBytes": 570579
+    },
+    "/(app)/dashboard/team/page": {
+      "rawBytes": 2014578,
+      "gzipBytes": 578293
+    },
+    "/(app)/dashboard/tasks/page": {
+      "rawBytes": 2038579,
+      "gzipBytes": 579214
+    },
+    "/(app)/subscription/page": {
+      "rawBytes": 711800,
+      "gzipBytes": 212638
+    },
+    "/admin/layout": {
+      "rawBytes": 1030306,
+      "gzipBytes": 296187
+    },
+    "/admin/error": {
+      "rawBytes": 368872,
+      "gzipBytes": 110136
+    },
+    "/admin/loading": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/admin/organizations/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/admin/notifications/page": {
+      "rawBytes": 724178,
+      "gzipBytes": 215892
+    },
+    "/admin/payments/page": {
+      "rawBytes": 1912727,
+      "gzipBytes": 549922
+    },
+    "/admin/users/loading": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/admin/users/page": {
+      "rawBytes": 1921298,
+      "gzipBytes": 552060
+    },
+    "/admin/subscriptions/page": {
+      "rawBytes": 1915256,
+      "gzipBytes": 550587
+    },
+    "/admin/entitlements/page": {
+      "rawBytes": 1979823,
+      "gzipBytes": 566984
+    },
+    "/admin/activity/page": {
+      "rawBytes": 1912878,
+      "gzipBytes": 549548
+    },
+    "/admin/audit-logs/page": {
+      "rawBytes": 1912313,
+      "gzipBytes": 549642
+    },
+    "/admin/page": {
+      "rawBytes": 700845,
+      "gzipBytes": 209541
+    },
+    "/admin/billing-events/page": {
+      "rawBytes": 1911394,
+      "gzipBytes": 549245
+    },
+    "/admin/plans/[id]/page": {
+      "rawBytes": 700845,
+      "gzipBytes": 209542
+    },
+    "/admin/platform-roles/page": {
+      "rawBytes": 1982780,
+      "gzipBytes": 569274
+    },
+    "/admin/plans/page": {
+      "rawBytes": 1918178,
+      "gzipBytes": 551414
+    },
+    "/admin/team-roles/page": {
+      "rawBytes": 1980007,
+      "gzipBytes": 568528
+    },
+    "/admin/subscriptions/[id]/page": {
+      "rawBytes": 709076,
+      "gzipBytes": 211852
+    },
+    "/onboarding/layout": {
+      "rawBytes": 543093,
+      "gzipBytes": 164467
+    },
+    "/onboarding/error": {
+      "rawBytes": 368723,
+      "gzipBytes": 110164
+    },
+    "/onboarding/loading": {
+      "rawBytes": 382652,
+      "gzipBytes": 113408
+    },
+    "/onboarding/page": {
+      "rawBytes": 535423,
+      "gzipBytes": 164747
+    },
+    "/onboarding/leases/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/onboarding/plan/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/onboarding/member/page": {
+      "rawBytes": 730064,
+      "gzipBytes": 217603
+    },
+    "/onboarding/property/page": {
+      "rawBytes": 539101,
+      "gzipBytes": 164667
+    },
+    "/onboarding/profile/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/onboarding/team/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/onboarding/workspace/page": {
+      "rawBytes": 524074,
+      "gzipBytes": 159842
+    },
+    "/onboarding/tenants/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/onboarding/complete/page": {
+      "rawBytes": 492751,
+      "gzipBytes": 149931
+    },
+    "/onboarding/units/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/onboarding/plans/page": {
+      "rawBytes": 531256,
+      "gzipBytes": 162986
+    },
+    "/onboarding/subscription/page": {
+      "rawBytes": 528674,
+      "gzipBytes": 162211
+    },
+    "/onboarding/payment/page": {
+      "rawBytes": 531462,
+      "gzipBytes": 161624
+    },
+    "/tenant/layout": {
+      "rawBytes": 1030486,
+      "gzipBytes": 296346
+    },
+    "/tenant/error": {
+      "rawBytes": 368806,
+      "gzipBytes": 110114
+    },
+    "/tenant/documents/page": {
+      "rawBytes": 700727,
+      "gzipBytes": 209446
+    },
+    "/tenant/maintenance/page": {
+      "rawBytes": 700760,
+      "gzipBytes": 209528
+    },
+    "/tenant/page": {
+      "rawBytes": 700845,
+      "gzipBytes": 209541
+    },
+    "/tenant/notifications/page": {
+      "rawBytes": 700760,
+      "gzipBytes": 209528
+    },
+    "/tenant/rent/page": {
+      "rawBytes": 700760,
+      "gzipBytes": 209528
+    },
+    "/tenant/profile/page": {
+      "rawBytes": 700760,
+      "gzipBytes": 209527
+    },
+    "/(app)/dashboard/settings/layout": {
+      "rawBytes": 724161,
+      "gzipBytes": 216564
+    },
+    "/(app)/dashboard/settings/notifications/page": {
+      "rawBytes": 702251,
+      "gzipBytes": 210265
+    },
+    "/(app)/dashboard/settings/team/roles/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(app)/dashboard/settings/security/page": {
+      "rawBytes": 703848,
+      "gzipBytes": 210652
+    },
+    "/(app)/dashboard/settings/team/page": {
+      "rawBytes": 353497,
+      "gzipBytes": 104092
+    },
+    "/(app)/dashboard/settings/workspace/page": {
+      "rawBytes": 701603,
+      "gzipBytes": 209941
+    },
+    "/(app)/dashboard/settings/page": {
+      "rawBytes": 726862,
+      "gzipBytes": 216963
+    },
+    "/(app)/dashboard/settings/subscription/page": {
+      "rawBytes": 711800,
+      "gzipBytes": 212638
+    }
+  }
+}

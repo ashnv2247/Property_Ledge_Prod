@@ -53,32 +53,25 @@ export const getSetupProgress = cache(async function getSetupProgress(userId: st
 
   const [{ data: workspaces }, { data: properties }, subscription] = await Promise.all([
     supabase.from('workspaces').select('id').eq('owner_id', userId).eq('status', 'active').limit(1),
-    supabase.from('properties').select('id, workspace_id').eq('owner_id', userId).eq('status', 'active'),
+    supabase.from('properties').select('id').eq('owner_id', userId).eq('status', 'active').limit(1),
     getSubscription(userId),
   ]);
 
   const workspaceId = (workspaces?.[0] as { id?: string } | undefined)?.id;
-  const propertyIds = (properties || []).map((p) => (p as { id: string }).id);
   const propertyList = properties || [];
 
   // Consolidate second tier into a single parallel batch using fast existence checks (.limit(1) / .limit(2))
   // rather than expensive full-table/index count scans
-  const [unitsRes, tenantsRes, leasesRes, membersRes] = await Promise.all([
-    propertyIds.length > 0
-      ? (supabase as any).from('units').select('id').in('property_id', propertyIds).limit(1)
-      : Promise.resolve({ data: [] }),
-    propertyIds.length > 0
-      ? (supabase as any).from('tenants').select('id').in('property_id', propertyIds).limit(1)
-      : Promise.resolve({ data: [] }),
-    propertyIds.length > 0
-      ? (supabase as any).from('leases').select('id').in('property_id', propertyIds).limit(1)
-      : Promise.resolve({ data: [] }),
+  const [tenantsRes, leasesRes, membersRes] = await Promise.all([
+    supabase.from('tenants').select('id, properties!inner(owner_id, status)')
+      .eq('properties.owner_id', userId).eq('properties.status', 'active').limit(1),
+    supabase.from('leases').select('id, properties!inner(owner_id, status)')
+      .eq('properties.owner_id', userId).eq('properties.status', 'active').limit(1),
     workspaceId
       ? (supabase as any).from('workspace_members').select('id').eq('workspace_id', workspaceId).eq('status', 'active').limit(2)
       : Promise.resolve({ data: [] }),
   ]);
 
-  const hasUnits = (unitsRes.data?.length ?? 0) > 0;
   const hasTenants = (tenantsRes.data?.length ?? 0) > 0;
   const hasLeases = (leasesRes.data?.length ?? 0) > 0;
   const hasTeam = (membersRes.data?.length ?? 0) > 1;

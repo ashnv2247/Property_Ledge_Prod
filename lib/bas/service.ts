@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import {
   TransactionDTO,
   BasPeriod,
@@ -390,7 +391,7 @@ export async function getBasPageData(params: {
 }): Promise<BasPageData> {
   const { workspaceId, propertyId, financialYear, period } = params;
   const cacheKey = `workspace:${workspaceId}:bas_page:${propertyId || 'all'}:${financialYear}:${period}`;
-  const cached = serverCache.get<BasPageData>(cacheKey);
+  const cached = requestCache.get<BasPageData>(cacheKey);
   if (cached) {
     return cached;
   }
@@ -442,6 +443,6 @@ export async function getBasPageData(params: {
     availableYears,
   };
 
-  serverCache.set(cacheKey, result, 30_000);
+  requestCache.set(cacheKey, result, 30_000);
   return result;
 }

@@ -1,0 +1,268 @@
+{
+  "errors": 38,
+  "warnings": 94,
+  "failures": [
+    {
+      "path": "app/actions/activities.ts",
+      "errors": [
+        {
+          "rule": "prefer-const",
+          "line": 192
+        }
+      ]
+    },
+    {
+      "path": "components/activity/ActivityMyView.tsx",
+      "errors": [
+        {
+          "rule": "react/no-unescaped-entities",
+          "line": 152
+        }
+      ]
+    },
+    {
+      "path": "components/dashboard/inspections/ConditionReportWizard.tsx",
+      "errors": [
+        {
+          "rule": "react/no-unescaped-entities",
+          "line": 2777
+        },
+        {
+          "rule": "react/no-unescaped-entities",
+          "line": 2777
+        }
+      ]
+    },
+    {
+      "path": "components/dashboard/leases/LeaseManagementPage.tsx",
+      "errors": [
+        {
+          "rule": "prefer-const",
+          "line": 281
+        }
+      ]
+    },
+    {
+      "path": "components/dashboard/workflows/CreateLeaseWizard.tsx",
+      "errors": [
+        {
+          "rule": "react/no-unescaped-entities",
+          "line": 587
+        },
+        {
+          "rule": "react/no-unescaped-entities",
+          "line": 587
+        }
+      ]
+    },
+    {
+      "path": "components/finance/BulkExpenseUploadModal.tsx",
+      "errors": [
+        {
+          "rule": "@typescript-eslint/ban-ts-comment",
+          "line": 1167
+        }
+      ]
+    },
+    {
+      "path": "components/finance/LedgerReportModal.tsx",
+      "errors": [
+        {
+          "rule": "prefer-const",
+          "line": 165
+        },
+        {
+          "rule": "prefer-const",
+          "line": 196
+        }
+      ]
+    },
+    {
+      "path": "components/finance/LinkTransactionModal.tsx",
+      "errors": [
+        {
+          "rule": "react/no-unescaped-entities",
+          "line": 368
+        },
+        {
+          "rule": "react/no-unescaped-entities",
+          "line": 369
+        },
+        {
+          "rule": "react/no-unescaped-entities",
+          "line": 400
+        }
+      ]
+    },
+    {
+      "path": "components/finance/MultiAllocationModal.tsx",
+      "errors": [
+        {
+          "rule": "prefer-const",
+          "line": 132
+        }
+      ]
+    },
+    {
+      "path": "components/finance/accountant-reports/RentalScheduleTab.tsx",
+      "errors": [
+        {
+          "rule": "react/no-unescaped-entities",
+          "line": 99
+        }
+      ]
+    },
+    {
+      "path": "components/invoices/CreateInvoiceModal.tsx",
+      "errors": [
+        {
+          "rule": "react-hooks/rules-of-hooks",
+          "line": 410
+        },
+        {
+          "rule": "react-hooks/rules-of-hooks",
+          "line": 487
+        }
+      ]
+    },
+    {
+      "path": "components/invoices/InvoiceTemplateModal.tsx",
+      "errors": [
+        {
+          "rule": "react/no-unescaped-entities",
+          "line": 824
+        },
+        {
+          "rule": "react/no-unescaped-entities",
+          "line": 824
+        }
+      ]
+    },
+    {
+      "path": "components/ui/contact-with-globe.tsx",
+      "errors": [
+        {
+          "rule": "react/no-unescaped-entities",
+          "line": 818
+        }
+      ]
+    },
+    {
+      "path": "lib/finance/accountant-reports-consolidated-service.ts",
+      "errors": [
+        {
+          "rule": "prefer-const",
+          "line": 451
+        }
+      ]
+    },
+    {
+      "path": "modules/automation/application/actions/generate-and-send-invoice-action.ts",
+      "errors": [
+        {
+          "rule": "no-restricted-imports",
+          "line": 5
+        },
+        {
+          "rule": "prefer-const",
+          "line": 97
+        }
+      ]
+    },
+    {
+      "path": "modules/automation/application/actions/send-invoice-action.ts",
+      "errors": [
+        {
+          "rule": "no-restricted-imports",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "path": "modules/automation/domain/services/schedule-calculator.ts",
+      "errors": [
+        {
+          "rule": "prefer-const",
+          "line": 84
+        }
+      ]
+    },
+    {
+      "path": "modules/invoices/application/services/invoice-document-service.ts",
+      "errors": [
+        {
+          "rule": "no-restricted-imports",
+          "line": 9
+        },
+        {
+          "rule": "no-restricted-imports",
+          "line": 15
+        },
+        {
+          "rule": "no-restricted-imports",
+          "line": 16
+        },
+        {
+          "rule": "no-restricted-imports",
+          "line": 17
+        }
+      ]
+    },
+    {
+      "path": "tests/unit/autopilot-activity-driven.spec.ts",
+      "errors": [
+        {
+          "rule": "prefer-const",
+          "line": 114
+        }
+      ]
+    },
+    {
+      "path": "tests/unit/condition-reports.spec.ts",
+      "errors": [
+        {
+          "rule": "@typescript-eslint/no-require-imports",
+          "line": 308
+        },
+        {
+          "rule": "@typescript-eslint/no-require-imports",
+          "line": 373
+        }
+      ]
+    },
+    {
+      "path": "tests/unit/persistent-navigation.spec.ts",
+      "errors": [
+        {
+          "rule": "prefer-const",
+          "line": 184
+        },
+        {
+          "rule": "prefer-const",
+          "line": 185
+        },
+        {
+          "rule": "prefer-const",
+          "line": 186
+        },
+        {
+          "rule": "prefer-const",
+          "line": 245
+        },
+        {
+          "rule": "prefer-const",
+          "line": 246
+        }
+      ]
+    },
+    {
+      "path": "tests/unit/schedule-email.spec.ts",
+      "errors": [
+        {
+          "rule": "prefer-const",
+          "line": 139
+        }
+      ]
+    }
+  ]
+}

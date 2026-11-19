@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import {
   InvoiceEmailScheduleDTO,
   InvoiceScheduledEmailJobDTO,
@@ -352,7 +353,7 @@ export class InvoiceScheduleService {
       : null;
 
     if (cacheKey) {
-      const cached = serverCache.get<{
+      const cached = requestCache.get<{
         items: InvoiceEmailScheduleDTO[];
         total: number;
         page: number;
@@ -449,7 +450,7 @@ export class InvoiceScheduleService {
       limit,
     };
     if (cacheKey) {
-      serverCache.set(cacheKey, result, 30_000);
+      requestCache.set(cacheKey, result, 30_000);
     }
     return result;
   }
@@ -459,7 +460,7 @@ export class InvoiceScheduleService {
    */
   async getScheduleStats(workspaceId: string): Promise<ScheduleEmailStatsDTO> {
     const cacheKey = `workspace:${workspaceId}:invoice_schedule_stats`;
-    const cached = serverCache.get<ScheduleEmailStatsDTO>(cacheKey);
+    const cached = requestCache.get<ScheduleEmailStatsDTO>(cacheKey);
     if (cached) return cached;
 
     const supabase: any = await createAdminClient();
@@ -499,7 +500,7 @@ export class InvoiceScheduleService {
       emailsPending,
       emailsFailed,
     };
-    serverCache.set(cacheKey, result, 30_000);
+    requestCache.set(cacheKey, result, 30_000);
     return result;
   }
 

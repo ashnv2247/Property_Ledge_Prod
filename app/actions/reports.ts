@@ -3,7 +3,7 @@
 import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import { createClient } from '@/lib/supabase/server';
-import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import {
   FinanceReportType,
   FinanceReportFilters,
@@ -183,7 +183,7 @@ export async function exportReportPdfAction(
 export async function fetchReportFilterOptionsAction() {
   const { context } = await getAuthContext();
   const cacheKey = `workspace:${context.workspaceId}:report_filter_options`;
-  const cached = serverCache.get<any>(cacheKey);
+  const cached = requestCache.get<any>(cacheKey);
   if (cached) return cached;
 
   const supabase = await createClient();
@@ -210,6 +210,6 @@ export async function fetchReportFilterOptionsAction() {
     taxClassifications: taxClassRes.data || [],
   };
 
-  serverCache.set(cacheKey, result, 60_000);
+  requestCache.set(cacheKey, result, 60_000);
   return result;
 }

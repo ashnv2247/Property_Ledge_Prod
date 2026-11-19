@@ -5,6 +5,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/auth/queries';
 import { resolveWorkspaceContext } from '@/lib/workspace/context';
 import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import {
   ConditionReport,
   FullConditionReportData,
@@ -36,7 +37,7 @@ export async function fetchConditionReportsAction(
       return { success: false, error: 'No active workspace' };
 
     const cacheKey = `workspace:${context.workspaceId}:condition_reports:${propertyId || 'all'}`;
-    const cached = serverCache.get<ConditionReport[]>(cacheKey);
+    const cached = requestCache.get<ConditionReport[]>(cacheKey);
     if (cached) {
       return { success: true, data: cached };
     }
@@ -64,7 +65,7 @@ export async function fetchConditionReportsAction(
     if (error) throw error;
 
     const result = (data as ConditionReport[]) || [];
-    serverCache.set(cacheKey, result, 30_000);
+    requestCache.set(cacheKey, result, 30_000);
     return { success: true, data: result };
   } catch (err: any) {
     console.error('[FETCH_CONDITION_REPORTS_ERROR]', err);

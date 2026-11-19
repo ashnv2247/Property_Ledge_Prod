@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import {
   FinanceReportFilters,
   FinancialOverviewReportDTO,
@@ -58,7 +58,7 @@ async function fetchFilteredTransactions(filters: FinanceReportFilters): Promise
     : null;
 
   if (cacheKey) {
-    const cached = serverCache.get<TransactionDTO[]>(cacheKey);
+    const cached = requestCache.get<TransactionDTO[]>(cacheKey);
     if (cached) {
       return { transactions: cached, dateRange };
     }
@@ -157,7 +157,7 @@ async function fetchFilteredTransactions(filters: FinanceReportFilters): Promise
   }
 
   if (cacheKey) {
-    serverCache.set(cacheKey, transactions, 30_000);
+    requestCache.set(cacheKey, transactions, 30_000);
   }
 
   return { transactions, dateRange };

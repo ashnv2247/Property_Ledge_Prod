@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import {
   ExpectedPaymentScheduleDTO,
   TransactionScheduleAllocationDTO,
@@ -36,7 +37,7 @@ export async function getExpectedPaymentSchedules(
     : null;
 
   if (cacheKey) {
-    const cached = serverCache.get<ExpectedPaymentScheduleDTO[]>(cacheKey);
+    const cached = requestCache.get<ExpectedPaymentScheduleDTO[]>(cacheKey);
     if (cached) return cached;
   }
 
@@ -203,7 +204,7 @@ export async function getExpectedPaymentSchedules(
   }
 
   if (cacheKey) {
-    serverCache.set(cacheKey, results, 30_000);
+    requestCache.set(cacheKey, results, 30_000);
   }
 
   return results;

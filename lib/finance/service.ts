@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import {
   CategoryDTO,
   TransactionDTO,
@@ -76,7 +77,7 @@ export async function getTransactions(
     : null;
 
   if (cacheKey) {
-    const cached = serverCache.get<TransactionDTO[]>(cacheKey);
+    const cached = requestCache.get<TransactionDTO[]>(cacheKey);
     if (cached) return cached;
   }
 
@@ -177,7 +178,7 @@ export async function getTransactions(
 
   const result = (data || []) as unknown as TransactionDTO[];
   if (cacheKey) {
-    serverCache.set(cacheKey, result, 30_000);
+    requestCache.set(cacheKey, result, 30_000);
   }
   return result;
 }

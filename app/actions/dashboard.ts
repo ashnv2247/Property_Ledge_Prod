@@ -24,7 +24,7 @@ export async function fetchDashboardDataAction(propertyId?: string | null) {
       queries.getDashboardOverview(propertyId),
       queries.getNeedsAttention(propertyId),
       queries.getReportsSummary(propertyId),
-      queries.getLeases(propertyId),
+      queries.getDashboardUpcomingLeases({ propertyId }),
     ]);
     return { overview, needsAttention, reports, leases };
   }
@@ -37,7 +37,7 @@ export async function fetchDashboardDataAction(propertyId?: string | null) {
     queries.getWorkspaceDashboardOverview(workspaceId),
     queries.getWorkspaceNeedsAttention(workspaceId),
     queries.getWorkspaceReportsSummary(workspaceId),
-    queries.getAllWorkspaceLeases(workspaceId),
+    queries.getDashboardUpcomingLeases({ workspaceId }),
   ]);
 
 

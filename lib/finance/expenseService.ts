@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { serverCache } from '@/lib/cache/server-cache';
+import { requestCache } from '@/lib/cache/request-cache';
 import {
   ExpenseDTO,
   CreateExpenseInput,
@@ -31,7 +32,7 @@ export async function getExpenses(
     : null;
 
   if (cacheKey) {
-    const cached = serverCache.get<ExpenseDTO[]>(cacheKey);
+    const cached = requestCache.get<ExpenseDTO[]>(cacheKey);
     if (cached) return cached;
   }
 
@@ -185,7 +186,7 @@ export async function getExpenses(
   }
 
   if (cacheKey) {
-    serverCache.set(cacheKey, results, 30_000);
+    requestCache.set(cacheKey, results, 30_000);
   }
 
   return results;
