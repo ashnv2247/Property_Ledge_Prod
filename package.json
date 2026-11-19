@@ -4,6 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.20.0",
   "scripts": {
+    "postinstall": "node scripts/build-chromium-pack.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -18,7 +19,7 @@
     "@phosphor-icons/react": "2.1.0",
     "@radix-ui/react-separator": "^1.1.16",
     "@radix-ui/react-slot": "^1.4.0",
-    "@sparticuz/chromium": "153.0.0",
+    "@sparticuz/chromium-min": "153.0.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.48.1",
     "@types/pg": "^8.23.1",
@@ -51,6 +52,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.6",
     "@playwright/test": "^1.62.1",
+    "@sparticuz/chromium": "153.0.0",
     "@types/d3": "^7.4.3",
     "@types/node": "^20.17.19",
     "@types/react": "^19.0.8",

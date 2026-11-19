@@ -58,10 +58,39 @@ function isServerlessRuntime(): boolean {
   );
 }
 
+let serverlessExecutablePathPromise: Promise<string> | null = null;
+
+function getChromiumPackUrl(): string {
+  const configuredUrl = process.env.CHROMIUM_PACK_URL?.trim();
+  if (configuredUrl) return configuredUrl;
+
+  const vercelHost = process.env.VERCEL_URL?.trim();
+  if (!vercelHost) {
+    throw new Error('CHROMIUM_PACK_URL or VERCEL_URL is required for serverless PDF rendering');
+  }
+
+  return `https://${vercelHost.replace(/^https?:\/\//, '').replace(/\/$/, '')}/chromium-pack.tar`;
+}
+
+async function getServerlessExecutablePath(serverlessChromium: {
+  executablePath: (location: string) => Promise<string>;
+}): Promise<string> {
+  if (!serverlessExecutablePathPromise) {
+    serverlessExecutablePathPromise = serverlessChromium
+      .executablePath(getChromiumPackUrl())
+      .catch((error) => {
+        serverlessExecutablePathPromise = null;
+        throw error;
+      });
+  }
+
+  return serverlessExecutablePathPromise;
+}
+
 async function launchCanonicalBrowser(): Promise<any> {
   if (isServerlessRuntime()) {
     const [{ default: serverlessChromium }, { default: puppeteer }] = await Promise.all([
-      import('@sparticuz/chromium'),
+      import('@sparticuz/chromium-min'),
       import('puppeteer-core'),
     ]);
 
@@ -77,7 +106,7 @@ async function launchCanonicalBrowser(): Promise<any> {
         height: 1123,
         deviceScaleFactor: 1,
       },
-      executablePath: await serverlessChromium.executablePath(),
+      executablePath: await getServerlessExecutablePath(serverlessChromium),
       headless: 'shell',
     });
   }
