@@ -2,7 +2,25 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ['@playwright/test', 'playwright', 'playwright-core', 'pdf-lib', 'docx', 'jspdf'],
+  serverExternalPackages: [
+    '@playwright/test',
+    'playwright',
+    'playwright-core',
+    'puppeteer-core',
+    '@sparticuz/chromium',
+    'pdf-lib',
+    'docx',
+    'jspdf',
+  ],
+  outputFileTracingIncludes: {
+    '/api/invoices/[id]/pdf': ['./node_modules/@sparticuz/chromium/bin/**/*'],
+    '/api/cron/process-email-schedules': ['./node_modules/@sparticuz/chromium/bin/**/*'],
+    '/api/cron/evaluate-automations': ['./node_modules/@sparticuz/chromium/bin/**/*'],
+    '/api/automation/process': ['./node_modules/@sparticuz/chromium/bin/**/*'],
+    '/dashboard/invoices': ['./node_modules/@sparticuz/chromium/bin/**/*'],
+    '/dashboard/invoices/schedule-email': ['./node_modules/@sparticuz/chromium/bin/**/*'],
+    '/dashboard/automations': ['./node_modules/@sparticuz/chromium/bin/**/*'],
+  },
   experimental: {
     optimizePackageImports: [
       'lucide-react',

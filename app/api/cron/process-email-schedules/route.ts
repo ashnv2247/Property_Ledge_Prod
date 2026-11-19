@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { invoiceScheduleService } from '@/lib/invoices/schedule-service';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   try {

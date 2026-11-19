@@ -33,7 +33,7 @@ const BASE_PAGE_STYLES = `
   }
   @page {
     size: A4 portrait;
-    margin: 12mm 12mm 14mm 12mm;
+    margin: 0;
   }
   thead {
     display: table-header-group;

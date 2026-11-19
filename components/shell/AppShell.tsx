@@ -45,7 +45,7 @@ export function isNavActive(
   if (pathname !== path) {
     if (exact) return false;
     if (path === homeHref) return false;
-    return pathname.startsWith(path);
+    return pathname.startsWith(`${path}/`);
   }
 
   if (hrefQuery) {
@@ -61,6 +61,25 @@ export function isNavActive(
   }
 
   return true;
+}
+
+export function getActiveNavHref(
+  pathname: string,
+  search: string,
+  items: Array<{ href: string; exact?: boolean }>,
+  homeHref = '/dashboard'
+) {
+  const matches = items.filter((item) =>
+    isNavActive(pathname, search, item.href, homeHref, item.exact)
+  );
+
+  if (matches.length === 0) return null;
+
+  // Nested routes can match both a section overview and a more specific child.
+  // Prefer the most specific href so only one navigation button is selected.
+  return matches.reduce((mostSpecific, item) =>
+    item.href.length > mostSpecific.href.length ? item : mostSpecific
+  ).href;
 }
 
 function NavBadge({
@@ -118,9 +137,10 @@ function TreeNavItem({
 
   // Check if any child or direct item is active
   const isDirectActive = item.href ? isNavActive(pathname, search, item.href, homeHref, item.exact) : false;
-  const isChildActive = hasChildren && item.children!.some((child) =>
-    isNavActive(pathname, search, child.href, homeHref, child.exact)
-  );
+  const activeChildHref = hasChildren
+    ? getActiveNavHref(pathname, search, item.children!, homeHref)
+    : null;
+  const isChildActive = activeChildHref !== null;
   const isParentSelected = isDirectActive || isChildActive;
 
   // Expanded state (supports controlled mode or local fallback)
@@ -199,7 +219,7 @@ function TreeNavItem({
             className={cn(
               'group relative flex items-center justify-between rounded-xl text-[14px] font-medium transition-all duration-150 cursor-pointer w-full px-3 py-2 min-h-[40px]',
               isDirectActive
-                ? 'bg-[#0E1E33] text-white font-semibold shadow-xs border border-[#1E293B]'
+                ? 'bg-[#008F83] text-white font-semibold shadow-xs border border-[#00A99D]/50'
                 : 'text-[#94A3B8] hover:text-white hover:bg-[#0E1E33]/60'
             )}
             aria-current={isDirectActive ? 'page' : undefined}
@@ -292,7 +312,7 @@ function TreeNavItem({
 
               <div className="space-y-1">
                 {item.children!.map((child) => {
-                  const isChildItemActive = isNavActive(pathname, search, child.href, homeHref, child.exact);
+                  const isChildItemActive = child.href === activeChildHref;
                   return (
                     <div key={child.href} className="relative group/child flex items-center">
                       {/* Horizontal Connector Branch */}
@@ -309,7 +329,7 @@ function TreeNavItem({
                         className={cn(
                           'relative flex items-center justify-between w-full ml-[35px] px-3 py-1.5 rounded-xl text-[13.5px] transition-all duration-150',
                           isChildItemActive
-                            ? 'bg-[#0E1E33] text-white font-semibold shadow-xs border border-[#1E293B]'
+                            ? 'bg-[#008F83] text-white font-semibold shadow-xs border border-[#00A99D]/50'
                             : 'text-[#94A3B8] hover:text-white hover:bg-[#0E1E33]/60 font-normal',
                           child.comingSoon && 'opacity-50 pointer-events-none'
                         )}

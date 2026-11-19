@@ -5,6 +5,9 @@ import { SendLeaseAction } from '@/modules/automation/application/actions/send-l
 import { ScheduleCalculator } from '@/modules/automation/domain/services/schedule-calculator';
 import { createServerServices } from '@/composition/services';
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 // Ensure SendLeaseAction is registered
 actionRegistry.register(new SendLeaseAction());
 

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/composition/container';
 import { PdfInvoiceAdapter } from '@/modules/invoices/infrastructure/documents/pdf/pdf-invoice-adapter';
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -24,7 +27,7 @@ export async function GET(
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `${disposition}; filename="${renderDto.invoiceNumber || 'Invoice'}.pdf"`,
-        'Cache-Control': 'public, max-age=60, s-maxage=60',
+        'Cache-Control': 'private, no-store, max-age=0',
       },
     });
   } catch (error: any) {

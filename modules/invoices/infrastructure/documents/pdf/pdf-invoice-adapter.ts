@@ -1,6 +1,7 @@
 /**
  * PDF Invoice Document Generator Adapter.
- * Uses Headless Chromium (Playwright) to generate pixel-perfect A4 PDF invoices from canonical HTML,
+ * Uses Headless Chromium (serverless Puppeteer on Vercel, Playwright locally) to generate
+ * pixel-perfect A4 PDF invoices from canonical HTML,
  * ensuring 100% visual parity between Live Preview, Downloaded PDF, and Resend Email attachments.
  * Includes a pure pdf-lib fallback engine with proportional dynamic A4 layouts.
  */
@@ -49,24 +50,62 @@ function getSafeChromium(): any {
   return null;
 }
 
+function isServerlessRuntime(): boolean {
+  return Boolean(
+    process.env.VERCEL ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.AWS_EXECUTION_ENV
+  );
+}
+
+async function launchCanonicalBrowser(): Promise<any> {
+  if (isServerlessRuntime()) {
+    const [{ default: serverlessChromium }, { default: puppeteer }] = await Promise.all([
+      import('@sparticuz/chromium'),
+      import('puppeteer-core'),
+    ]);
+
+    serverlessChromium.setGraphicsMode = false;
+
+    return puppeteer.launch({
+      args: await puppeteer.defaultArgs({
+        args: serverlessChromium.args,
+        headless: 'shell',
+      }),
+      defaultViewport: {
+        width: 794,
+        height: 1123,
+        deviceScaleFactor: 1,
+      },
+      executablePath: await serverlessChromium.executablePath(),
+      headless: 'shell',
+    });
+  }
+
+  const chromium = getSafeChromium();
+  if (!chromium) return null;
+
+  return chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+  });
+}
+
 export class PdfInvoiceAdapter {
   /**
    * Generates a print-ready A4 PDF document for the invoice.
    */
   public static async generate(dto: InvoiceRenderDTO): Promise<Uint8Array> {
     // ── 1. Primary Engine: Headless Chromium (Playwright) ──
-    const chromium = getSafeChromium();
-    if (chromium) {
-      try {
-        const browser = await chromium.launch({
-          headless: true,
-          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-        });
-
+    let browser: any = null;
+    try {
+      browser = await launchCanonicalBrowser();
+      if (browser) {
         const page = await browser.newPage();
         const htmlContent = renderInvoiceHtml(dto);
 
         await page.setContent(htmlContent, { waitUntil: 'load' });
+        await page.evaluate(() => document.fonts.ready);
 
         const pdfBuffer = await page.pdf({
           format: 'A4',
@@ -80,14 +119,21 @@ export class PdfInvoiceAdapter {
           },
         });
 
-        await browser.close();
         return new Uint8Array(pdfBuffer);
-      } catch (playwrightError: any) {
-        console.warn(
-          '[PdfInvoiceAdapter] Headless Chromium print engine failed, falling back to pdf-lib:',
-          playwrightError?.message || playwrightError
+      }
+    } catch (browserError: any) {
+      if (isServerlessRuntime()) {
+        throw new Error(
+          `Canonical invoice PDF rendering failed: ${browserError?.message || browserError}`
         );
       }
+
+      console.warn(
+        '[PdfInvoiceAdapter] Local Chromium print engine failed, falling back to pdf-lib:',
+        browserError?.message || browserError
+      );
+    } finally {
+      await browser?.close().catch(() => undefined);
     }
 
     // ── 2. Fallback Engine: High-Fidelity Pure pdf-lib Renderer ──

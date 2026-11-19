@@ -70,7 +70,7 @@ test.describe('A4 Invoice Document Rendering Pipeline', () => {
     // 1. A4 Page dimensions and print styling
     expect(html).toContain('@page {');
     expect(html).toContain('size: A4 portrait;');
-    expect(html).toContain('margin: 12mm 12mm 14mm 12mm;');
+    expect(html).toContain('margin: 0;');
 
     // 2. Metadata and parties
     expect(html).toContain('INV-2026-000456');
