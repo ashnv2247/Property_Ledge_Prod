@@ -6,7 +6,7 @@ export interface SendInvoiceEmailOptions {
   recipientName?: string;
   invoice: InvoiceRenderDTO;
   downloadUrl?: string;
-  pdfBuffer?: Buffer;
+  pdfBuffer: Buffer;
   customMessage?: string;
   driveFolderUrl?: string;
   subject?: string;
@@ -45,13 +45,14 @@ export class InvoiceEmailAdapter {
       ? interpolate(customSubject)
       : `Invoice ${invoice.invoiceNumber} from ${issuerName}`;
 
-    const attachments: Array<{ filename: string; content: string }> = [];
-    if (pdfBuffer) {
-      attachments.push({
-        filename: `${invoice.invoiceNumber}.pdf`,
-        content: pdfBuffer.toString('base64'),
-      });
+    if (!pdfBuffer?.length) {
+      throw new Error(`Invoice ${invoice.invoiceNumber} cannot be emailed without a PDF attachment`);
     }
+
+    const attachments = [{
+      filename: `${invoice.invoiceNumber}.pdf`,
+      content: pdfBuffer.toString('base64'),
+    }];
 
     const bodyMessageHtml = customMessage
       ? interpolate(customMessage).replace(/\n/g, '<br/>')
@@ -84,7 +85,7 @@ export class InvoiceEmailAdapter {
         title: `Invoice ${invoice.invoiceNumber}`,
         body: emailBody,
       },
-      attachments: attachments.length > 0 ? attachments : undefined,
+      attachments,
     });
   }
 }

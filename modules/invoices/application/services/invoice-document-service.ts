@@ -28,7 +28,7 @@ export interface GeneratedDocResult {
   format: 'pdf' | 'docx';
   storagePath: string;
   documentUrl: string;
-  buffer?: Buffer;
+  buffer: Buffer;
 }
 
 export class InvoiceDocumentService {

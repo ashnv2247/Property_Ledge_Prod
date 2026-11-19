@@ -250,18 +250,12 @@ export class GenerateAndSendInvoiceAction implements IActionHandler {
       }
 
       // 3. Generate fresh PDF document for the new invoice
-      let documentUrl: string | undefined;
-      let pdfBuffer: Buffer | undefined;
-      try {
-        const docResult = await this.invoiceDocumentService.generateDocument({
-          invoiceId: invoice.id,
-          format: 'pdf',
-        });
-        documentUrl = docResult.documentUrl;
-        pdfBuffer = docResult.buffer;
-      } catch (docErr: any) {
-        console.warn(`[GenerateAndSendInvoiceAction] PDF Generation warning for invoice ${invoice.id}:`, docErr);
-      }
+      const docResult = await this.invoiceDocumentService.generateDocument({
+        invoiceId: invoice.id,
+        format: 'pdf',
+      });
+      const documentUrl = docResult.documentUrl;
+      const pdfBuffer = docResult.buffer;
 
       const recipientEmail = createDto.recipientEmail || invoice.customerEmail;
       if (!recipientEmail) {

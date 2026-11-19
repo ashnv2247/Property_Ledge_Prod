@@ -60,7 +60,6 @@ scratch/
 archive/
 *.mp4
 
-# Generated during dependency installation for Vercel's chromium-min runtime
+# Obsolete local artifact from the previous Chromium packaging approach
 /public/chromium-pack.tar
-
 

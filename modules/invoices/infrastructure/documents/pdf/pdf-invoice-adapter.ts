@@ -60,16 +60,14 @@ function isServerlessRuntime(): boolean {
 
 let serverlessExecutablePathPromise: Promise<string> | null = null;
 
+const DEFAULT_CHROMIUM_PACK_URL =
+  'https://github.com/Sparticuz/chromium/releases/download/v153.0.0/chromium-v153.0.0-pack.x64.tar';
+
 function getChromiumPackUrl(): string {
   const configuredUrl = process.env.CHROMIUM_PACK_URL?.trim();
   if (configuredUrl) return configuredUrl;
 
-  const vercelHost = process.env.VERCEL_URL?.trim();
-  if (!vercelHost) {
-    throw new Error('CHROMIUM_PACK_URL or VERCEL_URL is required for serverless PDF rendering');
-  }
-
-  return `https://${vercelHost.replace(/^https?:\/\//, '').replace(/\/$/, '')}/chromium-pack.tar`;
+  return DEFAULT_CHROMIUM_PACK_URL;
 }
 
 async function getServerlessExecutablePath(serverlessChromium: {
@@ -89,12 +87,19 @@ async function getServerlessExecutablePath(serverlessChromium: {
 
 async function launchCanonicalBrowser(): Promise<any> {
   if (isServerlessRuntime()) {
+    const launchStartedAt = Date.now();
     const [{ default: serverlessChromium }, { default: puppeteer }] = await Promise.all([
       import('@sparticuz/chromium-min'),
       import('puppeteer-core'),
     ]);
 
     serverlessChromium.setGraphicsMode = false;
+
+    const executablePath = await getServerlessExecutablePath(serverlessChromium);
+    console.info('[PdfInvoiceAdapter] Chromium executable ready', {
+      source: process.env.CHROMIUM_PACK_URL ? 'configured' : 'official-release',
+      elapsedMs: Date.now() - launchStartedAt,
+    });
 
     return puppeteer.launch({
       args: await puppeteer.defaultArgs({
@@ -106,7 +111,7 @@ async function launchCanonicalBrowser(): Promise<any> {
         height: 1123,
         deviceScaleFactor: 1,
       },
-      executablePath: await getServerlessExecutablePath(serverlessChromium),
+      executablePath,
       headless: 'shell',
     });
   }
@@ -127,6 +132,7 @@ export class PdfInvoiceAdapter {
   public static async generate(dto: InvoiceRenderDTO): Promise<Uint8Array> {
     // ── 1. Primary Engine: Headless Chromium (Playwright) ──
     let browser: any = null;
+    const renderStartedAt = Date.now();
     try {
       browser = await launchCanonicalBrowser();
       if (browser) {
@@ -146,6 +152,11 @@ export class PdfInvoiceAdapter {
             bottom: '0mm',
             left: '0mm',
           },
+        });
+
+        console.info('[PdfInvoiceAdapter] Invoice PDF rendered', {
+          invoiceNumber: dto.invoiceNumber,
+          elapsedMs: Date.now() - renderStartedAt,
         });
 
         return new Uint8Array(pdfBuffer);

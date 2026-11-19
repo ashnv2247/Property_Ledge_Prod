@@ -360,33 +360,15 @@ export async function sendInvoiceEmailAction(
     }
 
     const renderDto = await invoiceService.getInvoiceRenderData(invoiceId, reqContext);
-
-    let pdfBuffer: Buffer | undefined;
-    let downloadUrl: string | undefined;
-
-    try {
-      const docResult = await invoiceDocService.generateDocument({ invoiceId, format: 'pdf' });
-      pdfBuffer = docResult.buffer;
-      downloadUrl = docResult.documentUrl;
-    } catch (docErr) {
-      console.warn('[sendInvoiceEmailAction] Storage document generation fallback to in-memory PDF:', docErr);
-      try {
-        const { PdfInvoiceAdapter } = await import('@/modules/invoices/infrastructure/documents/pdf/pdf-invoice-adapter');
-        const pdfBytes = await PdfInvoiceAdapter.generate(renderDto);
-        pdfBuffer = Buffer.from(pdfBytes);
-        downloadUrl = `/api/invoices/${invoiceId}/pdf?download=1`;
-      } catch (pdfErr) {
-        console.warn('[sendInvoiceEmailAction] In-memory PDF render also failed:', pdfErr);
-      }
-    }
+    const docResult = await invoiceDocService.generateDocument({ invoiceId, format: 'pdf' });
 
     const { invoiceEmailAdapter } = await import('@/modules/invoices/infrastructure/email/invoice-email-adapter');
     const res = await invoiceEmailAdapter.sendInvoice({
       to: recipientEmail,
       recipientName: invoice.recipient?.name || invoice.customerName || 'Customer',
       invoice: renderDto,
-      downloadUrl,
-      pdfBuffer,
+      downloadUrl: docResult.documentUrl,
+      pdfBuffer: docResult.buffer,
       customMessage,
       driveFolderUrl,
       subject,
@@ -429,25 +411,7 @@ export async function sendInvoiceTestEmailAction(
     };
 
     const renderDto = await invoiceService.getInvoiceRenderData(invoiceId, reqContext);
-
-    let pdfBuffer: Buffer | undefined;
-    let downloadUrl: string | undefined;
-
-    try {
-      const docResult = await invoiceDocService.generateDocument({ invoiceId, format: 'pdf' });
-      pdfBuffer = docResult.buffer;
-      downloadUrl = docResult.documentUrl;
-    } catch (docErr) {
-      console.warn('[sendInvoiceTestEmailAction] Storage document generation fallback to in-memory PDF:', docErr);
-      try {
-        const { PdfInvoiceAdapter } = await import('@/modules/invoices/infrastructure/documents/pdf/pdf-invoice-adapter');
-        const pdfBytes = await PdfInvoiceAdapter.generate(renderDto);
-        pdfBuffer = Buffer.from(pdfBytes);
-        downloadUrl = `/api/invoices/${invoiceId}/pdf?download=1`;
-      } catch (pdfErr) {
-        console.warn('[sendInvoiceTestEmailAction] In-memory PDF render also failed:', pdfErr);
-      }
-    }
+    const docResult = await invoiceDocService.generateDocument({ invoiceId, format: 'pdf' });
 
     const testSubject = subject?.trim()
       ? (subject.startsWith('[TEST EMAIL]') ? subject : `[TEST EMAIL] ${subject}`)
@@ -462,8 +426,8 @@ export async function sendInvoiceTestEmailAction(
       to: targetEmail,
       recipientName: invoice.recipient?.name || invoice.customerName || 'Test Recipient',
       invoice: renderDto,
-      downloadUrl,
-      pdfBuffer,
+      downloadUrl: docResult.documentUrl,
+      pdfBuffer: docResult.buffer,
       customMessage: testMessage,
       driveFolderUrl,
       subject: testSubject,

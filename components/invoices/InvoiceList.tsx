@@ -54,7 +54,6 @@ import {
   deleteDraftInvoiceAction,
   deleteInvoiceAction,
   getInvoiceDownloadUrlAction,
-  generateInvoiceDocumentAction,
   sendInvoiceEmailAction,
 } from '@/app/actions/invoices';
 import dynamic from 'next/dynamic';
@@ -438,33 +437,49 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
 
   const handleDownload = async (id: string, format: 'pdf' | 'docx') => {
     try {
-      // Direct streaming endpoint: zero storage latency, 100% reliable download
       const targetUrl = format === 'pdf' ? `/api/invoices/${id}/pdf?download=1` : `/api/invoices/${id}/docx`;
+      const response = await fetch(targetUrl, {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || `Failed to generate ${format.toUpperCase()} document`);
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      const expectedContentType = format === 'pdf'
+        ? 'application/pdf'
+        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      if (!contentType.toLowerCase().includes(expectedContentType)) {
+        throw new Error(`The server returned an invalid ${format.toUpperCase()} document`);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const disposition = response.headers.get('content-disposition') || '';
+      const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
 
       const link = document.createElement('a');
-      link.href = targetUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.setAttribute('download', `Invoice-${id}.${format}`);
+      link.href = objectUrl;
+      link.download = filenameMatch?.[1] || `Invoice-${id}.${format}`;
       document.body.appendChild(link);
       link.click();
-      setTimeout(() => {
-        try {
-          document.body.removeChild(link);
-        } catch {}
-      }, 300);
+      document.body.removeChild(link);
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000);
 
       toast({
-        title: 'Downloading Invoice',
+        title: 'Invoice Downloaded',
         description: `Your ${format.toUpperCase()} invoice document has been generated and downloaded.`,
       });
-
-      // Warm background storage document for records/audit trails
-      generateInvoiceDocumentAction(id, format).catch((e) => {
-        console.warn('[InvoiceList] Background document caching warning:', e);
-      });
     } catch (err: any) {
-      toast({ title: 'Download Error', description: err.message, variant: 'destructive' });
+      toast({
+        title: 'Download Error',
+        description: err?.message || 'Failed to download invoice document',
+        variant: 'destructive',
+      });
     }
   };
 
