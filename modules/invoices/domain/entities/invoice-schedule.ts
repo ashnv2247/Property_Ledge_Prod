@@ -107,6 +107,13 @@ export interface ScheduleEmailStatsDTO {
   emailsFailed: number;
 }
 
+export interface InvoiceScheduleCustomItem {
+  month: string;      // YYYY-MM e.g. '2026-12'
+  issueDate?: string; // YYYY-MM-DD
+  dueDate?: string;   // YYYY-MM-DD
+  amount?: number;    // customized amount
+}
+
 export interface CreateScheduleEmailInput {
   sourceInvoiceId: string;
   startMonth: string; // YYYY-MM, e.g. '2027-01'
@@ -121,6 +128,7 @@ export interface CreateScheduleEmailInput {
   customMessage?: string;
   driveFolderUrl?: string;
   notes?: string;
+  customInvoices?: InvoiceScheduleCustomItem[];
 }
 
 export interface ScheduleEmailFilters {

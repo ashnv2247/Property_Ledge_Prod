@@ -21,6 +21,13 @@ import {
   CheckCircle2,
   CalendarRange,
   Edit3,
+  Calculator,
+  ChevronDown,
+  ChevronUp,
+  Info,
+  Coins,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { Button, Input, Select, Textarea, useToast } from '@/components/admin/ui';
 import { InvoiceDTO } from '@/modules/invoices';
@@ -89,18 +96,6 @@ export function ScheduleEmailModal({
     return `${futureMonth.getFullYear()}-${String(futureMonth.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  const [generationDay, setGenerationDay] = useState<number>(1);
-  const [dueDaysAfter, setDueDaysAfter] = useState<number>(7);
-  const [dueDateType, setDueDateType] = useState<'relative' | 'fixed'>('relative');
-  const [fixedDueDay, setFixedDueDay] = useState<number>(15);
-  const [timezone, setTimezone] = useState<string>('Australia/Sydney');
-
-  // Email Settings
-  const [emailMode, setEmailMode] = useState<'automatic' | 'manual'>('automatic');
-  const [subjectTemplate, setSubjectTemplate] = useState<string>('');
-  const [customMessage, setCustomMessage] = useState<string>('');
-  const [driveFolderUrl, setDriveFolderUrl] = useState<string>('');
-
   // Calculate number of months between start and end
   const monthsCount = useMemo(() => {
     try {
@@ -113,6 +108,206 @@ export function ScheduleEmailModal({
       return 0;
     }
   }, [startMonth, endMonth]);
+
+  const [generationDay, setGenerationDay] = useState<number>(1);
+  const [dueDaysAfter, setDueDaysAfter] = useState<number>(7);
+  const [dueDateType, setDueDateType] = useState<'relative' | 'fixed'>('relative');
+  const [fixedDueDay, setFixedDueDay] = useState<number>(15);
+  const [timezone, setTimezone] = useState<string>('Australia/Sydney');
+
+  // Email Settings
+  const [emailMode, setEmailMode] = useState<'automatic' | 'manual'>('automatic');
+  const [subjectTemplate, setSubjectTemplate] = useState<string>('');
+  const [customMessage, setCustomMessage] = useState<string>('');
+  const [driveFolderUrl, setDriveFolderUrl] = useState<string>('');
+
+  // Editable Preview Invoices List for Step 4
+  interface PreviewInvoiceRow {
+    month: string;      // YYYY-MM
+    label: string;      // e.g. 'Dec 2026'
+    issueDate: string;  // YYYY-MM-DD
+    dueDate: string;    // YYYY-MM-DD
+    amount: number;     // number
+    isCustomized?: boolean;
+  }
+  const [previewInvoices, setPreviewInvoices] = useState<PreviewInvoiceRow[]>([]);
+  const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
+  const [isExpandedAll, setIsExpandedAll] = useState<boolean>(false);
+  const [isBulkEditing, setIsBulkEditing] = useState<boolean>(false);
+
+  const displayInvoicesCount = previewInvoices.length > 0 ? previewInvoices.length : monthsCount;
+
+  const totalValue = useMemo(() => {
+    return previewInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+  }, [previewInvoices]);
+
+  const billingPeriodLabel = useMemo(() => {
+    if (previewInvoices.length === 0) return `${startMonth} – ${endMonth}`;
+    return `${previewInvoices[0].label} – ${previewInvoices[previewInvoices.length - 1].label}`;
+  }, [previewInvoices, startMonth, endMonth]);
+
+  const visibleInvoices = useMemo(() => {
+    return isExpandedAll || previewInvoices.length <= 3
+      ? previewInvoices
+      : previewInvoices.slice(0, 3);
+  }, [isExpandedAll, previewInvoices]);
+
+  const getOrdinal = (n: number) => {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
+  const handleAddInvoiceRow = () => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    let nextY: number;
+    let nextM: number;
+
+    if (previewInvoices.length > 0) {
+      const lastInv = previewInvoices[previewInvoices.length - 1];
+      const [y, m] = lastInv.month.split('-').map(Number);
+      if (m === 12) {
+        nextY = y + 1;
+        nextM = 1;
+      } else {
+        nextY = y;
+        nextM = m + 1;
+      }
+    } else {
+      const now = new Date();
+      nextY = now.getFullYear();
+      nextM = now.getMonth() + 1;
+    }
+
+    const ym = `${nextY}-${String(nextM).padStart(2, '0')}`;
+    const label = `${monthNames[nextM - 1]} ${nextY}`;
+
+    const lastDay = new Date(Date.UTC(nextY, nextM, 0)).getUTCDate();
+    const actualGenDay = Math.min(Math.max(1, generationDay), lastDay);
+    const issueDateObj = new Date(Date.UTC(nextY, nextM - 1, actualGenDay));
+    const issueDate = issueDateObj.toISOString().split('T')[0];
+
+    let dueDate: string;
+    if (dueDateType === 'fixed' && fixedDueDay) {
+      const actualFixedDay = Math.min(fixedDueDay, lastDay);
+      const fixedDueObj = new Date(Date.UTC(nextY, nextM - 1, actualFixedDay));
+      if (fixedDueObj < issueDateObj) {
+        const nextMonth = nextM === 12 ? 1 : nextM + 1;
+        const nextYear = nextM === 12 ? nextY + 1 : nextY;
+        const nextLastDay = new Date(Date.UTC(nextYear, nextMonth, 0)).getUTCDate();
+        dueDate = new Date(Date.UTC(nextYear, nextMonth - 1, Math.min(actualFixedDay, nextLastDay))).toISOString().split('T')[0];
+      } else {
+        dueDate = fixedDueObj.toISOString().split('T')[0];
+      }
+    } else {
+      const dueObj = new Date(issueDateObj.getTime() + (dueDaysAfter || 7) * 24 * 60 * 60 * 1000);
+      dueDate = dueObj.toISOString().split('T')[0];
+    }
+
+    const newRow: PreviewInvoiceRow = {
+      month: ym,
+      label,
+      issueDate,
+      dueDate,
+      amount: sourceInvoice?.total || 0,
+      isCustomized: true,
+    };
+
+    setPreviewInvoices((prev) => [...prev, newRow]);
+    setIsExpandedAll(true);
+    setEditingRowIndex(previewInvoices.length);
+  };
+
+  const handleDeleteInvoiceRow = (index: number) => {
+    setPreviewInvoices((prev) => prev.filter((_, i) => i !== index));
+    if (editingRowIndex === index) {
+      setEditingRowIndex(null);
+    } else if (editingRowIndex !== null && editingRowIndex > index) {
+      setEditingRowIndex(editingRowIndex - 1);
+    }
+  };
+
+  // Synchronize preview invoices whenever schedule parameters or source invoice change
+  useEffect(() => {
+    if (!sourceInvoice) return;
+    try {
+      const [sY, sM] = startMonth.split('-').map(Number);
+      const [eY, eM] = endMonth.split('-').map(Number);
+      if (!sY || !sM || !eY || !eM) return;
+
+      const monthsList: string[] = [];
+      let curY = sY;
+      let curM = sM;
+      while (curY < eY || (curY === eY && curM <= eM)) {
+        monthsList.push(`${curY}-${String(curM).padStart(2, '0')}`);
+        curM++;
+        if (curM > 12) {
+          curM = 1;
+          curY++;
+        }
+      }
+
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const defaultAmount = sourceInvoice.total || 0;
+
+      setPreviewInvoices((prev) => {
+        const prevMap = new Map(prev.map((p) => [p.month, p]));
+
+        return monthsList.map((ym) => {
+          const [year, month] = ym.split('-').map(Number);
+          const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+          const actualGenDay = Math.min(Math.max(1, generationDay), lastDay);
+          const issueDateObj = new Date(Date.UTC(year, month - 1, actualGenDay));
+          const defaultIssueDate = issueDateObj.toISOString().split('T')[0];
+
+          let defaultDueDate: string;
+          if (dueDateType === 'fixed' && fixedDueDay) {
+            const actualFixedDay = Math.min(fixedDueDay, lastDay);
+            const fixedDueObj = new Date(Date.UTC(year, month - 1, actualFixedDay));
+            if (fixedDueObj < issueDateObj) {
+              const nextMonth = month === 12 ? 1 : month + 1;
+              const nextYear = month === 12 ? year + 1 : year;
+              const nextLastDay = new Date(Date.UTC(nextYear, nextMonth, 0)).getUTCDate();
+              defaultDueDate = new Date(Date.UTC(nextYear, nextMonth - 1, Math.min(actualFixedDay, nextLastDay))).toISOString().split('T')[0];
+            } else {
+              defaultDueDate = fixedDueObj.toISOString().split('T')[0];
+            }
+          } else {
+            const dueObj = new Date(issueDateObj.getTime() + (dueDaysAfter || 7) * 24 * 60 * 60 * 1000);
+            defaultDueDate = dueObj.toISOString().split('T')[0];
+          }
+
+          const label = `${monthNames[month - 1]} ${year}`;
+          const existing = prevMap.get(ym);
+
+          if (existing && existing.isCustomized) {
+            return {
+              ...existing,
+              month: ym,
+              label,
+            };
+          }
+
+          return {
+            month: ym,
+            label,
+            issueDate: defaultIssueDate,
+            dueDate: defaultDueDate,
+            amount: defaultAmount,
+            isCustomized: false,
+          };
+        });
+      });
+    } catch {
+      // Ignore calculation errors
+    }
+  }, [sourceInvoice, startMonth, endMonth, generationDay, dueDateType, dueDaysAfter, fixedDueDay]);
+
+  const handleUpdatePreviewRow = (idx: number, updates: Partial<PreviewInvoiceRow>) => {
+    setPreviewInvoices((prev) =>
+      prev.map((item, i) => (i === idx ? { ...item, ...updates, isCustomized: true } : item))
+    );
+  };
 
   // Reset step on open
   useEffect(() => {
@@ -162,7 +357,8 @@ export function ScheduleEmailModal({
 
   const handleConfirmCreate = async () => {
     if (!sourceInvoice) return;
-    if (monthsCount <= 0) {
+    const finalInvoices = previewInvoices.length > 0 ? previewInvoices : [];
+    if (finalInvoices.length === 0 && monthsCount <= 0) {
       toast({
         title: 'Invalid Date Range',
         description: 'Please choose a valid billing period.',
@@ -173,10 +369,20 @@ export function ScheduleEmailModal({
 
     setIsSubmitting(true);
     try {
+      const customizedItems = finalInvoices.map((inv) => ({
+        month: inv.month,
+        issueDate: inv.issueDate,
+        dueDate: inv.dueDate,
+        amount: inv.amount,
+      }));
+
+      const effectiveStart = finalInvoices[0]?.month || startMonth;
+      const effectiveEnd = finalInvoices[finalInvoices.length - 1]?.month || endMonth;
+
       const res = await createInvoiceScheduleAction({
         sourceInvoiceId: sourceInvoice.id,
-        startMonth,
-        endMonth,
+        startMonth: effectiveStart,
+        endMonth: effectiveEnd,
         frequency: 'monthly',
         generationDayOfMonth: generationDay,
         dueDaysAfter: dueDateType === 'relative' ? dueDaysAfter : 7,
@@ -186,6 +392,7 @@ export function ScheduleEmailModal({
         subjectTemplate: subjectTemplate.trim() || undefined,
         customMessage: customMessage.trim() || undefined,
         driveFolderUrl: driveFolderUrl.trim() || undefined,
+        customInvoices: customizedItems.length > 0 ? customizedItems : undefined,
       });
 
       if (!res.success) {
@@ -194,10 +401,10 @@ export function ScheduleEmailModal({
 
       toast({
         title: 'Invoices Generated Successfully',
-        description: `Generated ${res.count || monthsCount} independent monthly invoices for ${sourceInvoice.recipient?.name || sourceInvoice.customerName || 'customer'}.`,
+        description: `Generated ${res.count || finalInvoices.length || monthsCount} independent monthly invoices for ${sourceInvoice.recipient?.name || sourceInvoice.customerName || 'customer'}.`,
       });
 
-      onSuccess?.(res.count || monthsCount);
+      onSuccess?.(res.count || finalInvoices.length || monthsCount);
       onClose();
     } catch (err: any) {
       toast({
@@ -227,26 +434,36 @@ export function ScheduleEmailModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full max-w-2xl bg-white dark:bg-[#07111F] border border-slate-200 dark:border-[#17283A] rounded-3xl shadow-2xl overflow-y-auto max-h-[92vh] z-10 p-6 sm:p-8"
+        className={cn(
+          'relative w-full bg-white dark:bg-[#07111F] border border-slate-200 dark:border-[#17283A] rounded-3xl shadow-2xl overflow-y-auto max-h-[92vh] z-10 p-6 sm:p-8 transition-all duration-300',
+          activeStep === 3 ? 'max-w-4xl' : 'max-w-2xl'
+        )}
       >
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close dialog"
-          className="absolute top-5 right-5 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#0E1E33] transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* Centered Header (Standardized Reference UI) */}
-        <div className="text-center mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold font-heading tracking-tight text-slate-900 dark:text-white">
-            Bulk Generate
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Copy one invoice into independent monthly invoices, with optional email delivery.
-          </p>
+        {/* Header matching Reference Design */}
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-[#008F83]/10 text-[#008F83] flex items-center justify-center shrink-0">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold font-heading tracking-tight text-slate-900 dark:text-white">
+                {activeStep === 3 ? 'Create Monthly Invoices' : 'Bulk Generate'}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                {activeStep === 3
+                  ? `Review the details below and generate ${displayInvoicesCount} monthly invoices.`
+                  : 'Copy one invoice into independent monthly invoices, with optional email delivery.'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close dialog"
+            className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#0E1E33] transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Elegant Step Indicator matching Add Property */}
@@ -506,7 +723,7 @@ export function ScheduleEmailModal({
                     </span>
                   </div>
 
-                  <div>
+                  <div className="sm:col-span-2">
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                       {dueDateType === 'relative' ? 'Payment Terms (Days)' : 'Fixed Due Day'}
                     </label>
@@ -533,26 +750,6 @@ export function ScheduleEmailModal({
                     )}
                     <span className="text-[11px] text-slate-400 block mt-1">
                       Payment deadline displayed on customer invoices.
-                    </span>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Timezone
-                    </label>
-                    <Select
-                      value={timezone}
-                      onChange={(e) => setTimezone(e.target.value)}
-                      className="bg-white dark:bg-slate-800"
-                    >
-                      <option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option>
-                      <option value="Australia/Melbourne">Australia/Melbourne</option>
-                      <option value="Australia/Brisbane">Australia/Brisbane (AEST)</option>
-                      <option value="Australia/Adelaide">Australia/Adelaide (ACST/ACDT)</option>
-                      <option value="Australia/Perth">Australia/Perth (AWST)</option>
-                    </Select>
-                    <span className="text-[11px] text-slate-400 block mt-1">
-                      Timezone used for invoice dates and email delivery.
                     </span>
                   </div>
                 </div>
@@ -686,7 +883,7 @@ export function ScheduleEmailModal({
               </motion.div>
             )}
 
-            {/* STEP 4: Review and Confirm */}
+            {/* STEP 4: Review and Confirm — 2-Column Dashboard Layout matching Mockup */}
             {activeStep === 3 && (
               <motion.div
                 key="step-review-confirm"
@@ -694,84 +891,347 @@ export function ScheduleEmailModal({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18 }}
-                className="space-y-5"
+                className="space-y-4"
               >
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-5 space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      Bulk Generation Summary
-                    </span>
-                    <span
-                      className={cn(
-                        'px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider',
-                        emailMode === 'automatic'
-                          ? 'bg-[#008F83]/15 text-[#008F83]'
-                          : 'bg-amber-500/15 text-amber-600'
-                      )}
-                    >
-                      {emailMode === 'automatic' ? 'Automatic Delivery' : 'Manual Delivery'}
-                    </span>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                  {/* Left Column: Invoice Summary Card */}
+                  <div className="lg:col-span-4 rounded-3xl p-5 bg-[#E6F4F1]/60 dark:bg-[#008F83]/10 border border-[#008F83]/20 flex flex-col justify-between space-y-5">
+                    <div>
+                      <h3 className="font-heading font-bold text-base text-slate-900 dark:text-white mb-5">
+                        Invoice Summary
+                      </h3>
+
+                      <div className="space-y-5">
+                        {/* Stat 1: Invoices to create */}
+                        <div className="flex items-start gap-3.5">
+                          <div className="w-10 h-10 rounded-2xl bg-white dark:bg-slate-800 text-[#008F83] flex items-center justify-center shadow-xs shrink-0 border border-[#008F83]/15">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 block">
+                              Invoices to create
+                            </span>
+                            <p className="font-heading font-extrabold text-xl text-[#008F83] leading-tight mt-0.5">
+                              {displayInvoicesCount} invoices
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Stat 2: Monthly amount */}
+                        <div className="flex items-start gap-3.5">
+                          <div className="w-10 h-10 rounded-2xl bg-white dark:bg-slate-800 text-[#008F83] flex items-center justify-center shadow-xs shrink-0 border border-[#008F83]/15">
+                            <Coins className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 block">
+                              Monthly amount
+                            </span>
+                            <p className="font-heading font-bold text-lg text-slate-900 dark:text-white leading-tight mt-0.5">
+                              {formatCurrency(sourceInvoice?.total || 0, sourceInvoice?.currency || 'AUD')}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Stat 3: Total invoice value */}
+                        <div className="flex items-start gap-3.5">
+                          <div className="w-10 h-10 rounded-2xl bg-white dark:bg-slate-800 text-[#008F83] flex items-center justify-center shadow-xs shrink-0 border border-[#008F83]/15">
+                            <Calculator className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 block">
+                              Total invoice value
+                            </span>
+                            <p className="font-heading font-bold text-lg text-slate-900 dark:text-white leading-tight mt-0.5">
+                              {formatCurrency(totalValue, sourceInvoice?.currency || 'AUD')}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Stat 4: Billing period */}
+                        <div className="flex items-start gap-3.5">
+                          <div className="w-10 h-10 rounded-2xl bg-white dark:bg-slate-800 text-[#008F83] flex items-center justify-center shadow-xs shrink-0 border border-[#008F83]/15">
+                            <Calendar className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 block">
+                              Billing period
+                            </span>
+                            <p className="font-bold text-xs text-slate-900 dark:text-white mt-0.5">
+                              {billingPeriodLabel}
+                            </p>
+                            <span className="text-[10.5px] text-slate-500 dark:text-slate-400 block mt-1">
+                              Issued on the {getOrdinal(generationDay)} of each month
+                            </span>
+                            <span className="text-[10.5px] text-slate-500 dark:text-slate-400 block">
+                              {dueDateType === 'relative'
+                                ? (previewInvoices[0]
+                                    ? `Due on the ${getOrdinal(parseInt(previewInvoices[0].dueDate.split('-')[2], 10))}`
+                                    : `Due ${dueDaysAfter} days after issue`)
+                                : `Due on the ${getOrdinal(fixedDueDay)}`}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 text-xs">
-                    <div>
-                      <span className="text-slate-400 block">Source Invoice:</span>
-                      <span className="font-mono font-bold text-slate-900 dark:text-white mt-0.5 block">
-                        {sourceInvoice?.invoiceNumber}
-                      </span>
+                  {/* Right Column: Invoices & Configuration */}
+                  <div className="lg:col-span-8 space-y-4">
+                    {/* Bill to & Source Invoice metadata row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 p-3.5 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 text-slate-500 flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700/60">
+                          <User className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[10px] text-slate-400 font-medium block">Bill to</span>
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                            {sourceInvoice?.recipient?.name || sourceInvoice?.customerName || 'Customer'}
+                          </p>
+                          <p className="text-[11px] text-slate-500 truncate">
+                            {sourceInvoice?.recipient?.email || sourceInvoice?.customerEmail}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 p-3.5 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 text-slate-500 flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700/60">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[10px] text-slate-400 font-medium block">Source invoice</span>
+                          <p className="font-mono text-xs font-bold text-slate-900 dark:text-white truncate">
+                            {sourceInvoice?.invoiceNumber}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <span className="text-slate-400 block">Tenant / Bill To:</span>
-                      <span className="font-semibold text-slate-900 dark:text-white mt-0.5 block truncate">
-                        {sourceInvoice?.recipient?.name || sourceInvoice?.customerName || 'Customer'}
-                      </span>
-                      <span className="text-slate-400 text-[11px] block truncate">
-                        {sourceInvoice?.recipient?.email || sourceInvoice?.customerEmail}
-                      </span>
+                    {/* Monthly Invoices Section */}
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-white">
+                          Monthly Invoices ({displayInvoicesCount})
+                        </h4>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleAddInvoiceRow}
+                            className="text-xs font-semibold text-[#008F83] hover:text-[#008F83]/90 bg-[#008F83]/10 hover:bg-[#008F83]/15 border border-[#008F83]/30 rounded-xl px-2.5 py-1 flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            Add Invoice Row
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsBulkEditing(!isBulkEditing)}
+                            className="text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-[#008F83] border border-slate-200 dark:border-slate-700 hover:border-[#008F83]/40 rounded-xl px-2.5 py-1 flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            {isBulkEditing ? 'Done Editing' : 'Edit All Amounts'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
+                        {visibleInvoices.map((inv) => {
+                          const realIdx = previewInvoices.findIndex((p) => p.month === inv.month);
+                          const isEditing = editingRowIndex === realIdx || isBulkEditing;
+
+                          return (
+                            <div
+                              key={inv.month}
+                              className={cn(
+                                'rounded-xl border p-3 transition-all text-xs flex flex-col justify-center',
+                                isEditing
+                                  ? 'border-[#008F83]/40 bg-[#008F83]/5 dark:bg-[#008F83]/10 ring-1 ring-[#008F83]/20'
+                                  : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 hover:border-slate-300 dark:hover:border-slate-700'
+                              )}
+                            >
+                              {isEditing ? (
+                                <div className="space-y-2.5">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-lg bg-[#008F83]/10 text-[#008F83] flex items-center justify-center shrink-0">
+                                        <Calendar className="w-3.5 h-3.5" />
+                                      </div>
+                                      <span className="font-bold text-slate-900 dark:text-white">{inv.label}</span>
+                                      <span className="text-[10px] font-mono text-slate-400">({inv.month})</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      {previewInvoices.length > 1 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteInvoiceRow(realIdx)}
+                                          className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer"
+                                          title="Remove this invoice"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                      {!isBulkEditing && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setEditingRowIndex(null)}
+                                          className="px-3 py-1 rounded-lg bg-[#008F83] text-white text-[11px] font-semibold hover:bg-[#008F83]/90 transition-colors shadow-2xs cursor-pointer"
+                                        >
+                                          Done
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <div>
+                                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">Issue Date</label>
+                                      <Input
+                                        type="date"
+                                        value={inv.issueDate}
+                                        onChange={(e) => handleUpdatePreviewRow(realIdx, { issueDate: e.target.value })}
+                                        className="h-8 text-xs bg-white dark:bg-slate-800"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">Due Date</label>
+                                      <Input
+                                        type="date"
+                                        value={inv.dueDate}
+                                        onChange={(e) => handleUpdatePreviewRow(realIdx, { dueDate: e.target.value })}
+                                        className="h-8 text-xs bg-white dark:bg-slate-800"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">Amount ($)</label>
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        min={0}
+                                        value={inv.amount}
+                                        onChange={(e) => handleUpdatePreviewRow(realIdx, { amount: parseFloat(e.target.value) || 0 })}
+                                        className="h-8 text-xs bg-white dark:bg-slate-800 font-semibold"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-[#008F83]/10 text-[#008F83] flex items-center justify-center shrink-0">
+                                      <Calendar className="w-4 h-4" />
+                                    </div>
+                                    <span className="font-heading font-bold text-xs text-slate-900 dark:text-white w-20">
+                                      {inv.label}
+                                    </span>
+                                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[11px]">
+                                      <span>Issue: {formatAuDisplayDate(inv.issueDate)}</span>
+                                      <span>•</span>
+                                      <span>Due: {formatAuDisplayDate(inv.dueDate)}</span>
+                                    </div>
+                                    {inv.isCustomized && (
+                                      <span className="text-[10px] font-bold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                                        Customized
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="font-mono font-bold text-slate-900 dark:text-white text-xs mr-1">
+                                      {formatCurrency(inv.amount, sourceInvoice?.currency || 'AUD')}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingRowIndex(realIdx)}
+                                      className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-[#008F83] hover:border-[#008F83]/40 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                                    >
+                                      <Edit3 className="w-3 h-3" />
+                                      Edit
+                                    </button>
+                                    {previewInvoices.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteInvoiceRow(realIdx)}
+                                        className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer"
+                                        title="Remove this invoice"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {/* View all toggle if more than 3 invoices */}
+                        {previewInvoices.length > 3 && (
+                          <button
+                            type="button"
+                            onClick={() => setIsExpandedAll(!isExpandedAll)}
+                            className="w-full py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+                          >
+                            {isExpandedAll ? (
+                              <>
+                                <ChevronUp className="w-3.5 h-3.5" /> Show less
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="w-3.5 h-3.5" /> View all {previewInvoices.length} invoices
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    <div>
-                      <span className="text-slate-400 block">Billing Period:</span>
-                      <span className="font-bold text-slate-900 dark:text-white mt-0.5 block">
-                        {startMonth} to {endMonth}
-                      </span>
+                    {/* Automatic Email Delivery Toggle Card */}
+                    <div className="rounded-2xl p-3.5 border border-[#008F83]/30 bg-[#008F83]/5 dark:bg-[#008F83]/10 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 text-[#008F83] flex items-center justify-center shadow-2xs shrink-0">
+                          <Mail className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h5 className="text-xs font-bold text-slate-900 dark:text-white">
+                            Automatic email delivery
+                          </h5>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                            {emailMode === 'automatic'
+                              ? 'Each invoice will be emailed automatically on its issue date.'
+                              : 'Manual delivery selected: no emails will be sent automatically.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={emailMode === 'automatic'}
+                        onClick={() => setEmailMode(emailMode === 'automatic' ? 'manual' : 'automatic')}
+                        className="flex items-center gap-2 group cursor-pointer focus:outline-none shrink-0"
+                      >
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          {emailMode === 'automatic' ? 'Enabled' : 'Disabled'}
+                        </span>
+                        <div
+                          className={cn(
+                            'w-11 h-6 rounded-full transition-colors relative p-0.5',
+                            emailMode === 'automatic' ? 'bg-[#008F83]' : 'bg-slate-300 dark:bg-slate-700'
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              'w-5 h-5 rounded-full bg-white shadow-xs transition-transform',
+                              emailMode === 'automatic' ? 'translate-x-5' : 'translate-x-0'
+                            )}
+                          />
+                        </div>
+                      </button>
                     </div>
 
-                    <div>
-                      <span className="text-slate-400 block">Invoices to Generate:</span>
-                      <span className="font-heading text-base font-bold text-[#008F83] mt-0.5 block">
-                        {monthsCount} Individual Invoices
-                      </span>
+                    {/* Footnote */}
+                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 pt-1">
+                      <Info className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>You can edit each invoice separately without affecting the others.</span>
                     </div>
-
-                    <div>
-                      <span className="text-slate-400 block">Monthly Amount:</span>
-                      <span className="font-heading text-sm font-bold text-slate-900 dark:text-white mt-0.5 block">
-                        {formatCurrency(sourceInvoice?.total || 0, sourceInvoice?.currency || 'AUD')} / mo
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 block">Invoice & Due Date:</span>
-                      <span className="font-semibold text-slate-900 dark:text-white mt-0.5 block">
-                        Day {generationDay} of month (Due: {dueDateType === 'relative' ? `+${dueDaysAfter}d` : `Day ${fixedDueDay}`})
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
-                    <p className="font-semibold mb-0.5">Independent Snapshot Guarantee</p>
-                    <p className="text-[11px] text-blue-800 dark:text-blue-300">
-                      Each generated invoice is completely independent. You can edit line items, add utilities or
-                      adjust amounts for any single month without affecting other months or the source invoice.
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-[#008F83]/20 bg-[#008F83]/5 p-3 text-xs text-slate-700 dark:text-slate-200">
-                    <strong>{monthsCount} issued invoice{monthsCount === 1 ? '' : 's'}</strong> will be created immediately.{' '}
-                    {emailMode === 'automatic'
-                      ? 'Each invoice will be emailed automatically on its invoice date.'
-                      : 'No emails will be sent until you trigger them manually.'}
                   </div>
                 </div>
               </motion.div>
@@ -779,22 +1239,26 @@ export function ScheduleEmailModal({
           </AnimatePresence>
         </div>
 
-        {/* Modal Footer Actions (Standardized Reference UI) */}
+        {/* Modal Footer Actions matching Reference UI */}
         <div className="mt-8 pt-5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={activeStep === 0 ? onClose : handleBack}
             disabled={isSubmitting}
-            className="h-11 px-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50"
+            className="h-11 px-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50 flex items-center gap-1.5"
           >
-            {activeStep === 0 ? 'Cancel' : 'Back'}
+            {activeStep === 0 ? 'Cancel' : (
+              <>
+                <ArrowLeft className="w-4 h-4" /> Back
+              </>
+            )}
           </button>
 
           <button
             type="button"
             onClick={activeStep === steps.length - 1 ? handleConfirmCreate : handleNext}
-            disabled={isSubmitting || !sourceInvoice || monthsCount <= 0}
-            className="h-11 px-6 rounded-xl bg-[#008F83] text-white font-semibold text-sm hover:bg-[#008F83]/90 shadow-xs transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50 min-w-[140px]"
+            disabled={isSubmitting || !sourceInvoice || displayInvoicesCount <= 0}
+            className="h-11 px-6 rounded-xl bg-[#008F83] text-white font-semibold text-sm hover:bg-[#008F83]/90 shadow-xs transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50 min-w-[150px]"
           >
             {isSubmitting ? (
               <span className="inline-flex items-center gap-2">
@@ -802,7 +1266,10 @@ export function ScheduleEmailModal({
                 Generating...
               </span>
             ) : activeStep === steps.length - 1 ? (
-              'Generate Invoices'
+              <span className="inline-flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Generate {displayInvoicesCount} Invoices
+              </span>
             ) : (
               <span className="inline-flex items-center gap-1.5">
                 Continue <ArrowRight className="w-4 h-4" />

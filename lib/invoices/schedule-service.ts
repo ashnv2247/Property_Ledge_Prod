@@ -221,7 +221,10 @@ export class InvoiceScheduleService {
     }
 
     // 3. Compute Month Range
-    const months = getMonthRange(input.startMonth, input.endMonth);
+    let months = getMonthRange(input.startMonth, input.endMonth);
+    if (input.customInvoices && Array.isArray(input.customInvoices) && input.customInvoices.length > 0) {
+      months = input.customInvoices.map((c) => c.month);
+    }
     if (months.length === 0) {
       throw new Error('Invalid billing period range: start month must be before or equal to end month.');
     }
@@ -246,8 +249,8 @@ export class InvoiceScheduleService {
       lease_id: sourceInvoice.lease_id || null,
       recipient_name: recipientName,
       recipient_email: recipientEmail,
-      billing_start_month: input.startMonth,
-      billing_end_month: input.endMonth,
+      billing_start_month: months[0] || input.startMonth,
+      billing_end_month: months[months.length - 1] || input.endMonth,
       frequency: 'monthly',
       generation_day_of_month: generationDay,
       due_days_after: dueDays,
@@ -299,17 +302,44 @@ export class InvoiceScheduleService {
     const nowIso = new Date().toISOString();
 
     // 6. Bulk-generate individual invoices for each month in a single batch insert
+    const customInvoicesMap = new Map<string, { month: string; issueDate?: string; dueDate?: string; amount?: number }>();
+    if (input.customInvoices && Array.isArray(input.customInvoices)) {
+      for (const item of input.customInvoices) {
+        if (item && item.month) {
+          customInvoicesMap.set(item.month, item);
+        }
+      }
+    }
+
     const invoicePayloads: Array<Record<string, any>> = [];
-    const monthMetaList: Array<{ ym: string; issueDate: string }> = [];
+    const monthMetaList: Array<{ ym: string; issueDate: string; amountRatio: number }> = [];
 
     for (let i = 0; i < months.length; i++) {
       const ym = months[i];
       const dates = computeInvoiceDates(ym, generationDay, dueDays, input.dueDateFixed);
+      const customOverride = input.customInvoices?.[i] || customInvoicesMap.get(ym);
+
+      const effectiveIssueDate = customOverride?.issueDate || dates.issueDate;
+      const effectiveDueDate = customOverride?.dueDate || dates.dueDate;
+      const effectiveAmount = typeof customOverride?.amount === 'number' && !isNaN(customOverride.amount) && customOverride.amount >= 0
+        ? customOverride.amount
+        : sourceInvoice.total_amount;
+
+      let effectiveSubtotal = sourceInvoice.subtotal;
+      let effectiveTax = sourceInvoice.tax_amount;
+      const amountRatio = (sourceInvoice.total_amount > 0 && effectiveAmount !== sourceInvoice.total_amount)
+        ? effectiveAmount / sourceInvoice.total_amount
+        : 1;
+
+      if (amountRatio !== 1) {
+        effectiveSubtotal = Math.round(sourceInvoice.subtotal * amountRatio * 100) / 100;
+        effectiveTax = Math.round(sourceInvoice.tax_amount * amountRatio * 100) / 100;
+      }
 
       maxNum++;
       const invoiceNumber = `INV-${currentYear}-${String(maxNum).padStart(6, '0')}`;
 
-      monthMetaList.push({ ym, issueDate: dates.issueDate });
+      monthMetaList.push({ ym, issueDate: effectiveIssueDate, amountRatio });
       invoicePayloads.push({
         workspace_id: workspaceId,
         invoice_number: invoiceNumber,
@@ -321,13 +351,13 @@ export class InvoiceScheduleService {
         customer_name: recipientName,
         customer_email: recipientEmail,
         customer_address: sourceInvoice.customer_address || null,
-        subtotal: sourceInvoice.subtotal,
-        tax_amount: sourceInvoice.tax_amount,
-        total_amount: sourceInvoice.total_amount,
-        balance_due: sourceInvoice.total_amount,
+        subtotal: effectiveSubtotal,
+        tax_amount: effectiveTax,
+        total_amount: effectiveAmount,
+        balance_due: effectiveAmount,
         paid_amount: 0,
-        issue_date: dates.issueDate,
-        due_date: dates.dueDate,
+        issue_date: effectiveIssueDate,
+        due_date: effectiveDueDate,
         billing_period_start: dates.billingPeriodStart,
         billing_period_end: dates.billingPeriodEnd,
         notes: sourceInvoice.notes || null,
@@ -355,20 +385,26 @@ export class InvoiceScheduleService {
     const allItemInserts: Array<Record<string, any>> = [];
     for (let i = 0; i < createdInvoices.length; i++) {
       const createdInv = createdInvoices[i];
-      const meta = monthMetaList[i] || { ym: months[i], issueDate: createdInv.issue_date };
+      const meta = monthMetaList[i] || { ym: months[i], issueDate: createdInv.issue_date, amountRatio: 1 };
 
       if (sourceItems && sourceItems.length > 0) {
         for (let idx = 0; idx < sourceItems.length; idx++) {
           const item = sourceItems[idx];
+          const ratio = meta.amountRatio ?? 1;
+          const adjUnitPrice = ratio === 1 ? item.unit_price : Math.round(item.unit_price * ratio * 100) / 100;
+          const adjAmount = ratio === 1 ? item.amount : Math.round(item.amount * ratio * 100) / 100;
+          const adjTax = ratio === 1 ? item.tax_amount : Math.round((item.tax_amount || 0) * ratio * 100) / 100;
+          const adjLineTotal = ratio === 1 ? item.line_total : Math.round((item.line_total || item.amount) * ratio * 100) / 100;
+
           allItemInserts.push({
             invoice_id: createdInv.id,
             description: item.description,
             quantity: item.quantity,
-            unit_price: item.unit_price,
-            amount: item.amount,
+            unit_price: adjUnitPrice,
+            amount: adjAmount,
             tax_rate: item.tax_rate,
-            tax_amount: item.tax_amount,
-            line_total: item.line_total,
+            tax_amount: adjTax,
+            line_total: adjLineTotal,
             sort_order: idx,
           });
         }

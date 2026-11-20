@@ -26,6 +26,13 @@ import {
   ChevronUp,
   LayoutTemplate,
   Building2,
+  Info,
+  Clock,
+  UserCheck,
+  FileSpreadsheet,
+  Receipt,
+  CalendarSync,
+  Landmark,
 } from 'lucide-react';
 import { Button, Input, Select, Textarea } from '@/components/admin/ui';
 import { CreateInvoiceDTO, UpdateInvoiceDTO, InvoiceDTO, InvoiceTemplateDTO } from '@/modules/invoices';
@@ -810,22 +817,22 @@ export function CreateInvoiceModal({
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                      Bill external clients, contractors, or customers directly for consulting, maintenance services, or custom ad-hoc charges.
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Bill external clients, contractors, or ad-hoc services directly.
                     </p>
 
-                    <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-300">
+                    <div className="space-y-2 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className={cn('w-4 h-4', invoiceType === 'standalone' ? 'text-[#008F83]' : 'text-slate-400')} />
-                        <span>No lease or tenancy linkage required</span>
+                        <UserCheck className="w-3.5 h-3.5 text-[#008F83] shrink-0" />
+                        <span>Any Client or Vendor</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className={cn('w-4 h-4', invoiceType === 'standalone' ? 'text-[#008F83]' : 'text-slate-400')} />
-                        <span>Custom client recipient information</span>
+                        <FileSpreadsheet className="w-3.5 h-3.5 text-[#008F83] shrink-0" />
+                        <span>Custom Line Items & Tax</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className={cn('w-4 h-4', invoiceType === 'standalone' ? 'text-[#008F83]' : 'text-slate-400')} />
-                        <span>Itemized line items with custom tax & rates</span>
+                        <Receipt className="w-3.5 h-3.5 text-[#008F83] shrink-0" />
+                        <span>Standalone Billing (No Lease)</span>
                       </div>
                     </div>
                   </div>
@@ -904,22 +911,22 @@ export function CreateInvoiceModal({
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                      Formal tenancy billing tied to active leases. Automatically synchronizes tenant details, property address, and recurring rent schedule.
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Bill active tenants with automatic rent and lease synchronization.
                     </p>
 
-                    <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-300">
+                    <div className="space-y-2 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className={cn('w-4 h-4', invoiceType === 'lease' ? 'text-[#008F83]' : 'text-slate-400')} />
-                        <span>Auto-populates tenant & property records</span>
+                        <Building className="w-3.5 h-3.5 text-[#008F83] shrink-0" />
+                        <span>Tenancy & Lease Linked</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className={cn('w-4 h-4', invoiceType === 'lease' ? 'text-[#008F83]' : 'text-slate-400')} />
-                        <span>Pre-loads agreed rent amount & frequency</span>
+                        <CalendarSync className="w-3.5 h-3.5 text-[#008F83] shrink-0" />
+                        <span>Pre-loaded Rent Schedule</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className={cn('w-4 h-4', invoiceType === 'lease' ? 'text-[#008F83]' : 'text-slate-400')} />
-                        <span>Syncs directly to property financial ledger</span>
+                        <Landmark className="w-3.5 h-3.5 text-[#008F83] shrink-0" />
+                        <span>Property Ledger Sync</span>
                       </div>
                     </div>
 
@@ -1221,9 +1228,18 @@ export function CreateInvoiceModal({
                   />
                 </div>
 
-                {/* Quick Payment Terms Pills */}
+                {/* Quick Payment Terms Pills with informative hover tooltip */}
                 <div className="flex items-center gap-2 pt-1">
-                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Quick Terms:</span>
+                  <div className="relative group inline-flex items-center gap-1.5 cursor-help">
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Quick Terms:</span>
+                    <Info className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#008F83] transition-colors" />
+                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:flex flex-col w-64 p-2.5 rounded-xl bg-slate-900 text-white text-[11px] leading-tight shadow-xl z-50 pointer-events-none animate-in fade-in zoom-in-95 border border-slate-700">
+                      <span className="font-bold text-teal-300 mb-1 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Quick Payment Terms
+                      </span>
+                      Presets that automatically calculate the payment due date relative to the invoice issue date (e.g. Net 14 = due 14 days after issue).
+                    </div>
+                  </div>
                   {[
                     { label: 'Net 7 Days', days: 7 },
                     { label: 'Net 14 Days', days: 14 },
