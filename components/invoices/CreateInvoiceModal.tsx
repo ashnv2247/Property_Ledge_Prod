@@ -62,6 +62,12 @@ interface CreateInvoiceModalProps {
   ) => Promise<any>;
   invoiceToEdit?: InvoiceDTO | null;
   onUpdate?: (id: string, dto: UpdateInvoiceDTO) => Promise<void>;
+  onIssueExisting?: (
+    id: string,
+    dto: UpdateInvoiceDTO,
+    emailOptions?: { subject?: string; customMessage?: string; driveFolderUrl?: string },
+    downloadImmediately?: boolean
+  ) => Promise<void>;
   initialTemplateId?: string;
   initialPropertyId?: string;
 }
@@ -79,6 +85,7 @@ export function CreateInvoiceModal({
   onSubmit,
   invoiceToEdit,
   onUpdate,
+  onIssueExisting,
   initialTemplateId,
   initialPropertyId,
 }: CreateInvoiceModalProps) {
@@ -298,7 +305,7 @@ export function CreateInvoiceModal({
     } else {
       prevModalInvoiceIdRef.current = null;
     }
-  }, [isOpen, invoiceToEdit, initialTemplateId, initialPropertyId]);
+  }, [isOpen, invoiceToEdit, initialTemplateId, initialPropertyId, isEditMode]);
 
 
   const handleSelectCustomTemplate = (customTmpl: InvoiceTemplateDTO) => {
@@ -329,8 +336,6 @@ export function CreateInvoiceModal({
       );
     }
   };
-
-  if (!isOpen) return null;
 
   // Handle Preset Due Terms (Net 7, 14, 30) using Australian timezone
   const handleSetTerms = (days: number) => {
@@ -484,9 +489,9 @@ export function CreateInvoiceModal({
     return true;
   };
 
-  const isStep2Complete = useMemo(() => {
-    return isStepComplete(2);
-  }, [recipientName, items]);
+  const isStep2Complete = isStepComplete(2);
+
+  if (!isOpen) return null;
 
   const validateRecipient = () => {
     setError(null);
@@ -543,8 +548,30 @@ export function CreateInvoiceModal({
       })),
       notes: notes.trim() || undefined,
       paymentInstructions: paymentInstructions.trim() || undefined,
+      autoIssue: issueImmediately,
     };
   };
+
+  const buildUpdateDto = (): UpdateInvoiceDTO => ({
+    status: status as any,
+    customerName: recipientName.trim(),
+    customerEmail: recipientEmail.trim() || undefined,
+    customerAddress: recipientAddress.trim() || undefined,
+    recipientName: recipientName.trim(),
+    recipientEmail: recipientEmail.trim() || undefined,
+    recipientAddress: recipientAddress.trim() || undefined,
+    issueDate,
+    dueDate,
+    currency,
+    items: items.map((i) => ({
+      description: i.description,
+      quantity: Number(i.quantity) || 1,
+      unitPrice: Number(i.unitPrice) || 0,
+      taxRate: Number(i.taxRate) || 0,
+    })),
+    notes: notes.trim() || undefined,
+    paymentInstructions: paymentInstructions.trim() || undefined,
+  });
 
   // Actions
   const handleSaveDraft = async () => {
@@ -552,26 +579,7 @@ export function CreateInvoiceModal({
     setLoading(true);
     try {
       if (isEditMode && invoiceToEdit && onUpdate) {
-        await onUpdate(invoiceToEdit.id, {
-          status: status as any,
-          customerName: recipientName.trim(),
-          customerEmail: recipientEmail.trim() || undefined,
-          customerAddress: recipientAddress.trim() || undefined,
-          recipientName: recipientName.trim(),
-          recipientEmail: recipientEmail.trim() || undefined,
-          recipientAddress: recipientAddress.trim() || undefined,
-          issueDate,
-          dueDate,
-          currency,
-          items: items.map((i) => ({
-            description: i.description,
-            quantity: Number(i.quantity) || 1,
-            unitPrice: Number(i.unitPrice) || 0,
-            taxRate: Number(i.taxRate) || 0,
-          })),
-          notes: notes.trim() || undefined,
-          paymentInstructions: paymentInstructions.trim() || undefined,
-        });
+        await onUpdate(invoiceToEdit.id, buildUpdateDto());
       } else {
         await onSubmit(buildDto(false), false);
       }
@@ -621,7 +629,12 @@ export function CreateInvoiceModal({
     if (!validateStep2()) return;
     setLoading(true);
     try {
-      await onSubmit(buildDto(true), true, undefined, true);
+      if (isEditMode && invoiceToEdit) {
+        if (!onIssueExisting) throw new Error('Issuing an existing draft is not available here.');
+        await onIssueExisting(invoiceToEdit.id, buildUpdateDto(), undefined, true);
+      } else {
+        await onSubmit(buildDto(true), true, undefined, true);
+      }
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to issue invoice');
@@ -638,11 +651,17 @@ export function CreateInvoiceModal({
     }
     setLoading(true);
     try {
-      await onSubmit(buildDto(true), true, {
+      const emailOptions = {
         subject: emailSubject.trim() || undefined,
         customMessage: customEmailMessage.trim() || undefined,
         driveFolderUrl: driveFolderUrl.trim() || undefined,
-      });
+      };
+      if (isEditMode && invoiceToEdit) {
+        if (!onIssueExisting) throw new Error('Issuing an existing draft is not available here.');
+        await onIssueExisting(invoiceToEdit.id, buildUpdateDto(), emailOptions);
+      } else {
+        await onSubmit(buildDto(true), true, emailOptions);
+      }
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to issue and send invoice');
@@ -724,7 +743,7 @@ export function CreateInvoiceModal({
             <div className="space-y-6 py-2">
               <div className="text-center max-w-xl mx-auto mb-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#008F83]/10 text-[#008F83] text-xs font-bold border border-[#008F83]/20 mb-2">
-                  <Sparkles className="w-3.5 h-3.5" /> Step 1 of 3 · Invoice Workflow
+                  <Sparkles className="w-3.5 h-3.5" /> Step 1 of 4 · Invoice Workflow
                 </span>
                 <h3 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
                   Select Invoice Category
@@ -1563,7 +1582,7 @@ export function CreateInvoiceModal({
                   disabled={loading}
                   className="h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50"
                 >
-                  Save Draft
+                  {isEditMode ? 'Save Changes' : 'Save Draft'}
                 </button>
                 <button
                   type="button"
@@ -1585,7 +1604,7 @@ export function CreateInvoiceModal({
                   disabled={loading}
                   className="h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50"
                 >
-                  Save Draft
+                  {isEditMode ? 'Save Changes' : 'Save Draft'}
                 </button>
                 <button
                   type="button"
@@ -1607,8 +1626,9 @@ export function CreateInvoiceModal({
                   disabled={loading}
                   className="h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs sm:text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#008F83]/30 disabled:opacity-50"
                 >
-                  Save Draft
+                  {isEditMode ? 'Save Changes' : 'Save Draft'}
                 </button>
+                {(!isEditMode || invoiceToEdit?.status === 'draft') && (
                 <button
                   type="button"
                   onClick={handleIssueAndDownload}
@@ -1617,6 +1637,7 @@ export function CreateInvoiceModal({
                 >
                   <Download className="w-4 h-4" /> {loading ? 'Issuing & Preparing PDF...' : 'Issue & Download PDF'}
                 </button>
+                )}
               </>
             )}
           </div>

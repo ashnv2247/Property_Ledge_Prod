@@ -6,11 +6,79 @@ import {
   InvoiceScheduledEmailJobDTO,
   ScheduleEmailStatsDTO,
   CreateScheduleEmailInput,
+  CreateIndividualInvoiceEmailInput,
+  IndividualInvoiceEmailResult,
   ScheduleEmailFilters,
 } from '@/modules/invoices/domain/entities/invoice-schedule';
 import { container } from '@/composition/container';
 import { PdfInvoiceAdapter } from '@/modules/invoices/infrastructure/documents/pdf/pdf-invoice-adapter';
 import { invoiceEmailAdapter } from '@/modules/invoices/infrastructure/email/invoice-email-adapter';
+import { createAuDate, formatAuDateIso, getAuTodayString } from '@/lib/format/australian-time';
+
+function mapEmailJob(job: any): InvoiceScheduledEmailJobDTO {
+  return {
+    id: job.id,
+    workspaceId: job.workspace_id,
+    scheduleId: job.schedule_id,
+    invoiceId: job.invoice_id,
+    jobType: job.job_type || 'recurring',
+    recipientEmail: job.recipient_email,
+    recipientName: job.recipient_name,
+    billingMonth: job.billing_month,
+    scheduledSendDate: job.scheduled_send_date,
+    attemptedAt: job.attempted_at,
+    deliveredAt: job.delivered_at,
+    status: job.status,
+    attempts: job.attempts,
+    maxAttempts: job.max_attempts,
+    failureReason: job.failure_reason,
+    providerMessageId: job.provider_message_id,
+    subject: job.subject,
+    customMessage: job.custom_message,
+    createdAt: job.created_at,
+    updatedAt: job.updated_at,
+    invoiceNumber: job.invoice?.invoice_number,
+    invoiceTotal: job.invoice?.total_amount,
+    invoiceStatus: job.invoice?.status,
+    invoiceDueDate: job.invoice?.due_date,
+  };
+}
+
+function mapScheduleRow(row: any): InvoiceEmailScheduleDTO {
+  return {
+    id: row.id,
+    workspaceId: row.workspace_id,
+    sourceInvoiceId: row.source_invoice_id,
+    propertyId: row.property_id,
+    tenantId: row.tenant_id,
+    leaseId: row.lease_id,
+    recipientName: row.recipient_name,
+    recipientEmail: row.recipient_email,
+    billingStartMonth: row.billing_start_month,
+    billingEndMonth: row.billing_end_month,
+    frequency: row.frequency,
+    generationDayOfMonth: row.generation_day_of_month,
+    dueDaysAfter: row.due_days_after,
+    dueDateFixed: row.due_date_fixed,
+    timezone: row.timezone,
+    emailMode: row.email_mode,
+    status: row.status,
+    invoicesGeneratedCount: row.invoices_generated_count,
+    emailsSentCount: row.emails_sent_count,
+    emailsPendingCount: row.emails_pending_count,
+    emailsFailedCount: row.emails_failed_count,
+    subjectTemplate: row.subject_template,
+    customMessage: row.custom_message,
+    driveFolderUrl: row.drive_folder_url,
+    notes: row.notes,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    sourceInvoiceNumber: row.source_invoice?.invoice_number || undefined,
+    propertyName: row.property?.name || undefined,
+    tenantName: row.tenant ? `${row.tenant.first_name || ''} ${row.tenant.last_name || ''}`.trim() : undefined,
+  };
+}
 
 /**
  * Parses YYYY-MM into year and month (1-indexed).
@@ -158,8 +226,14 @@ export class InvoiceScheduleService {
       throw new Error('Invalid billing period range: start month must be before or equal to end month.');
     }
 
-    const generationDay = input.generationDayOfMonth || 1;
+    const generationDay = input.generationDayOfMonth ?? 1;
     const dueDays = input.dueDaysAfter !== undefined ? input.dueDaysAfter : 7;
+    if (!Number.isInteger(generationDay) || generationDay < 1 || generationDay > 31) {
+      throw new Error('Invoice day must be a whole number between 1 and 31.');
+    }
+    if (input.dueDateFixed != null && (!Number.isInteger(input.dueDateFixed) || input.dueDateFixed < 1 || input.dueDateFixed > 31)) {
+      throw new Error('Fixed due day must be a whole number between 1 and 31.');
+    }
     const timezone = input.timezone || 'Australia/Sydney';
     const emailMode = input.emailMode || 'automatic';
 
@@ -317,6 +391,7 @@ export class InvoiceScheduleService {
           max_attempts: 3,
           subject: input.subjectTemplate || null,
           custom_message: input.customMessage || null,
+          job_type: 'recurring',
         });
       }
     }
@@ -341,6 +416,175 @@ export class InvoiceScheduleService {
       schedule: scheduleRecord as InvoiceEmailScheduleDTO,
       generatedCount: months.length,
     };
+  }
+
+  /** Schedules delivery of existing invoices without creating recurring schedules. */
+  async createIndividualEmailJobs(
+    input: CreateIndividualInvoiceEmailInput,
+    workspaceId: string
+  ): Promise<IndividualInvoiceEmailResult> {
+    const invoiceIds = [...new Set(input.invoiceIds || [])];
+    if (invoiceIds.length === 0) throw new Error('Select at least one invoice.');
+    if (invoiceIds.length > 20) throw new Error('You can schedule a maximum of 20 invoices at once.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.sendDate)) throw new Error('Choose a valid send date.');
+    if (input.sendDate <= getAuTodayString()) throw new Error('Choose a future send date.');
+
+    const [year, month, day] = input.sendDate.split('-').map(Number);
+    const scheduledDate = createAuDate(year, month, day, 0, 0);
+    if (formatAuDateIso(scheduledDate) !== input.sendDate) throw new Error('Choose a valid send date.');
+    const scheduledSendDate = scheduledDate.toISOString();
+    if ((input.subject || '').length > 200) throw new Error('Email subject cannot exceed 200 characters.');
+    if ((input.customMessage || '').length > 2000) throw new Error('Email message cannot exceed 2000 characters.');
+    const supabase: any = await createAdminClient();
+    const { data: invoices, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('workspace_id', workspaceId)
+      .in('id', invoiceIds);
+    if (error) throw new Error(`Failed to load selected invoices: ${error.message}`);
+
+    const tenantIds = [...new Set((invoices || []).map((invoice: any) => invoice.tenant_id).filter(Boolean))];
+    const tenantById = new Map<string, any>();
+    if (tenantIds.length > 0) {
+      const { data: tenants } = await supabase
+        .from('tenants')
+        .select('id, first_name, last_name, email')
+        .in('id', tenantIds);
+      for (const tenant of tenants || []) tenantById.set(tenant.id, tenant);
+    }
+
+    const { data: duplicates } = await supabase
+      .from('invoice_scheduled_email_jobs')
+      .select('invoice_id')
+      .eq('workspace_id', workspaceId)
+      .eq('job_type', 'individual')
+      .eq('scheduled_send_date', scheduledSendDate)
+      .neq('status', 'cancelled')
+      .in('invoice_id', invoiceIds);
+    const duplicateIds = new Set((duplicates || []).map((row: any) => row.invoice_id));
+    const foundIds = new Set((invoices || []).map((invoice: any) => invoice.id));
+    const skipped: IndividualInvoiceEmailResult['skipped'] = invoiceIds
+      .filter((id) => !foundIds.has(id))
+      .map((invoiceId) => ({ invoiceId, reason: 'Invoice was not found in this workspace.' }));
+    const eligibleStatuses = new Set(['issued', 'partially_paid', 'overdue']);
+    const payloads: any[] = [];
+    const invoiceNumbers = new Map<string, string>();
+
+    for (const invoice of invoices || []) {
+      invoiceNumbers.set(invoice.id, invoice.invoice_number);
+      if (!eligibleStatuses.has(invoice.status)) {
+        skipped.push({ invoiceId: invoice.id, invoiceNumber: invoice.invoice_number, reason: `Status ${invoice.status} is not eligible.` });
+        continue;
+      }
+      if (duplicateIds.has(invoice.id)) {
+        skipped.push({ invoiceId: invoice.id, invoiceNumber: invoice.invoice_number, reason: 'Already scheduled for this date.' });
+        continue;
+      }
+      const tenant = invoice.tenant_id ? tenantById.get(invoice.tenant_id) : null;
+      let snapshot = invoice.snapshot || {};
+      if (typeof snapshot === 'string') {
+        try { snapshot = JSON.parse(snapshot); } catch { snapshot = {}; }
+      }
+      const recipientEmail = snapshot?.billTo?.email || invoice.customer_email || tenant?.email || '';
+      const recipientName = snapshot?.billTo?.name || invoice.customer_name ||
+        (tenant ? `${tenant.first_name || ''} ${tenant.last_name || ''}`.trim() : '') || 'Customer';
+      if (!recipientEmail) {
+        skipped.push({ invoiceId: invoice.id, invoiceNumber: invoice.invoice_number, reason: 'Recipient email is missing.' });
+        continue;
+      }
+      payloads.push({
+        workspace_id: workspaceId,
+        schedule_id: null,
+        invoice_id: invoice.id,
+        job_type: 'individual',
+        recipient_email: recipientEmail,
+        recipient_name: recipientName,
+        billing_month: (invoice.issue_date || input.sendDate).slice(0, 7),
+        scheduled_send_date: scheduledSendDate,
+        status: 'scheduled',
+        attempts: 0,
+        max_attempts: 3,
+        subject: input.subject?.trim() || null,
+        custom_message: input.customMessage?.trim() || null,
+      });
+    }
+
+    if (payloads.length === 0) return { scheduled: [], skipped };
+    const { data: jobs, error: insertError } = await supabase
+      .from('invoice_scheduled_email_jobs')
+      .insert(payloads)
+      .select();
+    if (insertError) throw new Error(`Failed to schedule invoice email: ${insertError.message}`);
+
+    const scheduledIds = payloads.map((row) => row.invoice_id);
+    await supabase
+      .from('invoices')
+      .update({ email_status: 'scheduled', updated_at: new Date().toISOString() })
+      .eq('workspace_id', workspaceId)
+      .in('id', scheduledIds);
+    serverCache.invalidateWorkspace(workspaceId);
+    return {
+      scheduled: (jobs || []).map((job: any) => ({ ...mapEmailJob(job), invoiceNumber: invoiceNumbers.get(job.invoice_id) })),
+      skipped,
+    };
+  }
+
+  async getIndividualEmailJobs(workspaceId: string, limit: number = 100): Promise<InvoiceScheduledEmailJobDTO[]> {
+    const supabase: any = await createAdminClient();
+    const { data, error } = await supabase
+      .from('invoice_scheduled_email_jobs')
+      .select('*, invoice:invoices!invoice_id(invoice_number, total_amount, status, due_date)')
+      .eq('workspace_id', workspaceId)
+      .eq('job_type', 'individual')
+      .order('scheduled_send_date', { ascending: false })
+      .limit(Math.min(Math.max(limit, 1), 200));
+    if (error) throw new Error(`Failed to load scheduled invoice emails: ${error.message}`);
+    return (data || []).map(mapEmailJob);
+  }
+
+  async cancelIndividualEmailJob(jobId: string, workspaceId: string) {
+    const supabase: any = await createAdminClient();
+    const { data, error } = await supabase
+      .from('invoice_scheduled_email_jobs')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('id', jobId)
+      .eq('workspace_id', workspaceId)
+      .eq('job_type', 'individual')
+      .in('status', ['scheduled', 'pending', 'failed'])
+      .select()
+      .single();
+    if (error || !data) throw new Error(`Unable to cancel scheduled email: ${error?.message || 'Job not found'}`);
+    await supabase
+      .from('invoices')
+      .update({ email_status: 'pending', updated_at: new Date().toISOString() })
+      .eq('id', data.invoice_id)
+      .eq('workspace_id', workspaceId);
+    serverCache.invalidateWorkspace(workspaceId);
+    return mapEmailJob(data);
+  }
+
+  async rescheduleEmailJob(jobId: string, sendDate: string, workspaceId: string) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(sendDate) || sendDate <= getAuTodayString()) {
+      throw new Error('Choose a valid future send date.');
+    }
+    const [year, month, day] = sendDate.split('-').map(Number);
+    const scheduledDate = createAuDate(year, month, day, 0, 0);
+    if (formatAuDateIso(scheduledDate) !== sendDate) throw new Error('Choose a valid future send date.');
+
+    const supabase: any = await createAdminClient();
+    const { data, error } = await supabase
+      .from('invoice_scheduled_email_jobs')
+      .update({ scheduled_send_date: scheduledDate.toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', jobId)
+      .eq('workspace_id', workspaceId)
+      .in('status', ['scheduled', 'pending'])
+      .select('*, invoice:invoices!invoice_id(invoice_number, total_amount, status, due_date)')
+      .single();
+    if (error || !data) {
+      throw new Error(`Unable to change scheduled date: ${error?.message || 'Only pending emails can be rescheduled'}`);
+    }
+    serverCache.invalidateWorkspace(workspaceId);
+    return mapEmailJob(data);
   }
 
   /**
@@ -409,39 +653,7 @@ export class InvoiceScheduleService {
       throw new Error(`Failed to fetch schedules: ${error.message}`);
     }
 
-    const enrichedSchedules: InvoiceEmailScheduleDTO[] = (data || []).map((row: any) => ({
-      id: row.id,
-      workspaceId: row.workspace_id,
-      sourceInvoiceId: row.source_invoice_id,
-      propertyId: row.property_id,
-      tenantId: row.tenant_id,
-      leaseId: row.lease_id,
-      recipientName: row.recipient_name,
-      recipientEmail: row.recipient_email,
-      billingStartMonth: row.billing_start_month,
-      billingEndMonth: row.billing_end_month,
-      frequency: row.frequency,
-      generationDayOfMonth: row.generation_day_of_month,
-      dueDaysAfter: row.due_days_after,
-      dueDateFixed: row.due_date_fixed,
-      timezone: row.timezone,
-      emailMode: row.email_mode,
-      status: row.status,
-      invoicesGeneratedCount: row.invoices_generated_count,
-      emailsSentCount: row.emails_sent_count,
-      emailsPendingCount: row.emails_pending_count,
-      emailsFailedCount: row.emails_failed_count,
-      subjectTemplate: row.subject_template,
-      customMessage: row.custom_message,
-      driveFolderUrl: row.drive_folder_url,
-      notes: row.notes,
-      createdBy: row.created_by,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      sourceInvoiceNumber: row.source_invoice?.invoice_number || undefined,
-      propertyName: row.property?.name || undefined,
-      tenantName: row.tenant ? `${row.tenant.first_name || ''} ${row.tenant.last_name || ''}`.trim() : undefined,
-    }));
+    const enrichedSchedules: InvoiceEmailScheduleDTO[] = (data || []).map(mapScheduleRow);
 
     const result = {
       items: enrichedSchedules,
@@ -545,39 +757,11 @@ export class InvoiceScheduleService {
       throw new Error(`Schedule not found: ${schedErr?.message || 'Invalid ID'}`);
     }
 
-    const formattedJobs: InvoiceScheduledEmailJobDTO[] = (emailJobs || []).map((job: any) => ({
-      id: job.id,
-      workspaceId: job.workspace_id,
-      scheduleId: job.schedule_id,
-      invoiceId: job.invoice_id,
-      recipientEmail: job.recipient_email,
-      recipientName: job.recipient_name,
-      billingMonth: job.billing_month,
-      scheduledSendDate: job.scheduled_send_date,
-      attemptedAt: job.attempted_at,
-      deliveredAt: job.delivered_at,
-      status: job.status,
-      attempts: job.attempts,
-      maxAttempts: job.max_attempts,
-      failureReason: job.failure_reason,
-      providerMessageId: job.provider_message_id,
-      subject: job.subject,
-      customMessage: job.custom_message,
-      createdAt: job.created_at,
-      updatedAt: job.updated_at,
-      invoiceNumber: job.invoice?.invoice_number,
-      invoiceTotal: job.invoice?.total_amount,
-      invoiceStatus: job.invoice?.status,
-      invoiceDueDate: job.invoice?.due_date,
-    }));
+    const formattedJobs: InvoiceScheduledEmailJobDTO[] = (emailJobs || []).map(mapEmailJob);
+    const mappedSchedule = mapScheduleRow(schedule);
 
     return {
-      schedule: {
-        ...schedule,
-        sourceInvoiceNumber: schedule.source_invoice?.invoice_number,
-        propertyName: schedule.property?.name,
-        tenantName: schedule.tenant ? `${schedule.tenant.first_name || ''} ${schedule.tenant.last_name || ''}`.trim() : undefined,
-      } as InvoiceEmailScheduleDTO,
+      schedule: mappedSchedule,
       invoices: generatedInvoices || [],
       emailJobs: formattedJobs,
     };
@@ -703,8 +887,9 @@ export class InvoiceScheduleService {
       return { success: false, error: 'Job already processed or not found' };
     }
 
-    // Verify parent schedule status
-    if (job.schedule?.status !== 'active') {
+    // Recurring jobs require an active parent. Individual jobs intentionally have no parent.
+    const isIndividualJob = job.job_type === 'individual';
+    if (!isIndividualJob && job.schedule?.status !== 'active') {
       await supabase
         .from('invoice_scheduled_email_jobs')
         .update({ status: 'cancelled', failure_reason: 'Schedule is paused or cancelled' })
@@ -765,22 +950,24 @@ export class InvoiceScheduleService {
         })
         .eq('id', job.invoice_id);
 
-      // Update Schedule counters
-      const { data: sched } = await supabase
-        .from('invoice_email_schedules')
-        .select('emails_sent_count, emails_pending_count')
-        .eq('id', job.schedule_id)
-        .single();
-
-      if (sched) {
-        await supabase
+      // Only recurring jobs contribute to their parent schedule counters.
+      if (job.schedule_id) {
+        const { data: sched } = await supabase
           .from('invoice_email_schedules')
-          .update({
-            emails_sent_count: (sched.emails_sent_count || 0) + 1,
-            emails_pending_count: Math.max(0, (sched.emails_pending_count || 0) - 1),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', job.schedule_id);
+          .select('emails_sent_count, emails_pending_count')
+          .eq('id', job.schedule_id)
+          .single();
+
+        if (sched) {
+          await supabase
+            .from('invoice_email_schedules')
+            .update({
+              emails_sent_count: (sched.emails_sent_count || 0) + 1,
+              emails_pending_count: Math.max(0, (sched.emails_pending_count || 0) - 1),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', job.schedule_id);
+        }
       }
 
       return { success: true };
@@ -809,7 +996,7 @@ export class InvoiceScheduleService {
         })
         .eq('id', job.invoice_id);
 
-      if (isFinalFail) {
+      if (isFinalFail && job.schedule_id) {
         const { data: sched } = await supabase
           .from('invoice_email_schedules')
           .select('emails_failed_count, emails_pending_count')

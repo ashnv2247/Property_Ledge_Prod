@@ -12,6 +12,7 @@ import {
   FilterChangedEvent,
   SelectionColumnDef,
   BodyScrollEvent,
+  IsRowSelectable,
 } from 'ag-grid-community';
 
 import '@/components/admin/data-grid/theme/gridTheme.css';
@@ -54,6 +55,7 @@ export interface DataGridProps<TData = any> {
   searchPlaceholder?: string;
   defaultPageSize?: number;
   enableSelection?: boolean;
+  isRowSelectable?: IsRowSelectable<TData>;
   selectionColumnDef?: SelectionColumnDef;
   enableColumnChooser?: boolean;
   enableExport?: boolean;
@@ -104,6 +106,7 @@ export function DataGrid<TData = any>({
   searchPlaceholder = 'Search table...',
   defaultPageSize = 10,
   enableSelection = true,
+  isRowSelectable,
   selectionColumnDef,
   enableColumnChooser = true,
   enableExport = true,
@@ -556,9 +559,10 @@ export function DataGrid<TData = any>({
             checkboxes: true,
             headerCheckbox: true,
             selectAll: 'filtered' as const,
+            isRowSelectable,
           }
         : undefined,
-    [enableSelection]
+    [enableSelection, isRowSelectable]
   );
 
   const effectiveGetRowId = useMemo(() => {

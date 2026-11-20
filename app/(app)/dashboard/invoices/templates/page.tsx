@@ -33,7 +33,6 @@ import { InvoiceTemplateModal } from '@/components/invoices/InvoiceTemplateModal
 import {
   fetchInvoiceTemplatesAction,
   createInvoiceAction,
-  issueInvoiceAction,
   sendInvoiceEmailAction,
   duplicateInvoiceTemplateAction,
   updateInvoiceTemplateStatusAction,
@@ -97,12 +96,7 @@ export default function InvoiceTemplatesPage() {
       throw new Error(res.error || 'Failed to create invoice');
     }
     if (issueImmediately) {
-      const issueRes = await issueInvoiceAction(res.invoice.id);
-      if (!issueRes.success) {
-        throw new Error(issueRes.error || 'Failed to issue invoice');
-      }
-
-      if (emailOptions && (emailOptions.subject || emailOptions.customMessage || emailOptions.driveFolderUrl || dto.recipientEmail)) {
+      if (emailOptions) {
         try {
           await sendInvoiceEmailAction(
             res.invoice.id,

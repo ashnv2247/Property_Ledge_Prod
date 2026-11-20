@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -39,10 +38,10 @@ interface ScheduleEmailModalProps {
 }
 
 const steps = [
-  { id: 1, name: 'Select Invoice', desc: 'Verify the source invoice details.' },
-  { id: 2, name: 'Schedule', desc: 'Configure billing period and generation dates.' },
-  { id: 3, name: 'Email Settings', desc: 'Configure automatic or manual email delivery.' },
-  { id: 4, name: 'Review', desc: 'Review everything and confirm schedule.' },
+  { id: 1, name: 'Source Invoice', desc: 'Choose the invoice to copy.' },
+  { id: 2, name: 'Invoice Schedule', desc: 'Choose months and invoice dates.' },
+  { id: 3, name: 'Email Delivery', desc: 'Choose automatic or manual delivery.' },
+  { id: 4, name: 'Review & Generate', desc: 'Confirm the invoices to create.' },
 ];
 
 export function ScheduleEmailModal({
@@ -144,6 +143,14 @@ export function ScheduleEmailModal({
         });
         return;
       }
+      if (generationDay < 1 || generationDay > 31 || (dueDateType === 'fixed' && (fixedDueDay < 1 || fixedDueDay > 31))) {
+        toast({
+          title: 'Invalid Day of Month',
+          description: 'Invoice and fixed due days must be between 1 and 31.',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     setActiveStep((prev) => Math.min(prev + 1, steps.length - 1));
@@ -182,11 +189,11 @@ export function ScheduleEmailModal({
       });
 
       if (!res.success) {
-        throw new Error(res.error || 'Failed to create schedule');
+        throw new Error(res.error || 'Failed to generate invoices');
       }
 
       toast({
-        title: 'Schedule Created Successfully',
+        title: 'Invoices Generated Successfully',
         description: `Generated ${res.count || monthsCount} independent monthly invoices for ${sourceInvoice.recipient?.name || sourceInvoice.customerName || 'customer'}.`,
       });
 
@@ -195,7 +202,7 @@ export function ScheduleEmailModal({
     } catch (err: any) {
       toast({
         title: 'Creation Failed',
-        description: err.message || 'Unable to create recurring email schedule.',
+        description: err.message || 'Unable to bulk generate invoices.',
         variant: 'destructive',
       });
     } finally {
@@ -235,10 +242,10 @@ export function ScheduleEmailModal({
         {/* Centered Header (Standardized Reference UI) */}
         <div className="text-center mb-6">
           <h2 className="text-xl sm:text-2xl font-bold font-heading tracking-tight text-slate-900 dark:text-white">
-            Schedule Email
+            Bulk Generate
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Configure automated recurring monthly invoices and independent delivery schedules.
+            Copy one invoice into independent monthly invoices, with optional email delivery.
           </p>
         </div>
 
@@ -330,6 +337,10 @@ export function ScheduleEmailModal({
                     </Select>
                   </div>
                 )}
+
+                <div className="rounded-xl border border-[#008F83]/20 bg-[#008F83]/5 px-4 py-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                  <strong className="text-[#008F83]">What gets copied:</strong> recipient, property, line items, tax, amount, and invoice design. The source invoice is never changed.
+                </div>
 
                 {/* Source Invoice Details Card */}
                 {sourceInvoice ? (
@@ -463,23 +474,18 @@ export function ScheduleEmailModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Generation Day of Month
+                      Invoice Date Each Month
                     </label>
-                    <Select
-                      value={String(generationDay)}
+                    <Input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={generationDay}
                       onChange={(e) => setGenerationDay(Number(e.target.value))}
                       className="bg-white dark:bg-slate-800"
-                    >
-                      <option value="1">1st of month</option>
-                      <option value="5">5th of month</option>
-                      <option value="10">10th of month</option>
-                      <option value="15">15th of month</option>
-                      <option value="20">20th of month</option>
-                      <option value="25">25th of month</option>
-                      <option value="28">28th of month</option>
-                    </Select>
+                    />
                     <span className="text-[11px] text-slate-400 block mt-1">
-                      Day when invoice is officially dated each month.
+                      Any day from 1–31. Shorter months use their final day.
                     </span>
                   </div>
 
@@ -516,17 +522,14 @@ export function ScheduleEmailModal({
                         <option value="30">30 days (Net 30)</option>
                       </Select>
                     ) : (
-                      <Select
-                        value={String(fixedDueDay)}
+                      <Input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={fixedDueDay}
                         onChange={(e) => setFixedDueDay(Number(e.target.value))}
                         className="bg-white dark:bg-slate-800"
-                      >
-                        <option value="7">7th of month</option>
-                        <option value="14">14th of month</option>
-                        <option value="15">15th of month</option>
-                        <option value="21">21st of month</option>
-                        <option value="28">28th of month</option>
-                      </Select>
+                      />
                     )}
                     <span className="text-[11px] text-slate-400 block mt-1">
                       Payment deadline displayed on customer invoices.
@@ -549,7 +552,7 @@ export function ScheduleEmailModal({
                       <option value="Australia/Perth">Australia/Perth (AWST)</option>
                     </Select>
                     <span className="text-[11px] text-slate-400 block mt-1">
-                      Timezone used for monthly job execution.
+                      Timezone used for invoice dates and email delivery.
                     </span>
                   </div>
                 </div>
@@ -578,34 +581,6 @@ export function ScheduleEmailModal({
                     )}
                   >
                     <div className="space-y-3">
-                      {/* Visual 3D Asset Illustration (Seamless blend into card) */}
-                      <div className="relative w-full h-36 flex items-center justify-center transition-all">
-                        <Image
-                          src="/images/invoices/email_auto_light.png"
-                          alt="Automatic Email Sending"
-                          fill
-                          className="object-contain dark:hidden"
-                          sizes="(max-width: 768px) 100vw, 320px"
-                        />
-                        <Image
-                          src="/images/invoices/email_auto_dark.png"
-                          alt="Automatic Email Sending"
-                          fill
-                          className="object-contain hidden dark:block"
-                          sizes="(max-width: 768px) 100vw, 320px"
-                        />
-                        <div className="absolute top-1 right-1">
-                          <span className={cn(
-                            'text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs backdrop-blur-md',
-                            emailMode === 'automatic'
-                              ? 'bg-[#008F83] text-white border-[#008F83]'
-                              : 'bg-white/85 dark:bg-slate-900/85 text-[#008F83] border-[#008F83]/30'
-                          )}>
-                            Automated
-                          </span>
-                        </div>
-                      </div>
-
                       <div className="flex items-center gap-2.5">
                         <div className={cn(
                           'w-8 h-8 rounded-lg flex items-center justify-center transition-colors shrink-0',
@@ -621,7 +596,7 @@ export function ScheduleEmailModal({
                       </div>
 
                       <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        Invoices are sent automatically to the tenant on the configured generation date. Includes retry and delivery logs.
+                        Create every invoice now, then email each one automatically on its invoice date. Includes retries and delivery logs.
                       </p>
                     </div>
 
@@ -649,34 +624,6 @@ export function ScheduleEmailModal({
                     )}
                   >
                     <div className="space-y-3">
-                      {/* Visual 3D Asset Illustration (Seamless blend into card) */}
-                      <div className="relative w-full h-36 flex items-center justify-center transition-all">
-                        <Image
-                          src="/images/invoices/email_manual_light.png"
-                          alt="Manual Email Sending"
-                          fill
-                          className="object-contain dark:hidden"
-                          sizes="(max-width: 768px) 100vw, 320px"
-                        />
-                        <Image
-                          src="/images/invoices/email_manual_dark.png"
-                          alt="Manual Email Sending"
-                          fill
-                          className="object-contain hidden dark:block"
-                          sizes="(max-width: 768px) 100vw, 320px"
-                        />
-                        <div className="absolute top-1 right-1">
-                          <span className={cn(
-                            'text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs backdrop-blur-md',
-                            emailMode === 'manual'
-                              ? 'bg-amber-600 text-white border-amber-600'
-                              : 'bg-white/85 dark:bg-slate-900/85 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                          )}>
-                            Review First
-                          </span>
-                        </div>
-                      </div>
-
                       <div className="flex items-center gap-2.5">
                         <div className={cn(
                           'w-8 h-8 rounded-lg flex items-center justify-center transition-colors shrink-0',
@@ -692,7 +639,7 @@ export function ScheduleEmailModal({
                       </div>
 
                       <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        Generates all monthly invoices in pending-send state. You can review, add custom charges, and send each invoice individually.
+                        Create every invoice now without automatic delivery. Review, edit, and send each invoice when ready.
                       </p>
                     </div>
 
@@ -752,7 +699,7 @@ export function ScheduleEmailModal({
                 <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-5 space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      Schedule Summary
+                      Bulk Generation Summary
                     </span>
                     <span
                       className={cn(
@@ -806,7 +753,7 @@ export function ScheduleEmailModal({
                     </div>
 
                     <div>
-                      <span className="text-slate-400 block">Generation & Due Date:</span>
+                      <span className="text-slate-400 block">Invoice & Due Date:</span>
                       <span className="font-semibold text-slate-900 dark:text-white mt-0.5 block">
                         Day {generationDay} of month (Due: {dueDateType === 'relative' ? `+${dueDaysAfter}d` : `Day ${fixedDueDay}`})
                       </span>
@@ -819,6 +766,12 @@ export function ScheduleEmailModal({
                       Each generated invoice is completely independent. You can edit line items, add utilities or
                       adjust amounts for any single month without affecting other months or the source invoice.
                     </p>
+                  </div>
+                  <div className="rounded-xl border border-[#008F83]/20 bg-[#008F83]/5 p-3 text-xs text-slate-700 dark:text-slate-200">
+                    <strong>{monthsCount} issued invoice{monthsCount === 1 ? '' : 's'}</strong> will be created immediately.{' '}
+                    {emailMode === 'automatic'
+                      ? 'Each invoice will be emailed automatically on its invoice date.'
+                      : 'No emails will be sent until you trigger them manually.'}
                   </div>
                 </div>
               </motion.div>
@@ -849,7 +802,7 @@ export function ScheduleEmailModal({
                 Generating...
               </span>
             ) : activeStep === steps.length - 1 ? (
-              'Create Schedule'
+              'Generate Invoices'
             ) : (
               <span className="inline-flex items-center gap-1.5">
                 Continue <ArrowRight className="w-4 h-4" />

@@ -68,6 +68,8 @@ class InMemoryInvoiceRepository implements InvoiceRepository {
       notes: data.notes || null,
       paymentInstructions: data.paymentInstructions || null,
       templateId: data.templateId || null,
+      issuedAt: data.issuedAt || null,
+      snapshot: data.snapshot || null,
       items: (data.items || []).map((it, idx) => ({
         id: `item-${idx + 1}`,
         invoiceId: `inv-${this.invoices.length + 1}`,
@@ -283,6 +285,29 @@ test.describe('Invoice Domain & Application Unit Tests', () => {
       expect(delRes.success).toBe(true);
       const getRes = await repo.getById(createRes.data.id);
       expect(getRes.success).toBe(false);
+    });
+
+    test('auto-issues a new invoice exactly once without creating a second record', async () => {
+      const repo = new InMemoryInvoiceRepository();
+      const service = new InvoiceService(repo);
+
+      const result = await service.createInvoice({
+        workspaceId: 'ws-100',
+        customerName: 'Michelle Johnson',
+        customerEmail: 'michelle@example.com',
+        currency: 'AUD',
+        dueDate: '2026-12-15',
+        autoIssue: true,
+        items: [{ description: 'Rent', quantity: 1, unitPrice: 120, taxRate: 0 }],
+      });
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(repo.invoices).toHaveLength(1);
+      expect(result.data.id).toBe('inv-1');
+      expect(result.data.invoiceNumber).toBe('INV-2026-000001');
+      expect(result.data.status).toBe('issued');
+      expect(result.data.issuedAt).toBeTruthy();
     });
 
     test('generates bulk multi-month recurring invoices sequentially', async () => {

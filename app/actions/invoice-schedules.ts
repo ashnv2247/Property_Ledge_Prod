@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth/queries';
 import { invoiceScheduleService } from '@/lib/invoices/schedule-service';
 import {
   CreateScheduleEmailInput,
+  CreateIndividualInvoiceEmailInput,
   ScheduleEmailFilters,
   InvoiceEmailScheduleDTO,
   ScheduleEmailStatsDTO,
@@ -53,6 +54,54 @@ export async function createInvoiceScheduleAction(
       success: false,
       error: err.message || 'Failed to create invoice email schedule',
     };
+  }
+}
+
+/** Schedules one-time delivery of one or more existing invoices. */
+export async function createIndividualInvoiceEmailAction(input: CreateIndividualInvoiceEmailInput) {
+  try {
+    const { context } = await getAuthContext();
+    const result = await invoiceScheduleService.createIndividualEmailJobs(input, context.workspaceId);
+    revalidatePath('/dashboard/invoices');
+    return { success: true, ...result };
+  } catch (err: any) {
+    console.error('[createIndividualInvoiceEmailAction] Error:', err);
+    return { success: false, scheduled: [], skipped: [], error: err.message || 'Failed to schedule invoice email' };
+  }
+}
+
+export async function fetchIndividualInvoiceEmailJobsAction(limit: number = 100) {
+  try {
+    const { context } = await getAuthContext();
+    return { success: true, items: await invoiceScheduleService.getIndividualEmailJobs(context.workspaceId, limit) };
+  } catch (err: any) {
+    console.error('[fetchIndividualInvoiceEmailJobsAction] Error:', err);
+    return { success: false, items: [], error: err.message || 'Failed to load scheduled invoice emails' };
+  }
+}
+
+export async function cancelIndividualInvoiceEmailAction(jobId: string) {
+  try {
+    const { context } = await getAuthContext();
+    const job = await invoiceScheduleService.cancelIndividualEmailJob(jobId, context.workspaceId);
+    revalidatePath('/dashboard/invoices');
+    return { success: true, job };
+  } catch (err: any) {
+    console.error('[cancelIndividualInvoiceEmailAction] Error:', err);
+    return { success: false, error: err.message || 'Failed to cancel scheduled invoice email' };
+  }
+}
+
+export async function rescheduleInvoiceEmailJobAction(jobId: string, sendDate: string) {
+  try {
+    const { context } = await getAuthContext();
+    const job = await invoiceScheduleService.rescheduleEmailJob(jobId, sendDate, context.workspaceId);
+    revalidatePath('/dashboard/invoices');
+    revalidatePath('/dashboard/invoices/schedule-email');
+    return { success: true, job };
+  } catch (err: any) {
+    console.error('[rescheduleInvoiceEmailJobAction] Error:', err);
+    return { success: false, error: err.message || 'Failed to change scheduled email date' };
   }
 }
 
@@ -156,6 +205,7 @@ export async function retryScheduledEmailJobAction(jobId: string) {
   try {
     const { context } = await getAuthContext();
     const res = await invoiceScheduleService.retryEmailJob(jobId, context.workspaceId);
+    revalidatePath('/dashboard/invoices');
     revalidatePath('/dashboard/invoices/schedule-email');
     return res;
   } catch (err: any) {

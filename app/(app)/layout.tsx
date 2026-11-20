@@ -31,11 +31,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     getUserProperties(user.id, activeWsId ?? undefined),
   ]);
 
-  const effectiveWsId = activeWsId ?? workspaceContext?.workspaceId ?? (userWorkspaces[0]?.id ?? null);
+  const isCookieWsValid = activeWsId && (userWorkspaces || []).some((w: any) => w.id === activeWsId);
+  const validatedWsId = isCookieWsValid ? activeWsId : null;
+  const effectiveWsId = validatedWsId ?? workspaceContext?.workspaceId ?? (userWorkspaces[0]?.id ?? null);
   const initialProperties =
-    preloadedProperties && (activeWsId || !effectiveWsId || preloadedProperties.length > 0)
+    preloadedProperties && (validatedWsId || !effectiveWsId || preloadedProperties.length > 0)
       ? preloadedProperties
-      : (effectiveWsId !== activeWsId ? await getUserProperties(user.id, effectiveWsId ?? undefined) : preloadedProperties);
+      : (effectiveWsId !== validatedWsId ? await getUserProperties(user.id, effectiveWsId ?? undefined) : preloadedProperties);
 
   if (personaContext.persona === 'tenant') {
     redirect('/tenant');

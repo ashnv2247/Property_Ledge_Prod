@@ -333,11 +333,26 @@ export async function handleCreateLease(
   input: Omit<Tables['leases']['Insert'], 'property_id'>,
   tenantIds?: string[]
 ) {
-  const data = await service.createLease(propertyId, input, tenantIds);
-  const workspaceId = await getActiveWorkspaceId().catch(() => null);
-  if (workspaceId) serverCache.invalidateWorkspace(workspaceId);
-  revalidateDashboard('/dashboard/leases', `/dashboard/properties/${propertyId}`);
-  return { success: true, data };
+  try {
+    const data = await service.createLease(propertyId, input, tenantIds);
+    const workspaceId = await getActiveWorkspaceId().catch(() => null);
+    if (workspaceId) serverCache.invalidateWorkspace(workspaceId);
+
+    // Cache refresh is secondary to the completed database transaction. A
+    // revalidation failure must not turn a successfully-created lease into a
+    // generic Server Components error in the client.
+    try {
+      revalidateDashboard('/dashboard/leases', `/dashboard/properties/${propertyId}`);
+    } catch (revalidationError) {
+      console.error('[handleCreateLease] Post-create revalidation failed:', revalidationError);
+    }
+
+    return { success: true, data };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to create lease.';
+    console.error('[handleCreateLease] Creation failed:', error);
+    return { success: false, error: message };
+  }
 }
 
 export async function handleUpdateLease(

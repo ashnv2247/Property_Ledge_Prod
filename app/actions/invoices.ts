@@ -16,6 +16,7 @@ import {
   UpdateInvoiceDraftDTO,
 } from '@/modules/invoices';
 import { InvoiceStatus } from '@/modules/invoices/domain/entities/invoice';
+import { InvoiceRenderDTO } from '@/modules/invoices/application/dto/invoice-render-dto';
 import { getAuTodayString, getAuDateParts, DEFAULT_AU_TIMEZONE } from '@/lib/format/australian-time';
 
 async function getContextAndService() {
@@ -73,6 +74,21 @@ export async function fetchInvoiceByIdAction(id: string): Promise<InvoiceDTO | n
     return await invoiceService.getInvoiceById(id);
   } catch (err: any) {
     console.error('[fetchInvoiceByIdAction] Error:', err);
+    return null;
+  }
+}
+
+export async function fetchInvoiceRenderDataAction(id: string): Promise<InvoiceRenderDTO | null> {
+  try {
+    const { user, context, invoiceService } = await getContextAndService();
+    return await invoiceService.getInvoiceRenderData(id, {
+      userId: user.id,
+      workspaceId: context.workspaceId,
+      workspaceName: context.workspaceName,
+      userEmail: user.email,
+    });
+  } catch (err: any) {
+    console.error('[fetchInvoiceRenderDataAction] Error:', err);
     return null;
   }
 }
@@ -360,7 +376,7 @@ export async function sendInvoiceEmailAction(
     }
 
     const renderDto = await invoiceService.getInvoiceRenderData(invoiceId, reqContext);
-    const docResult = await invoiceDocService.generateDocument({ invoiceId, format: 'pdf' });
+    const docResult = await invoiceDocService.generateDocument({ invoiceId, format: 'pdf', forceRegenerate: true });
 
     const { invoiceEmailAdapter } = await import('@/modules/invoices/infrastructure/email/invoice-email-adapter');
     const res = await invoiceEmailAdapter.sendInvoice({
@@ -378,7 +394,21 @@ export async function sendInvoiceEmailAction(
       throw new Error(res.error?.message || 'Failed to deliver email');
     }
 
+    // Keep delivery state consistent for manual sends initiated from invoice and
+    // schedule detail views. Email delivery has already succeeded, so a status
+    // persistence failure is logged without reporting a false send failure.
+    const supabase: any = await createClient();
+    const { error: statusError } = await supabase
+      .from('invoices')
+      .update({ email_status: 'sent', updated_at: new Date().toISOString() })
+      .eq('id', invoiceId)
+      .eq('workspace_id', context.workspaceId);
+    if (statusError) {
+      console.error('[sendInvoiceEmailAction] Failed to persist email status:', statusError);
+    }
+
     revalidatePath('/dashboard/invoices');
+    revalidatePath('/dashboard/invoices/schedule-email');
     return { success: true, messageId: res.messageId };
   } catch (err: any) {
     console.error('[sendInvoiceEmailAction] Error:', err);

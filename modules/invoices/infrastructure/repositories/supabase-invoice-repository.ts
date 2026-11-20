@@ -231,6 +231,7 @@ export class SupabaseInvoiceRepository implements InvoiceRepository {
         template_id: isUuid(data.templateId) ? data.templateId : null,
         automation_id: isUuid(data.automationId) ? data.automationId : null,
         status: data.status || 'draft',
+        issued_at: data.issuedAt || null,
         snapshot: data.snapshot || null,
         created_by: context?.userId || null,
       };

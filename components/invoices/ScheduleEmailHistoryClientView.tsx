@@ -117,6 +117,22 @@ export function ScheduleEmailHistoryClientView({
     }
   };
 
+  const handleRefreshDrawer = useCallback(async () => {
+    await loadData();
+    if (selectedSchedule?.id) {
+      try {
+        const res = await fetchInvoiceScheduleDetailsAction(selectedSchedule.id);
+        if (res.success && res.data) {
+          setSelectedSchedule(res.data.schedule);
+          setScheduleInvoices(res.data.invoices || []);
+          setScheduleEmailJobs(res.data.emailJobs || []);
+        }
+      } catch (err) {
+        console.error('Failed to refresh drawer schedule details:', err);
+      }
+    }
+  }, [loadData, selectedSchedule?.id]);
+
   const handleTriggerDueProcessing = async () => {
     setIsProcessingDue(true);
     try {
@@ -550,7 +566,7 @@ export function ScheduleEmailHistoryClientView({
           schedule={selectedSchedule}
           generatedInvoices={scheduleInvoices}
           emailJobs={scheduleEmailJobs}
-          onRefresh={loadData}
+          onRefresh={handleRefreshDrawer}
         />
       )}
     </ListPage>

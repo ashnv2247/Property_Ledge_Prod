@@ -526,7 +526,7 @@ export function RenewLeaseModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-admin-muted mb-1">
-                      Rent Amount (₹) *
+                      Rent Amount ($) *
                     </label>
                     <Input
                       type="number"
@@ -559,7 +559,7 @@ export function RenewLeaseModal({
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-admin-muted mb-1">
-                      Security Deposit (₹)
+                      Security Deposit ($)
                     </label>
                     <Input
                       type="number"

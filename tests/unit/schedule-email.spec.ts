@@ -3,6 +3,7 @@ import {
   InvoiceEmailScheduleDTO,
   InvoiceScheduledEmailJobDTO,
   CreateScheduleEmailInput,
+  CreateIndividualInvoiceEmailInput,
 } from '../../modules/invoices/domain/entities/invoice-schedule';
 
 test.describe('Schedule Email - Recurring Invoice Management System', () => {
@@ -136,7 +137,7 @@ test.describe('Schedule Email - Recurring Invoice Management System', () => {
       { id: 'job-2', status: 'scheduled' },
       { id: 'job-3', status: 'scheduled' },
     ];
-    let invoices = [{ id: 'inv-1' }, { id: 'inv-2' }, { id: 'inv-3' }];
+    const invoices = [{ id: 'inv-1' }, { id: 'inv-2' }, { id: 'inv-3' }];
 
     // Pause
     scheduleStatus = 'paused';
@@ -206,5 +207,32 @@ test.describe('Schedule Email - Recurring Invoice Management System', () => {
     expect(validInvoiceStatuses.includes(invoice.status)).toBe(true);
     expect(validEmailStatuses.includes(invoice.emailStatus)).toBe(true);
     expect(invoice.status).not.toBe('sent'); // Invoice status is accounting status, not email status
+  });
+
+  test('keeps one-time invoice email jobs independent from recurring schedules', () => {
+    const input: CreateIndividualInvoiceEmailInput = {
+      invoiceIds: ['inv-1', 'inv-2'],
+      sendDate: '2026-12-01',
+      subject: 'Your invoice',
+    };
+    const individualJob: InvoiceScheduledEmailJobDTO = {
+      id: 'job-1',
+      workspaceId: 'workspace-1',
+      scheduleId: null,
+      invoiceId: input.invoiceIds[0],
+      jobType: 'individual',
+      recipientEmail: 'tenant@example.com',
+      billingMonth: '2026-11',
+      scheduledSendDate: '2026-11-30T13:00:00.000Z',
+      status: 'scheduled',
+      attempts: 0,
+      maxAttempts: 3,
+      createdAt: '2026-11-20T00:00:00.000Z',
+      updatedAt: '2026-11-20T00:00:00.000Z',
+    };
+
+    expect(input.invoiceIds).toHaveLength(2);
+    expect(individualJob.jobType).toBe('individual');
+    expect(individualJob.scheduleId).toBeNull();
   });
 });

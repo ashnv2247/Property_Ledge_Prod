@@ -23,8 +23,8 @@
     "@supabase/supabase-js": "^2.48.1",
     "@types/pg": "^8.23.1",
     "@vercel/blob": "^2.8.0",
-    "ag-grid-community": "^36.1.0",
-    "ag-grid-react": "^36.1.0",
+    "ag-grid-community": "36.3.0",
+    "ag-grid-react": "36.3.0",
     "caniuse-lite": "^1.0.30001810",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -63,6 +63,6 @@
     "postcss": "^8.4.49",
     "sharp": "^0.35.5",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.3"
+    "typescript": "^5.8.3"
   }
 }

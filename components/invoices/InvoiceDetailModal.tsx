@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   X,
   Download,
@@ -22,7 +22,9 @@ import { Button, ConfirmDialog, Input } from '@/components/admin/ui';
 import { InvoiceDTO } from '@/modules/invoices';
 import { formatCurrency } from '@/modules/invoices/domain/value-objects/currency';
 import { formatAuDisplayDate, formatAuDisplayDateTime } from '@/lib/format/australian-time';
-import { sendInvoiceTestEmailAction } from '@/app/actions/invoices';
+import { fetchInvoiceRenderDataAction, sendInvoiceTestEmailAction } from '@/app/actions/invoices';
+import { InvoiceRenderDTO } from '@/modules/invoices/application/dto/invoice-render-dto';
+import { LiveInvoiceRenderer } from './LiveInvoiceRenderer';
 
 interface InvoiceDetailModalProps {
   invoice: InvoiceDTO | null;
@@ -71,6 +73,32 @@ export function InvoiceDetailModal({
   const [actionError, setActionError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [renderDto, setRenderDto] = useState<InvoiceRenderDTO | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen || !invoice?.id) return;
+    let active = true;
+    setIsPreviewLoading(true);
+    setRenderDto(null);
+    setPreviewError(null);
+    fetchInvoiceRenderDataAction(invoice.id)
+      .then((data) => {
+        if (!active) return;
+        if (!data) throw new Error('The invoice preview could not be rendered.');
+        setRenderDto(data);
+      })
+      .catch((error: any) => {
+        if (active) setPreviewError(error.message || 'The invoice preview could not be rendered.');
+      })
+      .finally(() => {
+        if (active) setIsPreviewLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [invoice?.id, invoice?.updatedAt, isOpen]);
 
   if (!isOpen || !invoice) return null;
 
@@ -529,7 +557,30 @@ export function InvoiceDetailModal({
             </div>
           )}
 
-          {/* Party Details & Dates */}
+          {/* Canonical A4 preview: same InvoiceRenderDTO and HTML renderer used by PDF generation. */}
+          {isPreviewLoading && (
+            <div className="min-h-[520px] rounded-2xl border border-admin-border bg-admin-surface-subtle animate-pulse flex items-center justify-center text-sm font-semibold text-admin-muted">
+              Rendering PDF preview...
+            </div>
+          )}
+          {previewError && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs font-semibold text-amber-700 dark:text-amber-300">
+              {previewError} Showing invoice details instead.
+            </div>
+          )}
+          {renderDto && !isPreviewLoading && (
+            <LiveInvoiceRenderer
+              renderDto={renderDto}
+              showThemePicker={false}
+              autoFit
+              className="w-full"
+              canvasClassName="min-h-[540px]"
+            />
+          )}
+
+          {!renderDto && !isPreviewLoading && (
+          <>
+          {/* Fallback details remain available if preview rendering fails. */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Sender & Recipient Box */}
             <div className="bg-admin-surface-subtle border border-admin-border rounded-xl p-4 space-y-4">
@@ -671,6 +722,8 @@ export function InvoiceDetailModal({
                 </div>
               )}
             </div>
+          )}
+          </>
           )}
         </div>
 

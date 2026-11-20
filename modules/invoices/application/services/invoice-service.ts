@@ -192,6 +192,7 @@ export class InvoiceService {
       templateId: isUuid(dto.templateId) ? dto.templateId : null,
       automationId: dto.automationId || null,
       status: dto.autoIssue ? ('issued' as const) : ('draft' as const),
+      issuedAt: dto.autoIssue ? new Date().toISOString() : null,
       snapshot: initialSnapshot,
       items: calculation.items.map((item, idx) => ({
         description: dto.items[idx].description || 'Item',
@@ -207,11 +208,6 @@ export class InvoiceService {
     const result = await this.repository.create(createData, context);
     if (!result.success) {
       return err(result.error);
-    }
-
-    // If autoIssue requested, capture snapshot
-    if (dto.autoIssue && result.data) {
-      return this.issueInvoice(result.data.id, context);
     }
 
     return result;

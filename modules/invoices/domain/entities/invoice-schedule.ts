@@ -9,6 +9,8 @@ export type ScheduleStatus = 'active' | 'completed' | 'paused' | 'cancelled' | '
 
 export type EmailDeliveryStatus = 'scheduled' | 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled';
 
+export type InvoiceEmailJobType = 'recurring' | 'individual';
+
 export interface InvoiceEmailScheduleDTO {
   id: string;
   workspaceId: string;
@@ -54,8 +56,9 @@ export interface InvoiceEmailScheduleDTO {
 export interface InvoiceScheduledEmailJobDTO {
   id: string;
   workspaceId: string;
-  scheduleId: string;
+  scheduleId?: string | null;
   invoiceId: string;
+  jobType: InvoiceEmailJobType;
   
   recipientEmail: string;
   recipientName?: string | null;
@@ -82,6 +85,18 @@ export interface InvoiceScheduledEmailJobDTO {
   invoiceTotal?: number;
   invoiceStatus?: string;
   invoiceDueDate?: string;
+}
+
+export interface CreateIndividualInvoiceEmailInput {
+  invoiceIds: string[];
+  sendDate: string; // YYYY-MM-DD in Australia/Sydney
+  subject?: string;
+  customMessage?: string;
+}
+
+export interface IndividualInvoiceEmailResult {
+  scheduled: InvoiceScheduledEmailJobDTO[];
+  skipped: Array<{ invoiceId: string; invoiceNumber?: string; reason: string }>;
 }
 
 export interface ScheduleEmailStatsDTO {

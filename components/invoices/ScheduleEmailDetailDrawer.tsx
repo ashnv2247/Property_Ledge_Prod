@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -22,6 +23,9 @@ import {
   DollarSign,
   Layers,
   ChevronRight,
+  Eye,
+  Edit3,
+  CalendarClock,
 } from 'lucide-react';
 import { Button, useToast } from '@/components/admin/ui';
 import {
@@ -29,14 +33,33 @@ import {
   InvoiceScheduledEmailJobDTO,
 } from '@/modules/invoices/domain/entities/invoice-schedule';
 import { formatCurrency } from '@/modules/invoices/domain/value-objects/currency';
-import { formatAuDisplayDate, formatAuDisplayDateTime } from '@/lib/format/australian-time';
+import { formatAuDateIso, formatAuDisplayDate, formatAuDisplayDateTime, getAuTodayString } from '@/lib/format/australian-time';
 import {
   pauseInvoiceScheduleAction,
   resumeInvoiceScheduleAction,
   cancelInvoiceScheduleAction,
   retryScheduledEmailJobAction,
+  rescheduleInvoiceEmailJobAction,
 } from '@/app/actions/invoice-schedules';
+import {
+  fetchInvoiceByIdAction,
+  issueInvoiceAction,
+  sendInvoiceEmailAction,
+  updateInvoiceAction,
+} from '@/app/actions/invoices';
+import { InvoiceDTO, UpdateInvoiceDTO } from '@/modules/invoices';
 import { cn } from '@/lib/utils';
+
+const CreateInvoiceModal = dynamic(
+  () => import('./CreateInvoiceModal').then((mod) => mod.CreateInvoiceModal),
+  { ssr: false }
+);
+
+function tomorrowInSydney(): string {
+  const date = new Date(`${getAuTodayString()}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
 
 interface ScheduleEmailDetailDrawerProps {
   isOpen: boolean;
@@ -61,6 +84,11 @@ export function ScheduleEmailDetailDrawer({
   const [activeTab, setActiveTab] = useState<'overview' | 'invoices' | 'activity'>('overview');
   const [actionLoading, setActionLoading] = useState(false);
   const [retryingJobId, setRetryingJobId] = useState<string | null>(null);
+  const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null);
+  const [loadingInvoiceId, setLoadingInvoiceId] = useState<string | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<InvoiceDTO | null>(null);
+  const [reschedulingJobId, setReschedulingJobId] = useState<string | null>(null);
+  const [rescheduleDates, setRescheduleDates] = useState<Record<string, string>>({});
 
   if (!isOpen || !schedule) return null;
 
@@ -123,6 +151,96 @@ export function ScheduleEmailDetailDrawer({
     }
   };
 
+  const handleViewInvoice = (invoiceId: string) => {
+    window.open(`/api/invoices/${invoiceId}/pdf`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleEditInvoice = async (invoiceId: string) => {
+    setLoadingInvoiceId(invoiceId);
+    try {
+      const invoice = await fetchInvoiceByIdAction(invoiceId);
+      if (!invoice) throw new Error('Invoice could not be loaded.');
+      setEditingInvoice(invoice);
+    } catch (e: any) {
+      toast({ title: 'Unable to Edit Invoice', description: e.message, variant: 'destructive' });
+    } finally {
+      setLoadingInvoiceId(null);
+    }
+  };
+
+  const handleUpdateInvoice = async (invoiceId: string, dto: UpdateInvoiceDTO) => {
+    const result = await updateInvoiceAction(invoiceId, dto);
+    if (!result.success) throw new Error(result.error || 'Invoice update failed.');
+    toast({ title: 'Invoice Updated', description: 'The scheduled email will use the latest saved invoice and PDF.' });
+    setEditingInvoice(null);
+    await onRefresh();
+  };
+
+  const handleIssueExistingInvoice = async (
+    invoiceId: string,
+    dto: UpdateInvoiceDTO,
+    emailOptions?: { subject?: string; customMessage?: string; driveFolderUrl?: string },
+    downloadImmediately = false
+  ) => {
+    const updateResult = await updateInvoiceAction(invoiceId, { ...dto, status: 'draft' });
+    if (!updateResult.success) throw new Error(updateResult.error || 'Invoice update failed.');
+    const issueResult = await issueInvoiceAction(invoiceId);
+    if (!issueResult.success) throw new Error(issueResult.error || 'Invoice issue failed.');
+    if (emailOptions) {
+      const emailResult = await sendInvoiceEmailAction(
+        invoiceId,
+        emailOptions.customMessage,
+        emailOptions.driveFolderUrl,
+        emailOptions.subject
+      );
+      if (!emailResult.success) throw new Error(emailResult.error || 'Invoice issued, but email delivery failed.');
+    }
+    if (downloadImmediately) window.open(`/api/invoices/${invoiceId}/pdf?download=1`, '_blank', 'noopener,noreferrer');
+    toast({ title: 'Invoice Issued', description: 'The existing draft was updated and issued.' });
+    setEditingInvoice(null);
+    await onRefresh();
+  };
+
+  const handleSendInvoiceNow = async (invoiceId: string) => {
+    if (!window.confirm('Send this invoice email now? Its latest PDF will be generated before delivery.')) return;
+    setSendingInvoiceId(invoiceId);
+    try {
+      const existingJob = emailJobs.find((job) => job.invoiceId === invoiceId && ['scheduled', 'pending', 'failed'].includes(job.status));
+      if (existingJob && schedule.status !== 'active') {
+        throw new Error('Resume this schedule before sending its pending email now.');
+      }
+      const result = existingJob
+        ? await retryScheduledEmailJobAction(existingJob.id)
+        : await sendInvoiceEmailAction(invoiceId);
+      if (!result.success) throw new Error(result.error || 'Email delivery failed.');
+      toast({ title: 'Invoice Email Sent', description: 'The invoice and latest PDF were delivered successfully.' });
+      await onRefresh();
+    } catch (e: any) {
+      toast({ title: 'Email Failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setSendingInvoiceId(null);
+    }
+  };
+
+  const handleRescheduleJob = async (jobId: string) => {
+    const sendDate = rescheduleDates[jobId];
+    if (!sendDate) {
+      toast({ title: 'Choose a Date', description: 'Select a future delivery date first.', variant: 'destructive' });
+      return;
+    }
+    setReschedulingJobId(jobId);
+    try {
+      const result = await rescheduleInvoiceEmailJobAction(jobId, sendDate);
+      if (!result.success) throw new Error(result.error || 'Unable to change scheduled date.');
+      toast({ title: 'Delivery Date Updated', description: `Email rescheduled for ${formatAuDisplayDate(sendDate)}.` });
+      await onRefresh();
+    } catch (e: any) {
+      toast({ title: 'Reschedule Failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setReschedulingJobId(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -159,6 +277,7 @@ export function ScheduleEmailDetailDrawer({
   };
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex justify-end">
       {/* Backdrop */}
       <motion.div
@@ -434,16 +553,38 @@ export function ScheduleEmailDetailDrawer({
                           </span>
                         </div>
 
-                        {onViewInvoice && (
+                        <div className="flex items-center gap-1 border-l border-slate-200 pl-2 dark:border-slate-700">
                           <button
                             type="button"
-                            onClick={() => onViewInvoice(inv.id)}
+                            onClick={() => onViewInvoice ? onViewInvoice(inv.id) : handleViewInvoice(inv.id)}
                             className="p-2 text-slate-400 hover:text-[#008F83] hover:bg-[#008F83]/10 rounded-lg transition-colors"
-                            title="View Invoice"
+                            title="View Invoice PDF"
                           >
-                            <ArrowUpRight className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
-                        )}
+                          {!['paid', 'cancelled', 'void'].includes(inv.status) && (
+                            <button
+                              type="button"
+                              onClick={() => handleEditInvoice(inv.id)}
+                              disabled={loadingInvoiceId === inv.id}
+                              className="p-2 text-slate-400 hover:text-[#008F83] hover:bg-[#008F83]/10 rounded-lg transition-colors disabled:opacity-50"
+                              title="Edit Invoice"
+                            >
+                              <Edit3 className={cn('w-4 h-4', loadingInvoiceId === inv.id && 'animate-pulse')} />
+                            </button>
+                          )}
+                          {!['cancelled', 'void'].includes(inv.status) && (
+                            <button
+                              type="button"
+                              onClick={() => handleSendInvoiceNow(inv.id)}
+                              disabled={sendingInvoiceId === inv.id}
+                              className="p-2 text-slate-400 hover:text-[#008F83] hover:bg-[#008F83]/10 rounded-lg transition-colors disabled:opacity-50"
+                              title="Send Email Now"
+                            >
+                              <Send className={cn('w-4 h-4', sendingInvoiceId === inv.id && 'animate-pulse')} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))
@@ -491,6 +632,28 @@ export function ScheduleEmailDetailDrawer({
                         <div className="text-[11px] text-slate-500 mt-1 space-y-0.5">
                           <div>Recipient: {job.recipientEmail}</div>
                           <div>Scheduled: {formatAuDisplayDateTime(job.scheduledSendDate)}</div>
+                          {['scheduled', 'pending'].includes(job.status) && (
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <input
+                                type="date"
+                                aria-label={`New send date for ${job.invoiceNumber || 'invoice'}`}
+                                min={tomorrowInSydney()}
+                                value={rescheduleDates[job.id] ?? formatAuDateIso(job.scheduledSendDate)}
+                                onChange={(event) => setRescheduleDates((current) => ({ ...current, [job.id]: event.target.value }))}
+                                className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 outline-none focus:border-[#008F83] dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRescheduleJob(job.id)}
+                                disabled={reschedulingJobId === job.id}
+                                className="h-8 text-[11px] font-bold"
+                              >
+                                <CalendarClock className="mr-1 h-3.5 w-3.5" />
+                                {reschedulingJobId === job.id ? 'Saving...' : 'Change Date'}
+                              </Button>
+                            </div>
+                          )}
                           {job.deliveredAt && (
                             <div className="text-emerald-600 font-medium">
                               Delivered: {formatAuDisplayDateTime(job.deliveredAt)}
@@ -527,6 +690,18 @@ export function ScheduleEmailDetailDrawer({
         </div>
       </motion.div>
     </div>
+    {editingInvoice && (
+      <CreateInvoiceModal
+        isOpen
+        invoiceToEdit={editingInvoice}
+        onClose={() => setEditingInvoice(null)}
+        onSubmit={async () => ({ success: false })}
+        onUpdate={handleUpdateInvoice}
+        onIssueExisting={handleIssueExistingInvoice}
+        initialPropertyId={editingInvoice.propertyId || undefined}
+      />
+    )}
+    </>
   );
 }
 

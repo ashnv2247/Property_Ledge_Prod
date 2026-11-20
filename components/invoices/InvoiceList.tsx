@@ -9,7 +9,6 @@ import {
   Search,
   Filter,
   Download,
-  Mail,
   DollarSign,
   RefreshCw,
   ArrowUpDown,
@@ -29,6 +28,7 @@ import {
   Edit3,
   LayoutTemplate,
   CalendarRange,
+  MailClock,
   Calendar,
   Sparkles,
   FolderTree,
@@ -70,6 +70,10 @@ const InvoiceDetailModal = dynamic(
 );
 const ScheduleEmailModal = dynamic(
   () => import('./ScheduleEmailModal').then((mod) => mod.ScheduleEmailModal),
+  { ssr: false }
+);
+const ScheduleIndividualEmailModal = dynamic(
+  () => import('./ScheduleIndividualEmailModal').then((mod) => mod.ScheduleIndividualEmailModal),
   { ssr: false }
 );
 
@@ -118,6 +122,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isScheduleEmailOpen, setIsScheduleEmailOpen] = useState(false);
   const [invoiceToSchedule, setInvoiceToSchedule] = useState<InvoiceDTO | null>(null);
+  const [individualEmailInvoices, setIndividualEmailInvoices] = useState<InvoiceDTO[]>([]);
   const [invoiceToEdit, setInvoiceToEdit] = useState<InvoiceDTO | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceDTO | null>(null);
   const [invoiceToDelete, setInvoiceToDelete] = useState<InvoiceDTO | null>(null);
@@ -242,12 +247,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
     }
 
     if (issueImmediately) {
-      const issueRes = await issueInvoiceAction(res.invoice.id);
-      if (!issueRes.success) {
-        throw new Error(issueRes.error || 'Failed to issue invoice');
-      }
-
-      if (emailOptions && (emailOptions.subject || emailOptions.customMessage || emailOptions.driveFolderUrl || dto.recipientEmail)) {
+      if (emailOptions) {
         try {
           await sendInvoiceEmailAction(
             res.invoice.id,
@@ -274,6 +274,34 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
       description: `Invoice ${res.invoice.invoiceNumber} created ${issueImmediately ? 'and issued ' : ''}successfully.${downloadImmediately ? ' Downloading PDF...' : ''}`,
     });
     loadInvoices();
+  };
+
+  const handleIssueExisting = async (
+    id: string,
+    dto: UpdateInvoiceDTO,
+    emailOptions?: { subject?: string; customMessage?: string; driveFolderUrl?: string },
+    downloadImmediately = false
+  ) => {
+    const updateRes = await updateInvoiceAction(id, { ...dto, status: 'draft' });
+    if (!updateRes.success) throw new Error(updateRes.error || 'Failed to save draft changes');
+
+    const issueRes = await issueInvoiceAction(id);
+    if (!issueRes.success) throw new Error(issueRes.error || 'Failed to issue invoice');
+
+    if (emailOptions) {
+      const emailRes = await sendInvoiceEmailAction(
+        id,
+        emailOptions.customMessage,
+        emailOptions.driveFolderUrl,
+        emailOptions.subject
+      );
+      if (!emailRes.success) throw new Error(emailRes.error || 'Invoice issued, but email delivery failed');
+    }
+    if (downloadImmediately) await handleDownload(id, 'pdf');
+
+    toast({ title: 'Invoice Issued', description: `Invoice ${issueRes.invoice?.invoiceNumber || ''} was updated and issued without creating a duplicate.` });
+    setInvoiceToEdit(null);
+    await loadInvoices();
   };
 
   const handleUpdateSubmit = async (id: string, dto: UpdateInvoiceDTO) => {
@@ -398,13 +426,16 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
   const bulkActions = useMemo<BulkAction[]>(
     () => [
       {
-        label: 'Schedule Email',
-        icon: <CalendarRange className="w-3.5 h-3.5 text-[#008F83]" />,
+        label: 'Schedule Individual Email',
+        icon: <MailClock className="w-3.5 h-3.5 text-[#008F83]" />,
         onClick: (selectedRows: InvoiceDTO[]) => {
           const valid = (selectedRows || []).filter((inv) => !(inv as any).isBatchHeader);
           if (valid.length === 0) return;
-          setInvoiceToSchedule(valid[0]);
-          setIsScheduleEmailOpen(true);
+          if (valid.length > 20) {
+            toast({ title: 'Too many invoices selected', description: 'Schedule up to 20 invoices at once.', variant: 'destructive' });
+            return;
+          }
+          setIndividualEmailInvoices(valid);
         },
       },
       {
@@ -999,9 +1030,19 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
                   setIsScheduleEmailOpen(true);
                 }}
                 className="p-1 text-admin-muted hover:text-[#008F83] hover:bg-[#008F83]/10 rounded transition-colors"
-                title="Schedule Recurring Email"
+                title="Bulk Generate"
               >
                 <CalendarRange className="w-3.5 h-3.5 text-[#008F83]" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIndividualEmailInvoices([row]);
+                }}
+                className="p-1 text-admin-muted hover:text-[#008F83] hover:bg-[#008F83]/10 rounded transition-colors"
+                title="Schedule Individual Email"
+              >
+                <MailClock className="w-3.5 h-3.5 text-[#008F83]" />
               </button>
               {canEdit && (
                 <button
@@ -1088,8 +1129,8 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
               size="sm"
               className="font-bold border-admin-border hover:bg-admin-surface-subtle text-admin-foreground text-xs flex items-center gap-1.5"
             >
-              <Mail className="w-3.5 h-3.5 text-[#008F83]" />
-              Schedule Email
+              <CalendarRange className="w-3.5 h-3.5 text-[#008F83]" />
+              Bulk Generate
             </Button>
           </Link>
 
@@ -1371,8 +1412,8 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
                   if (params.data?.isBatchChild) return 'ag-row-batch-child';
                   return '';
                 },
-                isRowSelectable: (node) => !node.data?.isBatchHeader,
               }}
+              isRowSelectable={(node) => !(node.data as any)?.isBatchHeader}
               disablePagination={true}
             />
           </ListPageGrid>
@@ -1518,9 +1559,16 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
                             setIsScheduleEmailOpen(true);
                           }}
                           className="p-1.5 text-admin-muted hover:text-[#008F83] hover:bg-[#008F83]/10 rounded-md transition-colors"
-                          title="Schedule Recurring Email"
+                          title="Bulk Generate"
                         >
                           <CalendarRange className="w-3.5 h-3.5 text-[#008F83]" />
+                        </button>
+                        <button
+                          onClick={() => setIndividualEmailInvoices([inv])}
+                          className="p-1.5 text-admin-muted hover:text-[#008F83] hover:bg-[#008F83]/10 rounded-md transition-colors"
+                          title="Schedule Individual Email"
+                        >
+                          <MailClock className="w-3.5 h-3.5 text-[#008F83]" />
                         </button>
                         <button
                           onClick={() => handleDownload(inv.id, 'pdf')}
@@ -1563,6 +1611,7 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
           onSubmit={handleCreateSubmit}
           invoiceToEdit={invoiceToEdit}
           onUpdate={handleUpdateSubmit}
+          onIssueExisting={handleIssueExisting}
           initialPropertyId={activePropertyId || undefined}
         />
       )}
@@ -1580,6 +1629,15 @@ export function InvoiceList({ initialInvoices }: { initialInvoices?: InvoiceDTO[
           onSuccess={() => {
             loadInvoices();
           }}
+        />
+      )}
+
+      {individualEmailInvoices.length > 0 && (
+        <ScheduleIndividualEmailModal
+          isOpen
+          invoices={individualEmailInvoices}
+          onClose={() => setIndividualEmailInvoices([])}
+          onSuccess={() => loadInvoices()}
         />
       )}
 
